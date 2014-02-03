@@ -1,0 +1,8 @@
+.*\.o
+py
+tests
+scribbles
+\.idea
+\.settings
+\.c?project
+.*\.iml
