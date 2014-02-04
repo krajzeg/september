@@ -53,6 +53,11 @@ typedef enum SepErrorType {
 		// a catch-all error for any corruption of the module file being read
 		EMalformedModuleFile = 0xFFFF0104,
 
+	// runtime errors
+	ERuntime = 0xFF000200,
+		// a type mismatch occured
+		ETypeMismatch = 0xFFFF0201,
+
 	// fatal runtime errors
 	EFatal = 0xFF000200,
 		// running out of memory for objects at runtime
@@ -113,6 +118,8 @@ SepError e_malformed_module_file(const char *detail);
 SepError e_out_of_memory();
 SepError e_not_implemented_yet(const char *what);
 
+SepError e_type_mismatch(const char *what, const char *expected_type);
+
 // ===============================================================
 // Macros for easier error handling
 // ===============================================================
@@ -122,8 +129,8 @@ SepError e_not_implemented_yet(const char *what);
 #define or_go(label) ; if (err.type && (!err.handled)) { *out_err = err; goto label; };
 #define or_handle(error_type) ; if (error_matches(err, error_type) && (err.handled = true))
 
-#define _fail1(error) do { *out_err = error; return; } while(0);
-#define _fail2(rv,error) do { *out_err = error; return rv; } while(0);
+#define _fail1(error) do { *out_err = error; return; } while(0)
+#define _fail2(rv,error) do { *out_err = error; return rv; } while(0)
 #define _fail_macro_name(_2, _1, name, ...) name
 #define fail(...) _fail_macro_name(__VA_ARGS__, _fail2, _fail1)(__VA_ARGS__)
 

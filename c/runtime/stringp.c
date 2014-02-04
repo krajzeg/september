@@ -18,16 +18,18 @@
 #include "../vm/functions.h"
 #include "../vm/vm.h"
 #include "runtime.h"
+#include "support.h"
 #include "string.h"
 
 // ===============================================================
 // Methods
 // ===============================================================
 
-SepItem string_upper(SepObj *parameters, ExecutionFrame *frame) {
-	SepString *this = sepv_to_str(props_get_prop(parameters, sepstr_create("this")));
-	SepString *upper_str = mem_allocate(sepstr_allocation_size(this->content));
+SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepString *this = target_as_str(scope, &err); or_raise(NULL);
 
+	SepString *upper_str = mem_allocate(sepstr_allocation_size(this->content));
 	upper_str->length = this->length;
 	char *src = this->content;
 	char *dest = upper_str->content;

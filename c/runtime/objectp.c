@@ -16,6 +16,7 @@
 #include "../vm/objects.h"
 #include "../vm/exceptions.h"
 #include "../vm/vm.h"
+#include "support.h"
 #include "objectp.h"
 
 // ===============================================================
@@ -23,57 +24,43 @@
 // ===============================================================
 
 // The '.' property access operator, valid for all objects.
-SepItem object_op_dot(SepObj *p, ExecutionFrame *frame) {
-	SepV host = props_get_prop(p, sepstr_create("this"));
-	SepV property_v = props_get_prop(p, sepstr_create("property_name"));
-	if (!sepv_is_func(property_v)) {
-		return si_exception(NULL,
-				sepstr_sprintf("Incorrect expression used as property name for the '.' operator."));
-	}
-	SepV property_name_v = vm_resolve_as_literal(frame->vm, sepv_to_func(property_v));
-	if (!sepv_is_str(property_name_v)) {
-		return si_exception(NULL,
-				sepstr_sprintf("Incorrect expression used as property name for the '.' operator."));
-	}
+SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepV host_v = target(scope);
+	SepFunc *property_name_l = param_as_func(scope, "property_name", &err);
+		or_raise(NULL);
 
-	SepItem property_value = sepv_get(host, sepv_to_str(property_name_v));
+	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_l);
+	SepString *property_name = cast_as_str(property_name_v, &err);
+		or_raise_with_msg(NULL, "Incorrect expression used as property name for the ':' operator.");
+
+	SepItem property_value = sepv_get(host_v, property_name);
 	return property_value;
 }
 
 // The ':' property creation operator, valid for all objects.
-SepItem object_op_colon(SepObj *p, ExecutionFrame *frame) {
-	SepV host_v = props_get_prop(p, sepstr_create("this"));
-	if (!sepv_is_obj(host_v)) {
-		return si_exception(NULL,
-				sepstr_sprintf("New properties cannot be created on non-objects."));
-	}
-	SepObj *host = sepv_to_obj(host_v);
+SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepObj *host = target_as_obj(scope, &err);
+		or_raise(NULL);
+	SepFunc *property_name_l = param_as_func(scope, "property_name", &err);
+		or_raise(NULL);
 
-	SepV property_v = props_get_prop(p, sepstr_create("property_name"));
-	if (!sepv_is_func(property_v)) {
-		return si_exception(NULL,
-				sepstr_sprintf("Incorrect expression used as property name for the ':' operator."));
-	}
-	SepV property_name_v = vm_resolve_as_literal(frame->vm, sepv_to_func(property_v));
-	if (!sepv_is_str(property_name_v)) {
-		return si_exception(NULL,
-				sepstr_sprintf("Incorrect expression used as property name for the ':' operator."));
-	}
-
-	SepString *property = sepv_to_str(property_name_v);
+	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_l);
+	SepString *property_name = cast_as_str(property_name_v, &err);
+		or_raise_with_msg(NULL, "Incorrect expression used as property name for the ':' operator.");
 
 	// check if it already exists
-	if (props_find_prop(host, property)) {
-		return si_exception(NULL,
-				sepstr_sprintf("Property '%s' cannot be created because it already exists.", sepstr_to_cstr(property)));
+	if (props_find_prop(host, property_name)) {
+		raise(NULL, "Property '%s' cannot be created because it already exists.", sepstr_to_cstr(property_name));
 	}
 
 	// create the field
-	props_accept_prop(host, property, field_create(SEPV_NOTHING));
+	props_accept_prop(host, property_name, field_create(SEPV_NOTHING));
 
 	// return the slot for reassigning (reacquire it as it could have been moved
 	// in memory)
-	Slot *slot = props_find_prop(host, property);
+	Slot *slot = props_find_prop(host, property_name);
 	return item_lvalue(slot, SEPV_NOTHING);
 }
 

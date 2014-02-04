@@ -12,6 +12,7 @@
 
 #include "objectp.h"
 #include "stringp.h"
+#include "support.h"
 
 // ===============================================================
 //  Prototype objects
@@ -24,16 +25,12 @@ SepObj *proto_String;
 //  Built-in functions
 // ===============================================================
 
-SepItem print_impl(SepObj *parameters, ExecutionFrame *frame) {
+SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepString *to_print = param_as_str(scope, "what", &err);
+		or_raise_with_msg(NULL, "print() only handles strings for now.");
 
-	SepV object_to_print = props_get_prop(parameters, sepstr_create("what"));
-	if (!sepv_is_str(object_to_print)) {
-		return si_exception(NULL, sepstr_create("print() expects a string for now."));
-	}
-	const char *string_to_print = sepstr_to_cstr(sepv_to_str(object_to_print));
-
-	printf("%s\n", string_to_print);
-
+	printf("%s\n", sepstr_to_cstr(to_print));
 	return item_rvalue(SEPV_NOTHING);
 }
 

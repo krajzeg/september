@@ -16,6 +16,8 @@ SepError e_malformed_module_file(const char *detail) { return error_create(EMalf
 SepError e_out_of_memory() { return error_create(EOutOfMemory, "Out of memory."); }
 SepError e_not_implemented_yet(const char *what) { return error_create(ENotImplementedYet, "Missing implementation for: %s.", what); }
 
+SepError e_type_mismatch(const char *what, const char *expected_type) { return error_create(ETypeMismatch, "%s was expected to be of type '%s'", what, expected_type); }
+
 /*****************************************************************/
 
 SepError error_create(SepErrorType type, const char *message_fmt, ...) {
