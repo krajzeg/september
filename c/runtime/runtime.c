@@ -10,8 +10,6 @@
 #include "../vm/exceptions.h"
 #include "../vm/vm.h"
 
-#include "objectp.h"
-#include "stringp.h"
 #include "support.h"
 
 // ===============================================================
@@ -23,10 +21,12 @@ SepObj *proto_String;
 SepObj *proto_Integer;
 
 // ===============================================================
-//  Prototype access
+//  Prototype creation methods
 // ===============================================================
 
+SepObj *create_object_prototype();
 SepObj *create_integer_prototype();
+SepObj *create_string_prototype();
 
 // ===============================================================
 //  Built-in functions

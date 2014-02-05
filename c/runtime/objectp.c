@@ -17,7 +17,6 @@
 #include "../vm/exceptions.h"
 #include "../vm/vm.h"
 #include "support.h"
-#include "objectp.h"
 
 // ===============================================================
 //  Common operators

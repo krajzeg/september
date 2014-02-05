@@ -19,7 +19,6 @@
 #include "../vm/vm.h"
 #include "runtime.h"
 #include "support.h"
-#include "string.h"
 
 // ===============================================================
 // Methods
