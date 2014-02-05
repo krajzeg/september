@@ -212,12 +212,35 @@ void vm_free(SepVM *this) {
 	free(this);
 }
 
+// ===============================================================
+//  Resolving lazy values
+// ===============================================================
+
 // Uses the VM to resolve a lazy value.
-SepV vm_resolve(SepVM *this, SepFunc *func) {
-	// setup a new frame as if this was a call
+SepV vm_resolve(SepVM *this, SepV lazy_value) {
+	if (sepv_is_func(lazy_value)) {
+		// function - resolve it in it's default scope
+		SepFunc *func = sepv_to_func(lazy_value);
+		SepObj *scope = func->vt->get_declaration_scope(func);
+		return vm_resolve_in(this, lazy_value, obj_to_sepv(scope));
+	} else {
+		// not a function, no resolution needed
+		return lazy_value;
+	}
+}
+
+// Uses the VM to resolve a lazy value in a specified scope (instead
+// of in its parent scope).
+SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
+	// maybe it doesn't need resolving?
+	if (!sepv_is_func(lazy_value))
+		return lazy_value;
+
+	// it does - extract the function and set up a frame for it
+	SepFunc *func = sepv_to_func(lazy_value);
 	this->frame_depth++;
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
-	vm_initialize_frame_for(this, frame, func, obj_to_sepv(obj_create()));
+	vm_initialize_frame_for(this, frame, func, scope);
 
 	// run from that point until 'func' returns
 	SepV return_value = vm_run(this);
@@ -226,15 +249,9 @@ SepV vm_resolve(SepVM *this, SepFunc *func) {
 	return return_value;
 }
 
-SepV vm_resolve_as_literal(SepVM *this, SepFunc *func) {
-	// setup a new frame as if this was a call
-	this->frame_depth++;
-	ExecutionFrame *frame = &this->frames[this->frame_depth];
-	vm_initialize_frame_for(this, frame, func, SEPV_LITERALS);
-
-	// run from that point until 'func' returns
-	SepV return_value = vm_run(this);
-
-	// return its return value
-	return return_value;
+// Uses the VM to resolve a lazy value to the identifier that it names.
+// This uses a special "Literals" scope in which every identifier resolves
+// to itself.
+SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value) {
+	return vm_resolve_in(this, lazy_value, SEPV_LITERALS);
 }

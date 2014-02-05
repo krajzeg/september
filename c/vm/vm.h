@@ -112,9 +112,15 @@ void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, 
 void vm_free(SepVM *this);
 
 // Uses the VM to resolve a lazy value.
-SepV vm_resolve(SepVM *this, SepFunc *func);
-// Uses the VM to resolve a lazy value as a literal.
-SepV vm_resolve_as_literal(SepVM *this, SepFunc *func);
+SepV vm_resolve(SepVM *this, SepV lazy_value);
+// Uses the VM to resolve a lazy value in a specified scope (instead
+// of in its parent scope). Used together with SEPV_LITERALS allows
+// resolving expressions like 'name' to the string "name".
+SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope);
+// Uses the VM to resolve a lazy value to the identifier that it names.
+// This uses a special "Literals" scope in which every identifier resolves
+// to itself.
+SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value);
 
 /*****************************************************************/
 

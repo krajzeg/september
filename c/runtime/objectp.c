@@ -27,10 +27,8 @@
 SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepV host_v = target(scope);
-	SepFunc *property_name_l = param_as_func(scope, "property_name", &err);
-		or_raise(NULL);
-
-	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_l);
+	SepV property_name_lv = param(scope, "property_name");
+	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
 		or_raise_with_msg(NULL, "Incorrect expression used as property name for the ':' operator.");
 
@@ -43,10 +41,9 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(NULL);
-	SepFunc *property_name_l = param_as_func(scope, "property_name", &err);
-		or_raise(NULL);
+	SepV property_name_lv = param(scope, "property_name");
 
-	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_l);
+	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
 		or_raise_with_msg(NULL, "Incorrect expression used as property name for the ':' operator.");
 

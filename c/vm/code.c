@@ -79,7 +79,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 				SepFunc *func = (SepFunc*)ifunc_create(
 						frame_block(frame, -argument_code),
 						sepv_to_obj(frame->locals)); // TODO: check this
-				SepV resolved_value = vm_resolve(frame->vm, func);
+				SepV resolved_value = vm_resolve(frame->vm, func_to_sepv(func));
 				if (sepv_is_exception(resolved_value)) {
 					frame_raise(frame, resolved_value);
 					return;
