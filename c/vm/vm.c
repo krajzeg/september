@@ -180,9 +180,9 @@ void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, 
 		SepObj *scope_object = func->vt->get_declaration_scope(func);
 		SepArray *prototypes = array_create(4);
 		array_push(prototypes, obj_to_sepv(this->builtins));
-		if (this_ptr != SEPV_NOTHING)
+		if ((this_ptr != SEPV_NOTHING) && (this_ptr != locals))
 			array_push(prototypes, this_ptr);
-		if (scope_object)
+		if ((scope_object) && (scope_object != locals_obj))
 			array_push(prototypes, obj_to_sepv(scope_object));
 		array_push(prototypes, obj_to_sepv(proto_Object));
 

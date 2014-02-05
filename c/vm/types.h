@@ -9,14 +9,43 @@
 
 /*******************************************************************/
 
+// ===============================================================
+//  Basic types for representing data.
+// ===============================================================
+
 /**
  * SepV is the 'Any' type used by September. You can store any type
  * of value directly available in September in a SepV. The top 3 bits
  * signify the type (see below for the 8 types available), while the
- * rest controls the actual value.
+ * rest defines the actual value and is type-dependent.
  */
 
 typedef uint64_t SepV;
+
+/**
+ * SepItem is what actually gets stored on the data stack. In addition
+ * to a value represented by a SepV, it also stores the value's origin -
+ * the slot it came from. This slot can be used to implement things
+ * like the assignment operator. The 'origin' is NULL in case of
+ * r-values which don't come from a slot.
+ */
+typedef struct SepItem {
+	// the slot this value came from
+	struct Slot *origin;
+	// the value itself
+	SepV value;
+} SepItem;
+
+// Creates a new r-value stack item from a SepV.
+SepItem item_rvalue(SepV value);
+// Creates a new l-value stack item from a slot and its value.
+SepItem item_lvalue(struct Slot *slot, SepV value);
+// Checks if an item is an l-value and can be assigned to.
+#define item_is_lvalue(item) (item.slot != NULL)
+
+// ===============================================================
+//  SepV type-related constants
+// ===============================================================
 
 // mask for the type bits
 #define SEPV_TYPE_MASK    (7ull << 61)
@@ -26,7 +55,7 @@ typedef uint64_t SepV;
 // integers: 61-bit signed integers
 #define SEPV_TYPE_INT     (0ull << 61)
 
-// floats: truncated 64-bit double precision floats
+// floats: truncated IEEE 64-bit double precision floats
 // (3 least significant digits lost)
 #define SEPV_TYPE_FLOAT   (1ull << 61)
 
@@ -48,10 +77,14 @@ typedef uint64_t SepV;
 
 // exceptions: this type is only used for already thrown,
 // live exceptions. This type on a return value from a function
-// means that an exception was thrown. Should a function just
-// return an exception, it would do it through an OBJECT type
-// value.
+// means that the exception was thrown from within. Should a function
+// want to just return an exception, it would do it through a
+// value with the type OBJECT.
 #define SEPV_TYPE_EXCEPTION (7ull << 61)
+
+// ===============================================================
+//  Special values
+// ===============================================================
 
 /**
  * All the special constants that go into SEPV_TYPE_SPECIAL.
@@ -67,6 +100,18 @@ typedef uint64_t SepV;
 // a special object that possesses all possible properties, and
 // the value of each property is simply its name
 #define SEPV_LITERALS (SEPV_TYPE_SPECIAL | 0x04)
+
+// ===============================================================
+//  Integers
+// ===============================================================
+
+typedef int64_t SepInt;
+
+#define sepv_is_int(v) (((v) & SEPV_TYPE_MASK) == SEPV_TYPE_INT)
+#define sepv_to_int(v) ((SepInt)(((v) << 3) >> 3))
+#define int_to_sepv(v) ((SepV)((SepInt)v) &~ SEPV_TYPE_MASK)
+
+SepItem si_int(SepInt integer);
 
 // ===============================================================
 //  Strings

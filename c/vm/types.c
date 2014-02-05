@@ -20,6 +20,31 @@
 #include "../common/errors.h"
 #include "mem.h"
 #include "types.h"
+#include "objects.h"
+
+// ===============================================================
+//  L-values and R-values
+// ===============================================================
+
+// Creates a new r-value stack item from a SepV.
+SepItem item_rvalue(SepV value) {
+	SepItem item = {NULL, value};
+	return item;
+}
+
+// Creates a new l-value stack item from a slot and its value.
+SepItem item_lvalue(Slot *slot, SepV value) {
+	SepItem item = {slot, value};
+	return item;
+}
+
+// ===============================================================
+//  Integers
+// ===============================================================
+
+SepItem si_int(SepInt integer) {
+	return item_rvalue(int_to_sepv(integer));
+}
 
 // ===============================================================
 //  Strings

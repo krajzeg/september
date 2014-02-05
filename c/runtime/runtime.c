@@ -20,28 +20,45 @@
 
 SepObj *proto_Object;
 SepObj *proto_String;
+SepObj *proto_Integer;
+
+// ===============================================================
+//  Prototype access
+// ===============================================================
+
+SepObj *create_integer_prototype();
 
 // ===============================================================
 //  Built-in functions
 // ===============================================================
 
-SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-	SepString *to_print = param_as_str(scope, "what", &err);
-		or_raise_with_msg(NULL, "print() only handles strings for now.");
+// hack for MinGW's strange printf situation
+#ifdef __MINGW32__
+#define printf __mingw_printf
+#endif
 
-	printf("%s\n", sepstr_to_cstr(to_print));
+SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
+	SepV to_print = param(scope, "what");
+
+	if (sepv_is_str(to_print)) {
+		printf("%s\n", sepstr_to_cstr(sepv_to_str(to_print)));
+	} else if (sepv_is_int(to_print)) {
+		printf("%lld\n", sepv_to_int(to_print));
+	} else {
+		raise(NULL, "print() supports strings and ints for now.");
+	}
 	return item_rvalue(SEPV_NOTHING);
 }
 
-void introduce_builtins(SepObj *scope) {
+void initialize_runtime(SepObj *scope) {
 	// === various prototypes
 	proto_Object = create_object_prototype();
+	proto_Integer = create_integer_prototype();
 	proto_String = create_string_prototype();
 
-	// === built in variables
-	props_add_field(scope, "version", sepv_string("0.1-adder"));
+	// === built-in variables
+	obj_add_field(scope, "version", sepv_string("0.1-aeon"));
 
-	// === built in functions
-	builtin_add(scope, "print", &print_impl, 1, "what");
+	// === built-in functions
+	obj_add_builtin_func(scope, "print", &print_impl, 1, "what");
 }

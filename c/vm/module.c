@@ -146,6 +146,14 @@ SepV cpool_add_string(ConstantPool *this, const char *c_string) {
 	return sepvs[this->constant_count++] = str_to_sepv(string);
 }
 
+// Adds a new integer constant at the next index.
+SepV cpool_add_int(ConstantPool *this, SepInt integer) {
+	log("cpool", "Adding constant %d: %lld", this->constant_count, integer);
+
+	SepV *sepvs = (SepV*)this->data;
+	return sepvs[this->constant_count++] = int_to_sepv(integer);
+}
+
 // Fetches a constant under a given 'index' from the pool.
 // Indices start from 1, since this is the format used in bytecode.
 SepV cpool_constant(ConstantPool *this, uint32_t index) {

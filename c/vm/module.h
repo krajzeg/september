@@ -89,6 +89,8 @@ ConstantPool *cpool_create(uint32_t num_constants);
 
 // Adds a new string constant at the next index.
 SepV cpool_add_string(ConstantPool *this, const char *c_string);
+// Adds a new integer constant at the next index.
+SepV cpool_add_int(ConstantPool *this, SepInt index);
 // Fetches a constant under a given 'index' from the pool.
 SepV cpool_constant(ConstantPool *this, uint32_t index);
 

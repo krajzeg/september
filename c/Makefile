@@ -7,6 +7,7 @@ OBJECTS = common/errors.o common/debugging.o common/garray.o \
   vm/code.o vm/exceptions.o vm/stack.o \
   io/decoder.o \
   runtime/runtime.o runtime/stringp.o runtime/objectp.o runtime/support.o \
+  runtime/integerp.o \
   september.o
 
 OBJECTS_WIN = $(subst /,\,$(OBJECTS))

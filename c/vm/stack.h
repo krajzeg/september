@@ -21,30 +21,6 @@
 #include "../common/garray.h"
 
 // ===============================================================
-//  Stack items
-// ===============================================================
-
-/**
- * All items on the stack store the slot they originated from, in
- * addition to the value. This allows operators like '=' to work by
- * enabling us to find the slot to assign to. The 'origin' will be
- * NULL if there is no slot that work (r-values).
- */
-typedef struct SepItem {
-	// the slot the value originated from
-	struct Slot *origin;
-	// the value itself
-	SepV value;
-} SepItem;
-
-// Creates a new r-value stack item from a SepV.
-SepItem item_rvalue(SepV value);
-// Creates a new l-value stack item from a slot and its value.
-SepItem item_lvalue(struct Slot *slot, SepV value);
-// Checks if an item is an l-value and can be assigned to.
-#define item_is_lvalue(item) (item.slot != NULL)
-
-// ===============================================================
 //  The data stack
 // ===============================================================
 

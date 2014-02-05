@@ -14,6 +14,7 @@
 // ===============================================================
 // Includes
 // ===============================================================
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -74,7 +75,7 @@ SepModule *read_module_from_file(const char *filename, SepError *out_err) {
 int run_program(SepModule *module) {
 	// create the VM
 	SepObj *builtins = obj_create_with_proto(SEPV_NOTHING);
-	introduce_builtins(builtins);
+	initialize_runtime(builtins);
 
 	SepVM *vm = vm_create(module, builtins);
 

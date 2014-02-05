@@ -328,6 +328,9 @@ SepV sepv_prototypes(SepV sepv) {
 		case SEPV_TYPE_OBJECT:
 			return sepv_to_obj(sepv)->prototypes;
 
+		case SEPV_TYPE_INT:
+			return obj_to_sepv(proto_Integer);
+
 		case SEPV_TYPE_STRING:
 			return obj_to_sepv(proto_String);
 
@@ -373,6 +376,12 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 			uint32_t length = array_length(prototypes);
 			uint32_t index = 0;
 			for (;index < length; index++) {
+				// get the prototype at the given index
+				SepV prototype = array_get(prototypes, index);
+				// skip cyclical references
+				if (prototype == sepv)
+					continue;
+				// look inside
 				Slot *proto_slot = sepv_lookup(array_get(prototypes, index), property);
 				if (proto_slot)
 					return proto_slot;
@@ -380,8 +389,9 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 			// none of the prototype objects contained the slot
 			return NULL;
 		} else if (sepv_is_simple_object(proto)) {
-			// a single prototype, recurse into it
-			return sepv_lookup(proto, property);
+			// a single prototype, recurse into it (if its not a cycle)
+			if (proto != sepv)
+				return sepv_lookup(proto, property);
 		}
 	}
 

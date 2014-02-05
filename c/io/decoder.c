@@ -32,8 +32,6 @@ enum OpcodeFlags {
 	MFILE_FLAG_SET = 0x10
 };
 
-
-
 // ===============================================================
 //  Internal constants
 // ===============================================================
@@ -178,6 +176,14 @@ ConstantPool *decoder_read_cpool(Decoder *this, SepError *out_err) {
 		uint8_t constant_type = decoder_read_byte(this, &err);
 			or_quit_with(pool);
 		switch(constant_type) {
+			case CT_INT:
+			{
+				SepInt integer = decoder_read_int(this, &err);
+					or_quit_with(pool);
+				cpool_add_int(pool, integer);
+				break;
+			}
+
 			case CT_STRING:
 			{
 				char *string = decoder_read_string(this, &err);

@@ -16,6 +16,7 @@
 //  Includes
 // ===============================================================
 
+#include <stdarg.h>
 #include <stdint.h>
 #include "types.h"
 #include "objects.h"
@@ -81,8 +82,10 @@ typedef struct BuiltInFunc {
 
 // Creates a new built-in based on a C function and September parameter names.
 BuiltInFunc *builtin_create(BuiltInImplFunc implementation, uint8_t parameters, ...);
-void builtin_add(SepObj *scope, char *name, BuiltInImplFunc implementation,
-	uint8_t parameters, ...);
+// Creates a new built-in based on a C function and September parameter names.
+// This version receives parameters as a pre-started va_list to allow use from
+// other var-arg functions.
+BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameters, va_list args);
 
 // ===============================================================
 //  Interpreted (September) functions
