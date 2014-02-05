@@ -51,14 +51,16 @@ SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
 }
 
 void initialize_runtime(SepObj *scope) {
-	// === various prototypes
+	// "Object" has to be initialized first, as its the prototype to all other prototypes
 	proto_Object = create_object_prototype();
+
+	// primitive types' prototypes are initialized here
 	proto_Integer = create_integer_prototype();
 	proto_String = create_string_prototype();
 
-	// === built-in variables
+	// built-in variables are initialized
 	obj_add_field(scope, "version", sepv_string("0.1-aeon"));
 
-	// === built-in functions
+	// built-in functions are initialized
 	obj_add_builtin_func(scope, "print", &print_impl, 1, "what");
 }

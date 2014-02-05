@@ -26,14 +26,7 @@
 //  Arithmetics
 // ===============================================================
 
-SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
-	// extract parameters
-	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-		or_raise(NULL);
-	SepInt int2 = param_as_int(scope, "other", &err);
-		or_raise(NULL);
-
+SepItem overflow_safe_add(SepInt int1, SepInt int2) {
 	// check for overflow
 	if ((int1 < 0) && (int2 < 0) && (INT_MIN - int1 > int2))
 		goto overflow;
@@ -47,6 +40,51 @@ overflow:
 	raise(NULL, "Numeric overflow: '%lld' + '%lld' doesn't fit in 61 bits.");
 }
 
+SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
+	// extract parameters
+	SepError err = NO_ERROR;
+	SepInt int1 = target_as_int(scope, &err);
+		or_raise(NULL);
+	SepInt int2 = param_as_int(scope, "other", &err);
+		or_raise(NULL);
+
+	return overflow_safe_add(int1, int2);
+}
+
+SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
+	// extract parameters
+	SepError err = NO_ERROR;
+	SepInt int1 = target_as_int(scope, &err);
+		or_raise(NULL);
+	SepInt int2 = param_as_int(scope, "other", &err);
+		or_raise(NULL);
+
+	return overflow_safe_add(int1, -int2);
+}
+
+SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
+	// extract parameters
+	SepError err = NO_ERROR;
+	SepInt int1 = target_as_int(scope, &err);
+		or_raise(NULL);
+	SepInt int2 = param_as_int(scope, "other", &err);
+		or_raise(NULL);
+
+	// TODO: check for overflow
+	return si_int(int1 * int2);
+}
+
+SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
+	// extract parameters
+	SepError err = NO_ERROR;
+	SepInt int1 = target_as_int(scope, &err);
+		or_raise(NULL);
+	SepInt int2 = param_as_int(scope, "other", &err);
+		or_raise(NULL);
+
+	return si_int(int1 / int2);
+}
+
 // ===============================================================
 //  Building the prototype
 // ===============================================================
@@ -56,6 +94,9 @@ SepObj *create_integer_prototype() {
 
 	// operators
 	obj_add_builtin_method(Integer, "+", integer_op_add, 1, "other");
+	obj_add_builtin_method(Integer, "-", integer_op_sub, 1, "other");
+	obj_add_builtin_method(Integer, "*", integer_op_mul, 1, "other");
+	obj_add_builtin_method(Integer, "/", integer_op_div, 1, "other");
 
 	// return prototype
 	return Integer;
