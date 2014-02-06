@@ -48,7 +48,7 @@ SepObj *create_nothing_prototype();
 #define printf __mingw_printf
 #endif
 
-SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
+SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepV to_print = param(scope, "what");
 	SepString *string;
@@ -80,6 +80,37 @@ SepItem print_impl(SepObj *scope, ExecutionFrame *frame) {
 	return si_nothing();
 }
 
+SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
+	SepV condition = param(scope, "condition");
+	if (condition == SEPV_TRUE) {
+		SepV body = param(scope, "body");
+		SepV return_value = vm_resolve(frame->vm, body);
+		return item_rvalue(return_value);
+	} else {
+		return si_nothing();
+	}
+}
+
+SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
+	SepV condition_l = param(scope, "condition");
+	SepV condition = vm_resolve(frame->vm, condition_l);
+
+	// not looping even once?
+	if (condition != SEPV_TRUE)
+		return si_nothing();
+
+	SepV body_l = param(scope, "body");
+	while (condition == SEPV_TRUE) {
+		// execute body
+		vm_resolve(frame->vm, body_l);
+		// recalculate condition
+		condition = vm_resolve(frame->vm, condition_l);
+	}
+
+	// while() has no return value
+	return si_nothing();
+}
+
 void initialize_runtime(SepObj *scope) {
 	// "Object" has to be initialized first, as its the prototype to all other prototypes
 	proto_Object = create_object_prototype();
@@ -96,6 +127,10 @@ void initialize_runtime(SepObj *scope) {
 	obj_add_field(scope, "True", SEPV_TRUE);
 	obj_add_field(scope, "False", SEPV_FALSE);
 
+	// flow control
+	obj_add_builtin_func(scope, "if", &func_if, 2, "condition", "body");
+	obj_add_builtin_func(scope, "while", &func_while, 2, "?condition", "body");
+
 	// built-in functions are initialized
-	obj_add_builtin_func(scope, "print", &print_impl, 1, "what");
+	obj_add_builtin_func(scope, "print", &func_print, 1, "what");
 }
