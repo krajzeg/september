@@ -91,6 +91,13 @@ SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	}
 }
 
+SepItem func_if_else(SepObj *scope, ExecutionFrame *frame) {
+	SepV condition = param(scope, "condition");
+	SepV body = param(scope, (condition == SEPV_TRUE) ? "true_branch" : "false_branch");
+	SepV return_value = vm_resolve(frame->vm, body);
+	return item_rvalue(return_value);
+}
+
 SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition_l = param(scope, "condition");
 	SepV condition = vm_resolve(frame->vm, condition_l);
@@ -102,7 +109,12 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV body_l = param(scope, "body");
 	while (condition == SEPV_TRUE) {
 		// execute body
-		vm_resolve(frame->vm, body_l);
+		SepV result = vm_resolve(frame->vm, body_l);
+		if (sepv_is_exception(result)) {
+			// propagate exceptions from body
+			return item_rvalue(result);
+		}
+
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
 	}
@@ -129,6 +141,7 @@ void initialize_runtime(SepObj *scope) {
 
 	// flow control
 	obj_add_builtin_func(scope, "if", &func_if, 2, "condition", "body");
+	obj_add_builtin_func(scope, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
 	obj_add_builtin_func(scope, "while", &func_while, 2, "?condition", "body");
 
 	// built-in functions are initialized
