@@ -102,6 +102,14 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 #define SEPV_LITERALS (SEPV_TYPE_SPECIAL | 0x04)
 
 // ===============================================================
+//  Booleans and special values
+// ===============================================================
+
+SepV sepv_bool(bool truth);
+SepItem si_bool(bool truth);
+#define si_nothing() item_rvalue(SEPV_NOTHING);
+
+// ===============================================================
 //  Integers
 // ===============================================================
 
@@ -141,3 +149,4 @@ const char *sepstr_to_cstr(SepString *sstring);
 /*******************************************************************/
 
 #endif
+

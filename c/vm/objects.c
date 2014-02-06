@@ -328,16 +328,16 @@ SepV sepv_prototypes(SepV sepv) {
 		case SEPV_TYPE_OBJECT:
 			return sepv_to_obj(sepv)->prototypes;
 
+		// primitive?
 		case SEPV_TYPE_INT:
 			return obj_to_sepv(proto_Integer);
 
 		case SEPV_TYPE_STRING:
 			return obj_to_sepv(proto_String);
 
-		// primitive?
+		// we don't know yet, so no prototypes for you
 		default:
-			fprintf(stderr, "Prototypes for type not implemented yet.");
-			exit(1);
+			return SEPV_NOTHING;
 	}
 }
 

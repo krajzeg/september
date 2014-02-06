@@ -39,6 +39,20 @@ SepItem item_lvalue(Slot *slot, SepV value) {
 }
 
 // ===============================================================
+//  Booleans
+// ===============================================================
+
+SepV sepv_bool(bool truth) {
+	return truth ? SEPV_TRUE : SEPV_FALSE;
+}
+
+SepItem si_bool(bool truth) {
+	static SepItem si_true = {NULL, SEPV_TRUE};
+	static SepItem si_false = {NULL, SEPV_FALSE};
+	return truth ? si_true : si_false;
+}
+
+// ===============================================================
 //  Integers
 // ===============================================================
 

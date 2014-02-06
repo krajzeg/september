@@ -213,8 +213,40 @@ void vm_free(SepVM *this) {
 }
 
 // ===============================================================
-//  Resolving lazy values
+//  Subcalls and lazy argument resolution
 // ===============================================================
+
+// Makes a subcall from within a built-in function. The result of the subcall is then returned.
+// Any number of parameters can be passed in, and they should be passed as SepVs.
+SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
+	// verify parameter count
+	uint8_t index;
+	uint8_t param_count = func->vt->get_parameter_count(func);
+	FuncParam *parameters = func->vt->get_parameters(func);
+	if (param_count != argument_count)
+		return si_exception(NULL, sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
+
+	// put parameters in
+	SepObj *scope = obj_create();
+	va_list args;
+	va_start(args, argument_count);
+	for (index = 0; index < argument_count; index++) {
+		SepV arg = va_arg(args, SepV);
+		FuncParam *param = &parameters[index];
+		props_accept_prop(scope, param->name, field_create(arg));
+	}
+	va_end(args);
+
+	// initialize an execution frame
+	this->frame_depth++;
+	ExecutionFrame *frame = &this->frames[this->frame_depth];
+	vm_initialize_frame_for(this, frame, func, obj_to_sepv(scope));
+
+	// run to get result
+	SepV result = vm_run(this);
+
+	return item_rvalue(result);
+}
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value) {

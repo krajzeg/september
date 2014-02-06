@@ -111,6 +111,14 @@ void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, 
 // Destroys a VM.
 void vm_free(SepVM *this);
 
+// ===============================================================
+//  Subcalls and lazy argument resolution
+// ===============================================================
+
+// Makes a subcall from within a built-in function. The result of the subcall is then returned.
+// Any number of parameters can be passed in, and they should be passed as SepVs.
+SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t parameter_count, ...);
+
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value);
 // Uses the VM to resolve a lazy value in a specified scope (instead
