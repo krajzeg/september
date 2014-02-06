@@ -23,6 +23,17 @@
 #define INT_MIN (-(1LL << 60))
 
 // ===============================================================
+//  Helpers
+// ===============================================================
+
+SepError get_params(SepObj *scope, SepInt *i1, SepInt *i2) {
+	SepError err = NO_ERROR;
+	SepInt int1 = target_as_int(scope, &err);
+	SepInt int2 = param_as_int(scope, "other", &err);
+	return err;
+}
+
+// ===============================================================
 //  Arithmetics
 // ===============================================================
 
@@ -41,48 +52,36 @@ overflow:
 }
 
 SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
-	// extract parameters
-	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-		or_raise(NULL);
-	SepInt int2 = param_as_int(scope, "other", &err);
+	SepInt a, b;
+	SepError err = get_params(&a, &b);
 		or_raise(NULL);
 
-	return overflow_safe_add(int1, int2);
+	return overflow_safe_add(a, b);
 }
 
 SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
-	// extract parameters
-	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-		or_raise(NULL);
-	SepInt int2 = param_as_int(scope, "other", &err);
+	SepInt a, b;
+	SepError err = get_params(&a, &b);
 		or_raise(NULL);
 
-	return overflow_safe_add(int1, -int2);
+	return overflow_safe_add(a, -b);
 }
 
 SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
-	// extract parameters
-	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-		or_raise(NULL);
-	SepInt int2 = param_as_int(scope, "other", &err);
+	SepInt a, b;
+	SepError err = get_params(&a, &b);
 		or_raise(NULL);
 
 	// TODO: check for overflow
-	return si_int(int1 * int2);
+	return si_int(a*b);
 }
 
 SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
-	// extract parameters
-	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-		or_raise(NULL);
-	SepInt int2 = param_as_int(scope, "other", &err);
+	SepInt a, b;
+	SepError err = get_params(&a, &b);
 		or_raise(NULL);
 
-	return si_int(int1 / int2);
+	return si_int(a/b);
 }
 
 // ===============================================================
