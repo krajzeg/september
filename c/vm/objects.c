@@ -388,16 +388,17 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 			}
 			// none of the prototype objects contained the slot
 			return NULL;
-		} else if (sepv_is_simple_object(proto)) {
+		} else {
 			// a single prototype, recurse into it (if its not a cycle)
 			if (proto != sepv)
 				return sepv_lookup(proto, property);
+			else
+				return NULL;
 		}
+	} else {
+		// single non-object prototype, strange but legal
+		return sepv_lookup(proto, property);
 	}
-
-	// TODO: handle arrays here
-	fprintf(stderr, "Unimplemented prototype type.");
-	exit(1);
 }
 
 // Gets the value of a property from an arbitrary SepV, using
