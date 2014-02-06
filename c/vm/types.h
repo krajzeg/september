@@ -48,7 +48,7 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 // ===============================================================
 
 // mask for the type bits
-#define SEPV_TYPE_MASK    (7ull << 61)
+#define SEPV_TYPE_MASK    (0xe000000000000000ull)
 // mask for the value bits
 #define SEPV_VALUE_MASK   (0x1fffffffffffffffull)
 
@@ -116,8 +116,8 @@ SepItem si_bool(bool truth);
 typedef int64_t SepInt;
 
 #define sepv_is_int(v) (((v) & SEPV_TYPE_MASK) == SEPV_TYPE_INT)
-#define sepv_to_int(v) ((SepInt)(((v) << 3) >> 3))
-#define int_to_sepv(v) ((SepV)((SepInt)v) &~ SEPV_TYPE_MASK)
+#define sepv_to_int(v) ((((int64_t)v) << 3) >> 3)
+#define int_to_sepv(v) ((SepV)((SepInt)v) & (~SEPV_TYPE_MASK))
 
 SepItem si_int(SepInt integer);
 
