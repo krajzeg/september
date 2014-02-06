@@ -17,7 +17,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-affirmation"
+#define SEPTEMBER_VERSION "0.1-agility"
 
 // ===============================================================
 //  Prototype objects
