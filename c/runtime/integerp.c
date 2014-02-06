@@ -28,8 +28,8 @@
 
 SepError get_params(SepObj *scope, SepInt *i1, SepInt *i2) {
 	SepError err = NO_ERROR;
-	SepInt int1 = target_as_int(scope, &err);
-	SepInt int2 = param_as_int(scope, "other", &err);
+	*i1 = target_as_int(scope, &err);
+	*i2 = param_as_int(scope, "other", &err);
 	return err;
 }
 
@@ -53,7 +53,7 @@ overflow:
 
 SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(&a, &b);
+	SepError err = get_params(scope, &a, &b);
 		or_raise(NULL);
 
 	return overflow_safe_add(a, b);
@@ -61,7 +61,7 @@ SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(&a, &b);
+	SepError err = get_params(scope, &a, &b);
 		or_raise(NULL);
 
 	return overflow_safe_add(a, -b);
@@ -69,7 +69,7 @@ SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(&a, &b);
+	SepError err = get_params(scope, &a, &b);
 		or_raise(NULL);
 
 	// TODO: check for overflow
@@ -78,7 +78,7 @@ SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(&a, &b);
+	SepError err = get_params(scope, &a, &b);
 		or_raise(NULL);
 
 	return si_int(a/b);
