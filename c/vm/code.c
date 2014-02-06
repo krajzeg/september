@@ -28,9 +28,27 @@
 // ===============================================================
 
 void push_const_impl(ExecutionFrame *frame) {
-	uint32_t index = (uint32_t)frame_read(frame);
+	CodeUnit index = (CodeUnit)frame_read(frame);
 	log("opcodes", "push %d", index);
-	stack_push_rvalue(frame->data, frame_constant(frame, index));
+
+	SepV value;
+	if (index > 0) {
+		// just a constant
+		value = frame_constant(frame, index);
+	} else {
+		// oh goody, an anonymous function!
+		CodeBlock *block = frame_block(frame, -index);
+		if (block == NULL) {
+			value = sepv_exception(NULL, sepstr_sprintf("Internal error: block %d is out of bounds.", -index));
+		} else {
+			SepFunc *func = (SepFunc*)ifunc_create(block, frame->locals);
+			value = func_to_sepv(func);
+		}
+	}
+	if (sepv_is_exception(value))
+		frame_raise(frame, value);
+	else
+		stack_push_rvalue(frame->data, value);
 }
 
 void lazy_call_impl(ExecutionFrame *frame) {
@@ -66,9 +84,12 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			props_accept_prop(execution_scope, param->name, field_create(const_value));
 		} else {
 			// block - that's a lazy evaluated argument
-			SepFunc *lazy = (SepFunc*)ifunc_create(
-					frame_block(frame, -argument_code),
-					sepv_to_obj(frame->locals));
+			CodeBlock *block = frame_block(frame, -argument_code);
+			if (!block) {
+				frame_raise(frame, sepv_exception(NULL, sepstr_sprintf("Internal error: Block %d out of bounds.", -argument_code)));
+				return;
+			}
+			SepFunc *lazy = (SepFunc*)ifunc_create(block, frame->locals);
 
 			if (param->flags.lazy) {
 				// the parameter is also lazy - we'll pass the function for later evaluation
@@ -76,10 +97,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			} else {
 				// the argument is eager - evaluate right now (in current scope)
 				// and we'll pass the return value to the parameter
-				SepFunc *func = (SepFunc*)ifunc_create(
-						frame_block(frame, -argument_code),
-						sepv_to_obj(frame->locals)); // TODO: check this
-				SepV resolved_value = vm_resolve(frame->vm, func_to_sepv(func));
+				SepV resolved_value = vm_resolve(frame->vm, func_to_sepv(lazy));
 				if (sepv_is_exception(resolved_value)) {
 					frame_raise(frame, resolved_value);
 					return;

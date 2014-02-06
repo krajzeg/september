@@ -22,6 +22,7 @@
 #include "../common/errors.h"
 #include "mem.h"
 #include "functions.h"
+#include "exceptions.h"
 #include "module.h"
 
 // ===============================================================
@@ -157,6 +158,8 @@ SepV cpool_add_int(ConstantPool *this, SepInt integer) {
 // Fetches a constant under a given 'index' from the pool.
 // Indices start from 1, since this is the format used in bytecode.
 SepV cpool_constant(ConstantPool *this, uint32_t index) {
+	if ((index < 1) || (index > this->max_constants))
+		return sepv_exception(NULL, sepstr_sprintf("Internal error: constant index %d out of bounds.", index));
 	return ((SepV*)this->data)[index-1];
 }
 
@@ -298,7 +301,8 @@ void bpool_seal(BlockPool *this) {
 // Retrieves a CodeBlock from the pool.
 // Indices start from 1 since this is the format used in bytecode.
 CodeBlock *bpool_block(BlockPool *this, uint32_t index) {
-	// TODO: bounds check
+	if ((index < 1) || (index > this->total_blocks))
+		return NULL;
 	return this->block_index[index-1];
 }
 

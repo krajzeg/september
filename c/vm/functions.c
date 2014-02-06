@@ -60,8 +60,8 @@ FuncParam *_built_in_get_parameters(SepFunc *this) {
 	return ((BuiltInFunc*)this)->parameters;
 }
 
-SepObj *_built_in_get_declaration_scope(SepFunc *this) {
-	return NULL;
+SepV _built_in_get_declaration_scope(SepFunc *this) {
+	return SEPV_NOTHING;
 }
 
 SepV _built_in_get_this_pointer(SepFunc *this) {
@@ -126,18 +126,6 @@ BuiltInFunc *builtin_create(BuiltInImplFunc implementation, uint8_t parameters, 
 	return func;
 }
 	
-
-void builtin_add(SepObj *scope, char *name, BuiltInImplFunc implementation,
-	uint8_t parameters, ...) {
-	
-	va_list args;
-	va_start(args, parameters);
-	BuiltInFunc *func = builtin_create_va(implementation, parameters, args);
-	va_end(args);
-	
-	props_add_field(scope, name, func_to_sepv(func));
-}
-
 // ===============================================================
 //  Interpreted function v-table
 // ===============================================================
@@ -195,7 +183,7 @@ FuncParam *_interpreted_get_parameters(SepFunc *this) {
 	return ((InterpretedFunc*)this)->block->parameters;
 }
 
-SepObj *_interpreted_get_declaration_scope(SepFunc *this) {
+SepV _interpreted_get_declaration_scope(SepFunc *this) {
 	return ((InterpretedFunc*)this)->declaration_scope;
 }
 
@@ -219,7 +207,7 @@ SepFuncVTable interpreted_func_vtable = {
 
 // Creates a new closure for a given piece of code,
 // closing over a provided scope.
-InterpretedFunc *ifunc_create(CodeBlock *block, SepObj *declaration_scope) {
+InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	InterpretedFunc *func = mem_allocate(sizeof(InterpretedFunc));
 	func->base.vt = &interpreted_func_vtable;
 	func->block = block;
@@ -251,7 +239,7 @@ FuncParam *_bm_get_parameters(SepFunc *this) {
 	return original->vt->get_parameters(original);
 }
 
-SepObj *_bm_get_declaration_scope(SepFunc *this) {
+SepV _bm_get_declaration_scope(SepFunc *this) {
 	SepFunc *original = ((BoundMethod*)this)->original_instance;
 	return original->vt->get_declaration_scope(original);
 }

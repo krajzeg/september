@@ -152,7 +152,7 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 
 	// find the root function itself
 	CodeBlock *root_block = bpool_block(module->blocks, 1);
-	InterpretedFunc *root_func = ifunc_create(root_block, module_root);
+	InterpretedFunc *root_func = ifunc_create(root_block, frame->locals);
 	frame->function = (SepFunc*)root_func;
 
 	// perform function specific initialization for the root function
@@ -177,13 +177,13 @@ void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, 
 		SepObj *locals_obj = sepv_to_obj(locals);
 		// take prototypes based on the function
 		SepV this_ptr = func->vt->get_this_pointer(func);
-		SepObj *scope_object = func->vt->get_declaration_scope(func);
+		SepV scope = func->vt->get_declaration_scope(func);
 		SepArray *prototypes = array_create(4);
 		array_push(prototypes, obj_to_sepv(this->builtins));
 		if ((this_ptr != SEPV_NOTHING) && (this_ptr != locals))
 			array_push(prototypes, this_ptr);
-		if ((scope_object) && (scope_object != locals_obj))
-			array_push(prototypes, obj_to_sepv(scope_object));
+		if ((scope != SEPV_NOTHING) && (scope != locals))
+			array_push(prototypes, scope);
 		array_push(prototypes, obj_to_sepv(proto_Object));
 
 		// set the prototypes property on the local scope
@@ -253,8 +253,8 @@ SepV vm_resolve(SepVM *this, SepV lazy_value) {
 	if (sepv_is_func(lazy_value)) {
 		// function - resolve it in it's default scope
 		SepFunc *func = sepv_to_func(lazy_value);
-		SepObj *scope = func->vt->get_declaration_scope(func);
-		return vm_resolve_in(this, lazy_value, obj_to_sepv(scope));
+		SepV scope = func->vt->get_declaration_scope(func);
+		return vm_resolve_in(this, lazy_value, scope);
 	} else {
 		// not a function, no resolution needed
 		return lazy_value;

@@ -53,7 +53,7 @@ typedef struct SepFuncVTable {
 	FuncParam *(*get_parameters)(struct SepFunc *this);
 	// returns the scope in which this function was first declared - this is the
 	// closure scope
-	SepObj *(*get_declaration_scope)(struct SepFunc *this);
+	SepV (*get_declaration_scope)(struct SepFunc *this);
 	// in case of methods, return the 'this' object a method instance is bound to
 	// for free functions, this will simply be NULL
 	SepV (*get_this_pointer)(struct SepFunc *this);
@@ -101,11 +101,11 @@ typedef struct InterpretedFunc {
 	// code
 	CodeBlock *block;
 	// declaration scope
-	SepObj *declaration_scope;
+	SepV declaration_scope;
 } InterpretedFunc;
 
 // Creates a new interpreted function for a given piece of code.
-InterpretedFunc *ifunc_create(CodeBlock *block, SepObj *declaration_scope);
+InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope);
 
 // ===============================================================
 //  Bound method objects
