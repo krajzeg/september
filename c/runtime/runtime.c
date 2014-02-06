@@ -14,6 +14,12 @@
 #include "support.h"
 
 // ===============================================================
+//  Version
+// ===============================================================
+
+#define SEPTEMBER_VERSION "0.1-affirmation"
+
+// ===============================================================
 //  Prototype objects
 // ===============================================================
 
@@ -85,7 +91,7 @@ void initialize_runtime(SepObj *scope) {
 	proto_String = create_string_prototype();
 
 	// built-in variables are initialized
-	obj_add_field(scope, "version", sepv_string("0.1-aeon"));
+	obj_add_field(scope, "version", sepv_string(SEPTEMBER_VERSION));
 	obj_add_field(scope, "Nothing", SEPV_NOTHING);
 	obj_add_field(scope, "True", SEPV_TRUE);
 	obj_add_field(scope, "False", SEPV_FALSE);
