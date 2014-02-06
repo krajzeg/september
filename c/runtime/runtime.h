@@ -14,6 +14,8 @@
 extern SepObj *proto_Object;
 extern SepObj *proto_String;
 extern SepObj *proto_Integer;
+extern SepObj *proto_Bool;
+extern SepObj *proto_Nothing;
 
 // ===============================================================
 //  Method to actually initialize the thing

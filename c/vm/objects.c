@@ -326,6 +326,7 @@ SepV sepv_prototypes(SepV sepv) {
 	switch(sepv & SEPV_TYPE_MASK) {
 		// object?
 		case SEPV_TYPE_OBJECT:
+		case SEPV_TYPE_EXCEPTION:
 			return sepv_to_obj(sepv)->prototypes;
 
 		// primitive?
@@ -335,7 +336,16 @@ SepV sepv_prototypes(SepV sepv) {
 		case SEPV_TYPE_STRING:
 			return obj_to_sepv(proto_String);
 
-		// we don't know yet, so no prototypes for you
+		// special?
+		case SEPV_TYPE_SPECIAL:
+			if ((sepv == SEPV_TRUE) || (sepv == SEPV_FALSE))
+				return obj_to_sepv(proto_Bool);
+			if (sepv == SEPV_NOTHING)
+				return obj_to_sepv(proto_Nothing);
+			return SEPV_NOTHING;
+
+		// we don't handle this yet, so no prototypes for you
+		// this clause will disappear once all types are handled
 		default:
 			return SEPV_NOTHING;
 	}

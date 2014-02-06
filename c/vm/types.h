@@ -135,7 +135,8 @@ SepString *sepv_to_str(SepV value);
 bool sepv_is_str(SepV value);
 SepV str_to_sepv(SepString *string);
 
-SepV sepv_string(const char *c_string);
+SepV sepv_string(char *c_string);
+SepItem si_string(char *c_string);
 SepString *sepstr_create(const char *c_string);
 SepString *sepstr_sprintf(const char *format, ...);
 

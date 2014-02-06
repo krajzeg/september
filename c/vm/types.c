@@ -94,8 +94,13 @@ SepString *sepstr_sprintf(const char *format, ...) {
 	return new_sepstr;
 }
 
-SepV sepv_string(const char *c_string) {
+SepV sepv_string(char *c_string) {
 	return str_to_sepv(sepstr_create(c_string));
+}
+
+SepItem si_string(char *c_string) {
+	SepItem si = {NULL, str_to_sepv(sepstr_create(c_string))};
+	return si;
 }
 
 void sepstr_init(SepString *this, const char *c_string) {

@@ -20,6 +20,8 @@
 SepObj *proto_Object;
 SepObj *proto_String;
 SepObj *proto_Integer;
+SepObj *proto_Bool;
+SepObj *proto_Nothing;
 
 // ===============================================================
 //  Prototype creation methods
@@ -28,6 +30,8 @@ SepObj *proto_Integer;
 SepObj *create_object_prototype();
 SepObj *create_integer_prototype();
 SepObj *create_string_prototype();
+SepObj *create_bool_prototype();
+SepObj *create_nothing_prototype();
 
 // ===============================================================
 //  Built-in functions
@@ -75,6 +79,8 @@ void initialize_runtime(SepObj *scope) {
 	proto_Object = create_object_prototype();
 
 	// primitive types' prototypes are initialized here
+	proto_Nothing = create_nothing_prototype();
+	proto_Bool = create_bool_prototype();
 	proto_Integer = create_integer_prototype();
 	proto_String = create_string_prototype();
 
