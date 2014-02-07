@@ -1,5 +1,6 @@
 .*\.o
-py
+.*\.pyc
+__pycache__
 tests
 scribbles
 \.idea
