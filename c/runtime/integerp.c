@@ -84,6 +84,14 @@ SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 	return si_int(a/b);
 }
 
+SepItem integer_op_mod(SepObj *scope, ExecutionFrame *frame) {
+	SepInt a, b;
+	SepError err = get_params(scope, &a, &b);
+		or_raise(NULL);
+
+	return si_int(a%b);
+}
+
 SepItem integer_op_negate(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepInt integer = target_as_int(scope, &err);
@@ -161,6 +169,7 @@ SepObj *create_integer_prototype() {
 	obj_add_builtin_method(Integer, "-", integer_op_sub, 1, "other");
 	obj_add_builtin_method(Integer, "*", integer_op_mul, 1, "other");
 	obj_add_builtin_method(Integer, "/", integer_op_div, 1, "other");
+	obj_add_builtin_method(Integer, "%", integer_op_mod, 1, "other");
 	obj_add_builtin_method(Integer, "unary-", integer_op_negate, 0);
 
 	// relations

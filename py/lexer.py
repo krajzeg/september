@@ -67,7 +67,7 @@ TOKENS = {
 	r"[0-9]+":                    IntLiteral,
 	r"[0-9]+\.[0-9]+":            FloatLiteral,
 	r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
-	r'[+*/:.!<>=-]+|`[a-z]+':     Operator,
+	r'[+*/%:.!<>=-]+|`[a-z]+':    Operator,
 	r'\(':						  Simple("("),
 	r'\)':						  Simple(")"),
 	r'\{':                        Simple("{"),
