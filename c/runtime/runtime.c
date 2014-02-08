@@ -17,7 +17,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-agility"
+#define SEPTEMBER_VERSION "0.1-ahoy"
 
 // ===============================================================
 //  Prototype objects
@@ -80,6 +80,10 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 	return si_nothing();
 }
 
+// ===============================================================
+//  Flow control
+// ===============================================================
+
 SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition = param(scope, "condition");
 	if (condition == SEPV_TRUE) {
@@ -123,6 +127,38 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	return si_nothing();
 }
 
+SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
+	SepV try_l = param(scope, "body");
+	SepV catch_l = param(scope, "handler");
+	SepV finally_l = param(scope, "finalizer");
+
+	// try executing the body
+	SepV result = vm_resolve(frame->vm, try_l);
+	if (sepv_is_exception(result)) {
+		// exception - first find a catch clause...
+		if (catch_l != SEPV_NOTHING) {
+			SepV catch_result = vm_resolve(frame->vm, catch_l);
+				or_propagate(catch_result);
+
+			// caught - clear exception
+			result = SEPV_NOTHING;
+		}
+
+		// .. and then execute the finalizer
+		if (finally_l != SEPV_NOTHING) {
+			SepV finally_result = vm_resolve(frame->vm, finally_l);
+				or_propagate(finally_result);
+		}
+	}
+
+	// return final result (whether an exception, or the result from the body)
+	return item_rvalue(result);
+}
+
+// ===============================================================
+//  Runtime initialization
+// ===============================================================
+
 void initialize_runtime(SepObj *scope) {
 	// "Object" has to be initialized first, as its the prototype to all other prototypes
 	proto_Object = create_object_prototype();
@@ -143,6 +179,9 @@ void initialize_runtime(SepObj *scope) {
 	obj_add_builtin_func(scope, "if", &func_if, 2, "condition", "body");
 	obj_add_builtin_func(scope, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
 	obj_add_builtin_func(scope, "while", &func_while, 2, "?condition", "body");
+
+	obj_add_builtin_func(scope, "try..catch..finally", &func_try_catch_finally, 3,
+			"body", "handler", "finalizer");
 
 	// built-in functions are initialized
 	obj_add_builtin_func(scope, "print", &func_print, 1, "what");

@@ -29,6 +29,8 @@
 #define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_create(err.message)); }
 #define or_raise_with_msg(exc_type, ...) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__)); }
 
+#define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
+
 // ===============================================================
 //  Accessing this and parameters
 // ===============================================================

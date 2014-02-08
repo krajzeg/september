@@ -100,6 +100,10 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 // a special object that possesses all possible properties, and
 // the value of each property is simply its name
 #define SEPV_LITERALS (SEPV_TYPE_SPECIAL | 0x04)
+// a special marker pushed on the stack to mark the place to which
+// the data stack has to be cleared in case of an exception being
+// thrown
+#define SEPV_UNWIND_MARKER (SEPV_TYPE_SPECIAL | 0x05)
 
 // ===============================================================
 //  Booleans and special values

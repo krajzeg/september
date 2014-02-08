@@ -11,6 +11,7 @@
 #include "code.h"
 #include "vm.h"
 
+#include "../common/debugging.h"
 #include "../runtime/runtime.h"
 
 // ===============================================================
@@ -74,6 +75,10 @@ SepV vm_run(SepVM *this) {
 	// we stop execution and return the last return value
 	int starting_depth = this->frame_depth;
 
+	// mark our place on the stack so that we can unwind it properly
+	// when exception is thrown
+	stack_push_rvalue(this->data, SEPV_UNWIND_MARKER);
+
 	// repeat until we have a return value ready
 	// (a break handles this from inside the body)
 	while (true) {
@@ -89,22 +94,32 @@ SepV vm_run(SepVM *this) {
 			// move down the stack
 			// the call operation itself has already filled in the next frame
 			this->frame_depth++;
+
+			log("vm", "(%d) New execution frame created (interpreted call).", this->frame_depth);
 		}
 
 		// did we finish the frame?
 		if (current_frame->finished) {
 			// with an exception?
 			if (sepv_is_exception(current_frame->return_value.value)) {
-				// yup - we have to clean up
-				this->frame_depth = 0;
-				while (!stack_empty(this->data))
-					stack_pop_item(this->data);
+				log("vm", "(%d) Execution frame finished with exception.", this->frame_depth);
+				log("vm", "Unwinding to level (%d).", starting_depth);
+
+				// drop all the frames from this VM run
+				this->frame_depth = starting_depth - 1;
+
+				// clear data from the stack
+				SepV stack_value = stack_pop_value(this->data);
+				while (stack_value != SEPV_UNWIND_MARKER)
+					stack_value = stack_pop_value(this->data);
 
 				// and pass the exception to the authorities
 				return current_frame->return_value.value;
 			}
 
 			// nope, just a normal return
+			log("vm", "(%d) Execution frame finished normally.", this->frame_depth);
+
 			// pop the frame
 			this->frame_depth--;
 			// push the return value on the data stack of its parent
@@ -112,7 +127,13 @@ SepV vm_run(SepVM *this) {
 				ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
 				stack_push_item(parent_frame->data, current_frame->return_value);
 			} else {
-				// this is the end, return the result of the whole execution
+				// this is the end of this execution
+				// pop the unwind marker
+				SepV marker = stack_pop_value(this->data);
+				if (marker != SEPV_UNWIND_MARKER)
+					return sepv_exception(NULL, sepstr_create("Internal error: unbalanced data stack operations."));
+
+				// return the result of the whole execution
 				return current_frame->return_value.value;
 			}
 		}
@@ -239,6 +260,7 @@ SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
 
 	// initialize an execution frame
 	this->frame_depth++;
+	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth);
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
 	vm_initialize_frame_for(this, frame, func, obj_to_sepv(scope));
 
@@ -269,8 +291,10 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 		return lazy_value;
 
 	// it does - extract the function and set up a frame for it
-	SepFunc *func = sepv_to_func(lazy_value);
 	this->frame_depth++;
+	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth);
+
+	SepFunc *func = sepv_to_func(lazy_value);
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
 	vm_initialize_frame_for(this, frame, func, scope);
 

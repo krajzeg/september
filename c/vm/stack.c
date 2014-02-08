@@ -13,6 +13,7 @@
 // ===============================================================
 
 #include <stdlib.h>
+#include "../common/debugging.h"
 #include "exceptions.h"
 #include "stack.h"
 
@@ -41,6 +42,7 @@ bool stack_empty(SepStack *this) {
 
 // Pushes a new SepItem (slot + value) on the stack.
 void stack_push_item(SepStack *this, SepItem item) {
+	log0("stack", "Pushed.");
 	ga_push(&this->array, &item);
 }
 
@@ -51,6 +53,7 @@ SepItem stack_pop_item(SepStack *this) {
 		SepV exception = sepv_exception(NULL, sepstr_create("Internal error: stack underflow."));
 		return item_rvalue(exception);
 	}
+	log0("stack", "Popped.");
 	return *ptr;
 }
 
