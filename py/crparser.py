@@ -239,7 +239,13 @@ class Block(Node):
 
             return left
         else:
-            parser.error("Unexpected '{': block opened where it does not make sense.")
+            # initiate a new call
+            fcall = FCall()
+            fcall.first = left
+            fargs = fcall.second = FArgs()
+            fargs.first = Block.null_parse(parser, token)
+
+            return fcall
 
     @staticmethod
     def null_parse(parser, token):
