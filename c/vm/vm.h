@@ -83,7 +83,7 @@ void frame_raise(ExecutionFrame *frame, SepV exception);
 typedef struct SepVM {
 	// the "builtins" object which is available in all execution
 	// scopes
-	SepObj *builtins;
+	SepObj *syntax;
 	// the data stack shared by all execution frames
 	SepStack *data;
 	// the whole execution stack, with the main function of the main
@@ -101,13 +101,17 @@ SepVM *vm_create(SepModule *module, SepObj *globals);
 SepV vm_run(SepVM *this);
 // Initializes the root execution frame based on a module.
 void vm_initialize_root_frame(SepVM *this, SepModule *module);
+
+// Initializes a scope object for execution of a given function. This sets up
+// the prototype chain for the scope to include the 'syntax' object, the 'this'
+// pointer, and the declaration scope of the function. It also sets up the
+// 'locals' and 'this' properties.
+void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *locals_obj);
 // Initializes an execution frame for running a given function.
 // It takes as arguments the frame to initialize, the function to run within the frame,
-// and the scope object containing parameter values for the function. The scope object
-// will be enriched by the initialization process to set up its prototype structure
-// properly - when passed in, it's a plain prototype-less SepObj with just the parameters
-// inside.
-void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV scope);
+// and the execution scope object. The scope object should have the proper prototype
+// chain already set up, using vm_initialize_scope() or other means.
+void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV scope);
 // Destroys a VM.
 void vm_free(SepVM *this);
 

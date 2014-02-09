@@ -108,7 +108,8 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	}
 
 	// initialize a new frame for the function being called
-	vm_initialize_frame_for(frame->vm, frame->next_frame, func, obj_to_sepv(execution_scope));
+	vm_initialize_scope(frame->vm, func, execution_scope);
+	vm_initialize_frame(frame->vm, frame->next_frame, func, obj_to_sepv(execution_scope));
 
 	// we're making a call, so let the VM know about that
 	frame->called_another_frame = true;

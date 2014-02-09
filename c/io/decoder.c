@@ -298,24 +298,16 @@ BlockPool *decoder_read_bpool(Decoder *this, SepModule *module, SepError *out_er
 	return blocks;
 }
 
-SepModule *decoder_read_module(Decoder *this, SepError *out_err) {
+void decoder_read_module(Decoder *this, SepModule *module, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	decoder_verify_header(this, &err);
-		or_quit_with(NULL);
+		or_quit();
 		
-	SepModule *module = module_create();
 	module->constants = decoder_read_cpool(this, &err);
-		or_go(clean_up);
+		or_quit();
 	module->blocks = decoder_read_bpool(this, module, &err);
-		or_go(clean_up);
-
-	// return a new module
-	return module;
-
-clean_up:
-	module_free(module);
-	fail(NULL, err);
+		or_quit();
 }
 
 void decoder_free(Decoder *this) {

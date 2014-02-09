@@ -55,12 +55,12 @@ void frame_raise(ExecutionFrame *frame, SepV exception) {
 //  The virtual machine
 // ===============================================================
 
-SepVM *vm_create(SepModule *module, SepObj *builtins) {
+SepVM *vm_create(SepModule *module, SepObj *syntax) {
 	SepVM *vm = malloc(sizeof(SepVM));
 
 	// create the data stack
 	vm->data = stack_create();
-	vm->builtins = builtins;
+	vm->syntax = syntax;
 
 	// start a frame for the root function and set it to be current
 	vm_initialize_root_frame(vm, module);
@@ -155,21 +155,12 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	frame->instruction_ptr = NULL;
 	frame->next_frame = &this->frames[1];
 
-	// make the root object for the module
-	SepObj *module_root = obj_create();
-
-	// give it the proper prototypes
-	SepArray *prototypes = array_create(2);
-	array_push(prototypes, obj_to_sepv(this->builtins));
-	array_push(prototypes, obj_to_sepv(proto_Object));
-	module_root->prototypes = obj_to_sepv(prototypes);
-
 	// set it as the execution scope for the root function
-	frame->locals = obj_to_sepv(module_root);
+	frame->locals = obj_to_sepv(module->root);
 
 	// give it the proper properties
-	props_add_field(module_root, "locals", frame->locals);
-	props_add_field(module_root, "this", frame->locals);
+	props_add_field(module->root, "locals", frame->locals);
+	props_add_field(module->root, "this", frame->locals);
 
 	// find the root function itself
 	CodeBlock *root_block = bpool_block(module->blocks, 1);
@@ -180,8 +171,31 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	root_func->base.vt->initialize_frame((SepFunc*)root_func, frame);
 }
 
+void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope) {
+	SepV exec_scope_v = obj_to_sepv(exec_scope);
+
+	// take prototypes based on the function
+	SepV this_ptr_v = func->vt->get_this_pointer(func);
+	SepV decl_scope_v = func->vt->get_declaration_scope(func);
+	SepArray *prototypes = array_create(4);
+	array_push(prototypes, obj_to_sepv(this->syntax));
+	if ((this_ptr_v != SEPV_NOTHING) && (this_ptr_v != exec_scope_v))
+		array_push(prototypes, this_ptr_v);
+	if ((decl_scope_v != SEPV_NOTHING) && (decl_scope_v != exec_scope_v))
+		array_push(prototypes, decl_scope_v);
+	array_push(prototypes, obj_to_sepv(proto_Object));
+
+	// set the prototypes property on the local scope
+	exec_scope->prototypes = obj_to_sepv(prototypes);
+
+	// enrich the locals object with properties pointing to important objects
+	props_add_field(exec_scope, "locals", exec_scope_v);
+	if (this_ptr_v != SEPV_NOTHING)
+		props_add_field(exec_scope, "this", this_ptr_v);
+}
+
 // Initializes an execution frame for running a given function.
-void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV locals) {
+void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV locals) {
 	// setup the frame
 	frame->vm = this;
 	frame->function = func;
@@ -190,31 +204,8 @@ void vm_initialize_frame_for(SepVM *this, ExecutionFrame *frame, SepFunc *func, 
 	frame->finished = false;
 	frame->called_another_frame = false;
 
-	// create an execution scope
+	// set an execution scope
 	frame->locals = locals;
-
-	// build the prototype chain to give code access to everything it needs
-	if (sepv_is_obj(locals)) {
-		SepObj *locals_obj = sepv_to_obj(locals);
-		// take prototypes based on the function
-		SepV this_ptr = func->vt->get_this_pointer(func);
-		SepV scope = func->vt->get_declaration_scope(func);
-		SepArray *prototypes = array_create(4);
-		array_push(prototypes, obj_to_sepv(this->builtins));
-		if ((this_ptr != SEPV_NOTHING) && (this_ptr != locals))
-			array_push(prototypes, this_ptr);
-		if ((scope != SEPV_NOTHING) && (scope != locals))
-			array_push(prototypes, scope);
-		array_push(prototypes, obj_to_sepv(proto_Object));
-
-		// set the prototypes property on the local scope
-		locals_obj->prototypes = obj_to_sepv(prototypes);
-
-		// enrich the locals object with properties pointing to important objects
-		props_add_field(locals_obj, "locals", locals);
-		if (this_ptr != SEPV_NOTHING)
-			props_add_field(locals_obj, "this", this_ptr);
-	}
 
 	// frames are contiguous in memory, so the next frame is right after
 	frame->next_frame = frame + 1;
@@ -262,7 +253,9 @@ SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
 	this->frame_depth++;
 	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth);
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
-	vm_initialize_frame_for(this, frame, func, obj_to_sepv(scope));
+
+	vm_initialize_scope(this, func, scope);
+	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
 
 	// run to get result
 	SepV result = vm_run(this);
@@ -296,7 +289,7 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 
 	SepFunc *func = sepv_to_func(lazy_value);
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
-	vm_initialize_frame_for(this, frame, func, scope);
+	vm_initialize_frame(this, frame, func, scope);
 
 	// run from that point until 'func' returns
 	SepV return_value = vm_run(this);

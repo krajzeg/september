@@ -54,14 +54,15 @@ SepModule *read_module_from_file(const char *filename, SepError *out_err) {
 
 	// decode the contents
 	Decoder *decoder = decoder_create((DecoderSource*) source);
-	SepModule *module = decoder_read_module(decoder, &err);
-	or_go(cleanup_after_error);
+	SepModule *module = module_create(obj_Globals, obj_Syntax);
+	decoder_read_module(decoder, module, &err);
+		or_go(cleanup_after_error);
 
 	// cleanup and return
 	decoder_free(decoder);
 	return module;
 
-	cleanup_after_error:
+cleanup_after_error:
 	// cleanup and fail
 	module_free(module);
 	decoder_free(decoder);
@@ -74,10 +75,7 @@ SepModule *read_module_from_file(const char *filename, SepError *out_err) {
 
 int run_program(SepModule *module) {
 	// create the VM
-	SepObj *builtins = obj_create_with_proto(SEPV_NOTHING);
-	initialize_runtime(builtins);
-
-	SepVM *vm = vm_create(module, builtins);
+	SepVM *vm = vm_create(module, obj_Syntax);
 
 	// run the code
 	SepV result = vm_run(vm);
@@ -112,6 +110,9 @@ int main(int argc, char **argv) {
 		exit(EXIT_NO_EXECUTION);
 	}
 	const char *module_file_name = argv[1];
+
+	// == initialize the runtime
+	initialize_runtime();
 
 	// == load the module
 	SepModule *module = read_module_from_file(module_file_name, &err);

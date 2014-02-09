@@ -11,6 +11,9 @@
 // Built-in classes (prototype objects)
 // ===============================================================
 
+extern SepObj *obj_Globals;
+extern SepObj *obj_Syntax;
+
 extern SepObj *proto_Object;
 extern SepObj *proto_String;
 extern SepObj *proto_Integer;
@@ -21,6 +24,6 @@ extern SepObj *proto_Nothing;
 //  Method to actually initialize the thing
 // ===============================================================
 
-void initialize_runtime(SepObj *scope);
+void initialize_runtime();
 
 #endif

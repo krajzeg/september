@@ -28,6 +28,7 @@
 struct ConstantPool;
 struct BlockPool;
 struct SepModule;
+struct SepObj;
 
 // ===============================================================
 // Module type
@@ -51,10 +52,12 @@ typedef struct SepModule {
     struct ConstantPool *constants;
     // the block pool for the code in this module
     struct BlockPool *blocks;
+    // the root object of this module
+    struct SepObj *root;
 } SepModule;
 
 // Creates a new empty module.
-SepModule *module_create();
+SepModule *module_create(struct SepObj *globals, struct SepObj *syntax);
 // Deinitializes and frees the memory taken by this module.
 void module_free(SepModule *this);
 

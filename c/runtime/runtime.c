@@ -23,6 +23,9 @@
 //  Prototype objects
 // ===============================================================
 
+SepObj *obj_Globals;
+SepObj *obj_Syntax;
+
 SepObj *proto_Object;
 SepObj *proto_String;
 SepObj *proto_Integer;
@@ -159,30 +162,36 @@ SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
 //  Runtime initialization
 // ===============================================================
 
-void initialize_runtime(SepObj *scope) {
+void initialize_runtime() {
 	// "Object" has to be initialized first, as its the prototype to all other prototypes
 	proto_Object = create_object_prototype();
 
+	// create holder objects and establish their relationship
+	obj_Globals = obj_create();
+	obj_Syntax  = obj_create();
+	obj_add_field(obj_Globals, "Globals", obj_to_sepv(obj_Globals));
+	obj_add_field(obj_Globals, "Syntax", obj_to_sepv(obj_Syntax));
+
 	// primitive types' prototypes are initialized here
 	proto_Nothing = create_nothing_prototype();
-	proto_Bool = create_bool_prototype();
-	proto_Integer = create_integer_prototype();
-	proto_String = create_string_prototype();
+	obj_add_field(obj_Globals, "Bool", obj_to_sepv((proto_Bool = create_bool_prototype())));
+	obj_add_field(obj_Globals, "Integer", obj_to_sepv((proto_Integer = create_integer_prototype())));
+	obj_add_field(obj_Globals, "String", obj_to_sepv((proto_String = create_string_prototype())));
 
 	// built-in variables are initialized
-	obj_add_field(scope, "version", sepv_string(SEPTEMBER_VERSION));
-	obj_add_field(scope, "Nothing", SEPV_NOTHING);
-	obj_add_field(scope, "True", SEPV_TRUE);
-	obj_add_field(scope, "False", SEPV_FALSE);
+	obj_add_field(obj_Globals, "version", sepv_string(SEPTEMBER_VERSION));
+	obj_add_field(obj_Syntax, "Nothing", SEPV_NOTHING);
+	obj_add_field(obj_Syntax, "True", SEPV_TRUE);
+	obj_add_field(obj_Syntax, "False", SEPV_FALSE);
 
 	// flow control
-	obj_add_builtin_func(scope, "if", &func_if, 2, "condition", "body");
-	obj_add_builtin_func(scope, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
-	obj_add_builtin_func(scope, "while", &func_while, 2, "?condition", "body");
+	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "condition", "body");
+	obj_add_builtin_func(obj_Syntax, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
+	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
-	obj_add_builtin_func(scope, "try..catch..finally", &func_try_catch_finally, 3,
+	obj_add_builtin_func(obj_Syntax, "try..catch..finally", &func_try_catch_finally, 3,
 			"body", "handler", "finalizer");
 
 	// built-in functions are initialized
-	obj_add_builtin_func(scope, "print", &func_print, 1, "what");
+	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "what");
 }

@@ -48,7 +48,7 @@ typedef struct Decoder {
 } Decoder;
 
 Decoder *decoder_create(DecoderSource *source);
-SepModule *decoder_read_module(Decoder *this, SepError *err);
+void decoder_read_module(Decoder *this, SepModule *module, SepError *out_err);
 void decoder_free(Decoder *this);
 
 // ===============================================================
