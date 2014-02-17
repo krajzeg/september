@@ -47,7 +47,7 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepObj *create_string_prototype() {
-	SepObj *String = obj_create();
+	SepObj *String = make_class("String", NULL);
 
 	BuiltInFunc *upper = builtin_create(&string_upper, 0);
 	props_accept_prop(String, sepstr_create("upper"), method_create(func_to_sepv(upper)));

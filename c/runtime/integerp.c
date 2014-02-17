@@ -162,7 +162,7 @@ SepItem integer_to_string(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepObj *create_integer_prototype() {
-	SepObj *Integer = obj_create();
+	SepObj *Integer = make_class("Integer", NULL);
 
 	// arithmetics
 	obj_add_builtin_method(Integer, "+", integer_op_add, 1, "other");

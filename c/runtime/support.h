@@ -65,6 +65,13 @@ SepFunc *cast_as_named_func(char *name, SepV value, SepError *out_err);
 SepInt cast_as_named_int(char *name, SepV value, SepError *out_err);
 
 // ===============================================================
+//  Classes
+// ===============================================================
+
+// Creates a new class object with the given name and parent class.
+SepObj *make_class(char *name, SepObj *parent);
+
+// ===============================================================
 //  Operating on properties
 // ===============================================================
 
@@ -74,6 +81,12 @@ void obj_add_field(SepObj *obj, char *name, SepV contents);
 void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t param_count, ...);
 // Adds a new built-in free function (as opposed to a method) to a given object.
 void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t param_count, ...);
+
+// ===============================================================
+//  Common operations
+// ===============================================================
+
+SepString *sepv_debug_string(SepV sepv, SepError *out_err);
 
 /*****************************************************************/
 

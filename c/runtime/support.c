@@ -17,6 +17,7 @@
 #include "../vm/exceptions.h"
 #include "../vm/types.h"
 #include "../vm/functions.h"
+#include "runtime.h"
 #include "support.h"
 
 // ===============================================================
@@ -98,4 +99,46 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 
 	// make the slot
 	props_accept_prop(obj, sepstr_create(name), field_create(func_to_sepv(builtin)));
+}
+
+// ===============================================================
+//  Classes
+// ===============================================================
+
+// Creates a new class object with the given name and parent class.
+SepObj *make_class(char *name, SepObj *parent) {
+	SepObj *cls = obj_create_with_proto(obj_to_sepv(parent ? parent : proto_Object));
+
+	// store the name permanently for future reference
+	obj_add_field(cls, "<name>", str_to_sepv(sepstr_create(name)));
+	obj_add_field(cls, "<class>", obj_to_sepv(cls));
+
+	// return the class
+	return cls;
+}
+
+// ===============================================================
+//  Common operations on SepVs
+// ===============================================================
+
+SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
+	SepError err = NO_ERROR;
+
+	// look for the class
+	Slot *class_slot = sepv_lookup(sepv, sepstr_create("<class>"));
+	if (class_slot) {
+		// retrieve the name of the class
+		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);
+		SepV class_name_v = sepv_get(class_v, sepstr_create("<name>")).value;
+		SepString *class_name = cast_as_named_str("Class name", class_name_v, &err);
+			or_quit_with(NULL);
+
+		if (sepv_is_obj(sepv))
+			return sepstr_sprintf("<%s at %llx>", sepstr_to_cstr(class_name), (uint64_t)(intptr_t)sepv_to_obj(sepv));
+		else
+			return sepstr_sprintf("<%s object>", sepstr_to_cstr(class_name));
+	} else {
+		// this must be an object, primitives all have <class>
+		return sepstr_sprintf("<classless object at %llx>", (uint64_t)(intptr_t)sepv_to_obj(sepv));
+	}
 }

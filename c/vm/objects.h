@@ -224,7 +224,7 @@ SepItem sepv_get(SepV object, SepString *property);
 //  Macros for working with objects
 // ===============================================================
 
-#define obj_to_sepv(obj) ((obj) ? (SEPV_TYPE_OBJECT | (((intptr_t)obj) >> 3)) : SEPV_NOTHING)
+#define obj_to_sepv(obj) ((obj) ? (SEPV_TYPE_OBJECT | (((intptr_t)(obj)) >> 3)) : SEPV_NOTHING)
 #define sepv_to_obj(val) ((val == SEPV_NOTHING) ? NULL : ((SepObj*)(((intptr_t)val) << 3)))
 #define sepv_is_obj(val) ((val & SEPV_TYPE_MASK) == SEPV_TYPE_OBJECT)
 

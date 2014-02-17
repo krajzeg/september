@@ -60,7 +60,16 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 	return item_lvalue(slot, SEPV_NOTHING);
 }
 
+// ===============================================================
+//  Stringifying things
+// ===============================================================
 
+SepItem object_debug_string(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepString *debug_str = sepv_debug_string(target(scope), &err);
+		or_raise(NULL);
+	return item_rvalue(str_to_sepv(debug_str));
+}
 
 // ===============================================================
 //  Object prototype
@@ -68,12 +77,17 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 
 // Creates the Object class object.
 SepObj *create_object_prototype() {
-	SepObj *Object = obj_create_with_proto(SEPV_NOTHING);
+	// create Object class
+	SepObj *Object = make_class("Object", NULL);
+	Object->prototypes = SEPV_NOTHING;
 
-	SepV dot = func_to_sepv(builtin_create(object_op_dot, 1, "?property_name"));
-	props_accept_prop(Object, sepstr_create("."), method_create(dot));
-	SepV colon = func_to_sepv(builtin_create(object_op_colon, 1, "?property_name"));
-	props_accept_prop(Object, sepstr_create(":"), method_create(colon));
+	// add operators common to all objects
+	// -- property access
+	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
+	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
+
+	// add common methods
+	obj_add_builtin_method(Object, "debugString", object_debug_string, 0);
 
 	return Object;
 }

@@ -39,7 +39,7 @@ SepItem nothing_to_string(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepObj *create_nothing_prototype() {
-	SepObj *NothingP = obj_create_with_proto(SEPV_NOTHING);
+	SepObj *NothingP = make_class("Nothing", NULL);
 
 	obj_add_builtin_method(NothingP, "toString", &nothing_to_string, 0);
 
@@ -47,7 +47,7 @@ SepObj *create_nothing_prototype() {
 }
 
 SepObj *create_bool_prototype() {
-	SepObj *Bool = obj_create_with_proto(SEPV_NOTHING);
+	SepObj *Bool = make_class("Bool", NULL);
 
 	obj_add_builtin_method(Bool, "toString", &bool_to_string, 0);
 
