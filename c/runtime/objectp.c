@@ -64,6 +64,39 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 //  Stringifying things
 // ===============================================================
 
+SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
+	SepV target = target(scope);
+	Slot *cls_slot = sepv_lookup(target, sepstr_create("<class>"));
+	if (cls_slot) {
+		// is it the thing we're looking for?
+		SepV desired_class = param(scope, "desired_class");
+		SepV actual_class = cls_slot->vt->retrieve(cls_slot, target);
+
+		// loop over all superclasses
+		while (true) {
+			// found it?
+			if (desired_class == actual_class)
+				return si_bool(true);
+
+			// nope, let's see if we have a further superclass
+			Slot *pc_slot = sepv_lookup(actual_class, sepstr_create("<superclass>"));
+			if (pc_slot) {
+				// yes, we do - look there
+				actual_class = pc_slot->vt->retrieve(pc_slot, actual_class);
+				if (actual_class == SEPV_NOTHING)
+					return si_bool(false);
+			} else {
+				// no, we don't - we haven't found the desired class anywhere
+				// in the inheritance chain
+				return si_bool(false);
+			}
+		}
+	} else {
+		// no class slot, no inheritance, no being anything
+		return si_bool(false);
+	}
+}
+
 SepItem object_debug_string(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepString *debug_str = sepv_debug_string(target(scope), &err);
@@ -88,6 +121,7 @@ SepObj *create_object_prototype() {
 
 	// add common methods
 	obj_add_builtin_method(Object, "debugString", object_debug_string, 0);
+	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
 
 	return Object;
 }

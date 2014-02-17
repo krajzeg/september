@@ -13,6 +13,7 @@
 // ===============================================================
 
 #include <stdarg.h>
+#include <string.h>
 #include "../common/errors.h"
 #include "../vm/exceptions.h"
 #include "../vm/types.h"
@@ -107,11 +108,18 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 
 // Creates a new class object with the given name and parent class.
 SepObj *make_class(char *name, SepObj *parent) {
-	SepObj *cls = obj_create_with_proto(obj_to_sepv(parent ? parent : proto_Object));
+	SepV parent_v;
+	if (parent)
+		parent_v = obj_to_sepv(parent);
+	else
+		parent_v = strcmp(name, "Object") ? obj_to_sepv(proto_Object) : SEPV_NOTHING;
+
+	SepObj *cls = obj_create_with_proto(parent_v);
 
 	// store the name permanently for future reference
 	obj_add_field(cls, "<name>", str_to_sepv(sepstr_create(name)));
 	obj_add_field(cls, "<class>", obj_to_sepv(cls));
+	obj_add_field(cls, "<superclass>", parent_v);
 
 	// return the class
 	return cls;

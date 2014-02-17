@@ -174,6 +174,7 @@ void initialize_runtime() {
 
 	// primitive types' prototypes are initialized here
 	proto_Nothing = create_nothing_prototype();
+	obj_add_field(obj_Globals, "Object", obj_to_sepv(proto_Object));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv((proto_Bool = create_bool_prototype())));
 	obj_add_field(obj_Globals, "Integer", obj_to_sepv((proto_Integer = create_integer_prototype())));
 	obj_add_field(obj_Globals, "String", obj_to_sepv((proto_String = create_string_prototype())));
