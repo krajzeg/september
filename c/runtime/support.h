@@ -72,6 +72,13 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err);
 SepObj *make_class(char *name, SepObj *parent);
 
 // ===============================================================
+//  Exception access
+// ===============================================================
+
+// Returns a built-in exception type.
+SepObj *builtin_exception(char *name);
+
+// ===============================================================
 //  Operating on properties
 // ===============================================================
 
@@ -81,6 +88,8 @@ void obj_add_field(SepObj *obj, char *name, SepV contents);
 void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t param_count, ...);
 // Adds a new built-in free function (as opposed to a method) to a given object.
 void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t param_count, ...);
+// Adds a new prototype to the object.
+void obj_add_prototype(SepObj *obj, SepV prototype);
 
 // ===============================================================
 //  Common operations

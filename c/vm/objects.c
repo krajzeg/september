@@ -24,6 +24,7 @@
 #include "objects.h"
 #include "arrays.h"
 #include "../runtime/runtime.h"
+#include "../runtime/support.h"
 
 // ===============================================================
 //  Constants
@@ -419,7 +420,7 @@ SepItem sepv_get(SepV sepv, SepString *property) {
 		return item_lvalue(slot, slot->vt->retrieve(slot, sepv));
 	else {
 		SepString *message =
-				sepstr_sprintf("Undefined property accessed: '%s'.", sepstr_to_cstr(property));
-		return item_rvalue(sepv_exception(NULL, message));
+				sepstr_sprintf("Property '%s' does not exist.", sepstr_to_cstr(property));
+		return si_exception(builtin_exception("EMissingProperty"), message);
 	}
 }

@@ -26,11 +26,14 @@
 SepObj *obj_Globals;
 SepObj *obj_Syntax;
 
+SepObj *proto_Exceptions;
+
 SepObj *proto_Object;
 SepObj *proto_String;
 SepObj *proto_Integer;
 SepObj *proto_Bool;
 SepObj *proto_Nothing;
+
 
 // ===============================================================
 //  Prototype creation methods
@@ -41,6 +44,8 @@ SepObj *create_integer_prototype();
 SepObj *create_string_prototype();
 SepObj *create_bool_prototype();
 SepObj *create_nothing_prototype();
+
+SepObj *create_builtin_exceptions();
 
 // ===============================================================
 //  Built-in functions
@@ -60,9 +65,9 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		// maybe we have a toString() method?
 		SepItem to_string_i = sepv_get(to_print, sepstr_create("toString"));
 		if (sepv_is_exception(to_string_i.value))
-			raise(NULL, "Value provided to print() is not a string and has no toString() method.");
+			raise(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
 		SepFunc *to_string = cast_as_func(to_string_i.value, &err);
-			or_raise_with_msg(NULL, "Value provided to print() is not a string and has no toString() method.");
+			or_raise_with_msg(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
 
 		// invoke it!
 		SepItem string_i = vm_subcall(frame->vm, to_string, 0);
@@ -71,7 +76,7 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 
 		// we have a string now
 		string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-			or_raise(NULL);
+			or_raise(builtin_exception("EWrongType"));
 	} else {
 		string = sepv_to_str(to_print);
 	}
@@ -171,6 +176,10 @@ void initialize_runtime() {
 	obj_Syntax  = obj_create();
 	obj_add_field(obj_Globals, "Globals", obj_to_sepv(obj_Globals));
 	obj_add_field(obj_Globals, "Syntax", obj_to_sepv(obj_Syntax));
+
+	// initialize built-in exceptions
+	proto_Exceptions = create_builtin_exceptions();
+	obj_add_prototype(obj_Globals, obj_to_sepv(proto_Exceptions));
 
 	// primitive types' prototypes are initialized here
 	proto_Nothing = create_nothing_prototype();

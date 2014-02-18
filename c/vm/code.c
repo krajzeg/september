@@ -15,13 +15,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../common/debugging.h"
+
 #include "code.h"
 #include "types.h"
 #include "objects.h"
 #include "arrays.h"
 #include "exceptions.h"
 #include "vm.h"
+
+#include "../runtime/support.h"
+#include "../common/debugging.h"
 
 // ===============================================================
 //  Instruction implementations
@@ -39,7 +42,7 @@ void push_const_impl(ExecutionFrame *frame) {
 		// oh goody, an anonymous function!
 		CodeBlock *block = frame_block(frame, -index);
 		if (block == NULL) {
-			value = sepv_exception(NULL, sepstr_sprintf("Internal error: block %d is out of bounds.", -index));
+			value = sepv_exception(builtin_exception("EInternalError"), sepstr_sprintf("Code block %d is out of bounds.", -index));
 		} else {
 			SepFunc *func = (SepFunc*)ifunc_create(block, frame->locals);
 			value = func_to_sepv(func);
@@ -66,7 +69,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	uint8_t param_count = func->vt->get_parameter_count(func);
 	if (arg_count != param_count) {
 		SepString *message = sepstr_sprintf("Expected %d arguments, called with %d.", param_count, arg_count);
-		frame_raise(frame, sepv_exception(NULL, message));
+		frame_raise(frame, sepv_exception(builtin_exception("EWrongArguments"), message));
 		return;
 	}
 
@@ -86,7 +89,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			// block - that's a lazy evaluated argument
 			CodeBlock *block = frame_block(frame, -argument_code);
 			if (!block) {
-				frame_raise(frame, sepv_exception(NULL, sepstr_sprintf("Internal error: Block %d out of bounds.", -argument_code)));
+				frame_raise(frame, sepv_exception(builtin_exception("EInternalError"), sepstr_sprintf("Code block %d out of bounds.", -argument_code)));
 				return;
 			}
 			SepFunc *lazy = (SepFunc*)ifunc_create(block, frame->locals);
@@ -149,7 +152,7 @@ void store_impl(ExecutionFrame *frame) {
 	Slot *slot = stack_pop_item(frame->data).origin;
 	if (!slot) {
 		frame_raise(frame,
-				sepv_exception(NULL, sepstr_create("Attempted assignment to an r-value.")));
+				sepv_exception(builtin_exception("ECannotAssign"), sepstr_create("Attempted assignment to an r-value.")));
 		return;
 	}
 

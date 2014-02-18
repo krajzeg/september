@@ -20,6 +20,8 @@ extern SepObj *proto_Integer;
 extern SepObj *proto_Bool;
 extern SepObj *proto_Nothing;
 
+extern SepObj *proto_Exceptions;
+
 // ===============================================================
 //  Method to actually initialize the thing
 // ===============================================================

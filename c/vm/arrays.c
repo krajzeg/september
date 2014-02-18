@@ -15,10 +15,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../common/garray.h"
+
 #include "mem.h"
 #include "exceptions.h"
 #include "arrays.h"
+
+#include "../common/garray.h"
+#include "../runtime/support.h"
 
 // ===============================================================
 //  Array implementation - public
@@ -58,7 +61,7 @@ SepV array_pop(SepArray *this) {
 
 	// underflow exception?
 	if (value_ptr == NULL) {
-		return sepv_exception(NULL,
+		return sepv_exception(builtin_exception("EWrongIndex"),
 			sepstr_create("Attempted to pop a value from an empty array."));
 	}
 
@@ -71,7 +74,7 @@ SepV array_get(SepArray *this, uint32_t index) {
 	SepV *pointer = ga_get(&this->array, index);
 	if (!pointer) {
 		// out of bounds!
-		return sepv_exception(NULL,
+		return sepv_exception(builtin_exception("EWrongIndex"),
 				sepstr_sprintf("Out of bounds access to array, index = %d", index));
 	}
 
@@ -84,7 +87,7 @@ SepV array_set(SepArray *this, uint32_t index, SepV value) {
 	SepV *pointer = ga_set(&this->array, index, &value);
 	if (!pointer) {
 		// out of bounds!
-		return sepv_exception(NULL,
+		return sepv_exception(builtin_exception("EWrongIndex"),
 				sepstr_sprintf("Out of bounds access to array, index = %d", index));
 	}
 

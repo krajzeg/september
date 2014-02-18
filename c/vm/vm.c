@@ -13,6 +13,7 @@
 
 #include "../common/debugging.h"
 #include "../runtime/runtime.h"
+#include "../runtime/support.h"
 
 // ===============================================================
 //  Execution frame
@@ -131,7 +132,7 @@ SepV vm_run(SepVM *this) {
 				// pop the unwind marker
 				SepV marker = stack_pop_value(this->data);
 				if (marker != SEPV_UNWIND_MARKER)
-					return sepv_exception(NULL, sepstr_create("Internal error: unbalanced data stack operations."));
+					return sepv_exception(builtin_exception("EInternalError"), sepstr_create("Unbalanced data stack operations."));
 
 				// return the result of the whole execution
 				return current_frame->return_value.value;
@@ -236,7 +237,7 @@ SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
 	uint8_t param_count = func->vt->get_parameter_count(func);
 	FuncParam *parameters = func->vt->get_parameters(func);
 	if (param_count != argument_count)
-		return si_exception(NULL, sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
+		return si_exception(builtin_exception("EInternalError"), sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
 
 	// put parameters in
 	SepObj *scope = obj_create();

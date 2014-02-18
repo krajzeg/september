@@ -18,6 +18,7 @@
 #include "../vm/exceptions.h"
 #include "../vm/types.h"
 #include "../vm/functions.h"
+#include "../vm/arrays.h"
 #include "runtime.h"
 #include "support.h"
 
@@ -102,6 +103,26 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 	props_accept_prop(obj, sepstr_create(name), field_create(func_to_sepv(builtin)));
 }
 
+// Adds a new prototype to the object.
+void obj_add_prototype(SepObj *obj, SepV prototype) {
+	SepV current = obj->prototypes;
+	if (current == SEPV_NOTHING) {
+		// this is the first prototype, just set it
+		obj->prototypes = prototype;
+	} else if (sepv_is_array(current)) {
+		// already an array of prototypes, just push the new one
+		SepArray *array = (SepArray*)sepv_to_obj(current);
+		array_push(array, prototype);
+	} else {
+		// object had one prototype - we have to create a new array with 2 elements
+		// to accomodate the new prototype
+		SepArray *array = array_create(2);
+		array_push(array, current);
+		array_push(array, prototype);
+		obj->prototypes = obj_to_sepv(array);
+	}
+}
+
 // ===============================================================
 //  Classes
 // ===============================================================
@@ -123,6 +144,19 @@ SepObj *make_class(char *name, SepObj *parent) {
 
 	// return the class
 	return cls;
+}
+
+// ===============================================================
+//  Exceptions
+// ===============================================================
+
+// Returns a built-in exception type.
+SepObj *builtin_exception(char *name) {
+	SepV value = props_get_prop(proto_Exceptions, sepstr_create(name));
+	if (value == SEPV_NOTHING)
+		return NULL;
+	else
+		return sepv_to_obj(value);
 }
 
 // ===============================================================

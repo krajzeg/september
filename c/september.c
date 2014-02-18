@@ -83,13 +83,25 @@ int run_program(SepModule *module) {
 	if (sepv_is_exception(result)) {
 		// wound up with an exception, extract it
 		SepV exception_object = exception_to_obj_sepv(result);
+
+		const char *class_name, *message;
+		SepV class_v = sepv_get(exception_object, sepstr_create("<class>")).value;
+		SepV class_name_v = sepv_get(class_v, sepstr_create("<name>")).value;
+		if (sepv_is_str(class_name_v))
+			class_name = sepstr_to_cstr(sepv_to_str(class_name_v));
+		else
+			class_name = "<unknown type>";
+
 		SepV message_sepv =
 				sepv_get(exception_object, sepstr_create("message")).value;
-		const char *message = sepstr_to_cstr(sepv_to_str(message_sepv));
+		if (sepv_is_str(message_sepv))
+			message = sepstr_to_cstr(sepv_to_str(message_sepv));
+		else
+			message = "<message missing>";
 
 		// report it
 		fprintf(stderr, "Exception encountered during execution:\n");
-		fprintf(stderr, "\t%s\n", message);
+		fprintf(stderr, "  %s: %s\n", class_name, message);
 
 		// and clean up
 		vm_free(vm);
