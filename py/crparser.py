@@ -190,10 +190,15 @@ class ParenParser:
 
     @staticmethod
     def left_parse(parser, token, left):
-        call = FCall()
-        call.first = left
-        call.second = FArgs()
-        
+        if left.kind == FCall.KIND:
+            # extend existing call
+            call = left
+        else:
+            # new call
+            call = FCall()
+            call.first = left
+            call.second = FArgs()
+            
         parser.advance()
 
         # zero-arg call

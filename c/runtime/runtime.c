@@ -136,20 +136,31 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+
 	SepV try_l = param(scope, "body");
+	SepV catch_type_v = param(scope, "handler_type");
 	SepV catch_l = param(scope, "handler");
 	SepV finally_l = param(scope, "finalizer");
 
 	// try executing the body
 	SepV result = vm_resolve(frame->vm, try_l);
 	if (sepv_is_exception(result)) {
-		// exception - first find a catch clause...
+		// exception - first check the catch clause
 		if (catch_l != SEPV_NOTHING) {
-			SepV catch_result = vm_resolve(frame->vm, catch_l);
-				or_propagate(catch_result);
+			// check for type match
+			SepFunc *exception_is = cast_as_named_func("is() method", sepv_get(result, sepstr_create("is")).value, &err);
+				or_raise(builtin_exception("EWrongType"));
+			bool type_matches = vm_subcall(frame->vm, exception_is, 1, catch_type_v).value == SEPV_TRUE;
 
-			// caught - clear exception
-			result = SEPV_NOTHING;
+			if (type_matches) {
+				// handle it!
+				SepV catch_result = vm_resolve(frame->vm, catch_l);
+					or_propagate(catch_result);
+
+				// caught - clear exception
+				result = SEPV_NOTHING;
+			}
 		}
 
 		// .. and then execute the finalizer
@@ -199,8 +210,8 @@ void initialize_runtime() {
 	obj_add_builtin_func(obj_Syntax, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
 	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
-	obj_add_builtin_func(obj_Syntax, "try..catch..finally", &func_try_catch_finally, 3,
-			"body", "handler", "finalizer");
+	obj_add_builtin_func(obj_Syntax, "try..catch..finally", &func_try_catch_finally, 4,
+			"body", "handler_type", "handler", "finalizer");
 
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "what");
