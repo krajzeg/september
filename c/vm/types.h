@@ -104,6 +104,9 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 // the data stack has to be cleared in case of an exception being
 // thrown
 #define SEPV_UNWIND_MARKER (SEPV_TYPE_SPECIAL | 0x05)
+// return value used by the "break" function to signify breaking
+// out of the loop
+#define SEPV_BREAK (SEPV_TYPE_SPECIAL | 0x06)
 
 // ===============================================================
 //  Booleans and special values

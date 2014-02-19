@@ -90,6 +90,19 @@ void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8
 void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t param_count, ...);
 // Adds a new prototype to the object.
 void obj_add_prototype(SepObj *obj, SepV prototype);
+// Adds a new escape function (like "return", "break", etc.) to a local scope.
+void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, SepV return_value);
+
+// ===============================================================
+//  Escape functions
+// ===============================================================
+
+// Makes a new escape function. When an escape function is called, it pops
+// frames from the VM's execution stack until it reaches the designated
+// frame. Once it does, it will exit this frame with the provided return
+// value. This is used to implement 'break', 'continue' and 'return'
+// "keywords".
+BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned);
 
 // ===============================================================
 //  Common operations

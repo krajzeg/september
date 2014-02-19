@@ -118,20 +118,29 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	if (condition != SEPV_TRUE)
 		return si_nothing();
 
+	// create execution scope for the body
+	SepObj *while_body_scope = obj_create_with_proto(frame->prev_frame->locals);
+	obj_add_escape(while_body_scope, "break", frame, SEPV_BREAK);
+	obj_add_escape(while_body_scope, "continue", frame, SEPV_NOTHING);
+
+	// loop!
 	SepV body_l = param(scope, "body");
 	while (condition == SEPV_TRUE) {
 		// execute body
-		SepV result = vm_resolve(frame->vm, body_l);
+		SepV result = vm_resolve_in(frame->vm, body_l, obj_to_sepv(while_body_scope));
+
 		if (sepv_is_exception(result)) {
 			// propagate exceptions from body
 			return item_rvalue(result);
+		} else if (result == SEPV_BREAK) {
+			break;
 		}
 
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
 	}
 
-	// while() has no return value
+	// while() has no return value on normal exit
 	return si_nothing();
 }
 

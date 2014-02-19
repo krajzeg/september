@@ -85,8 +85,10 @@ SepV vm_run(SepVM *this) {
 	while (true) {
 		// grab a frame to execute
 		ExecutionFrame *current_frame = &this->frames[this->frame_depth];
-		// execute instructions
-		frame_execute_instructions(current_frame, 1000);
+
+		// execute instructions (if we're not done)
+		if ((!current_frame->finished) && (!current_frame->called_another_frame))
+			frame_execute_instructions(current_frame, 1000);
 
 		// did this frame call into another one?
 		if (current_frame->called_another_frame) {
@@ -95,6 +97,8 @@ SepV vm_run(SepVM *this) {
 			// move down the stack
 			// the call operation itself has already filled in the next frame
 			this->frame_depth++;
+			// put an unwind marker on the stack
+			stack_push_rvalue(this->data, SEPV_UNWIND_MARKER);
 
 			log("vm", "(%d) New execution frame created (interpreted call).", this->frame_depth);
 		}
@@ -106,13 +110,17 @@ SepV vm_run(SepVM *this) {
 				log("vm", "(%d) Execution frame finished with exception.", this->frame_depth);
 				log("vm", "Unwinding to level (%d).", starting_depth);
 
+				int frames_to_unwind = this->frame_depth - starting_depth + 1;
+
 				// drop all the frames from this VM run
 				this->frame_depth = starting_depth - 1;
 
 				// clear data from the stack
-				SepV stack_value = stack_pop_value(this->data);
-				while (stack_value != SEPV_UNWIND_MARKER)
-					stack_value = stack_pop_value(this->data);
+				while (frames_to_unwind > 0) {
+					SepV stack_value = stack_pop_value(this->data);
+					if (stack_value == SEPV_UNWIND_MARKER)
+						frames_to_unwind--;
+				}
 
 				// and pass the exception to the authorities
 				return current_frame->return_value.value;
@@ -123,17 +131,18 @@ SepV vm_run(SepVM *this) {
 
 			// pop the frame
 			this->frame_depth--;
+			// unwind the stack (usually it will be just the unwind marker, but in
+			// case of a 'break' or 'return' it might be more items)
+			SepV stack_value = stack_pop_value(this->data);
+			while (stack_value != SEPV_UNWIND_MARKER)
+				stack_value = stack_pop_value(this->data);
+
 			// push the return value on the data stack of its parent
 			if (this->frame_depth >= starting_depth) {
 				ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
 				stack_push_item(parent_frame->data, current_frame->return_value);
 			} else {
 				// this is the end of this execution
-				// pop the unwind marker
-				SepV marker = stack_pop_value(this->data);
-				if (marker != SEPV_UNWIND_MARKER)
-					return sepv_exception(builtin_exception("EInternalError"), sepstr_create("Unbalanced data stack operations."));
-
 				// return the result of the whole execution
 				return current_frame->return_value.value;
 			}
@@ -154,6 +163,7 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	frame->called_another_frame = false;
 	frame->module = module;
 	frame->instruction_ptr = NULL;
+	frame->prev_frame = NULL;
 	frame->next_frame = &this->frames[1];
 
 	// set it as the execution scope for the root function
@@ -209,6 +219,7 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 	frame->locals = locals;
 
 	// frames are contiguous in memory, so the next frame is right after
+	frame->prev_frame = frame - 1;
 	frame->next_frame = frame + 1;
 
 	// we don't know the right values, but the function will initialize

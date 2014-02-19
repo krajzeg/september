@@ -53,12 +53,10 @@ typedef struct ExecutionFrame {
 	// execution called into another frame?
 	bool called_another_frame;
 
-	// This pointer is set by the VM to always point to the
-	// execution frame right below this one. When a call is made,
-	// the call instruction uses this pointer to build the frame
-	// we are calling into directly in the execution stack,
-	// so all the VM has to do is just jump into it.
+	// Those pointers are set up by the VM to make up a linked
+	// list of frames.
 	struct ExecutionFrame *next_frame;
+	struct ExecutionFrame *prev_frame;
 } ExecutionFrame;
 
 // Execute instructions from this frame, up to a given limit.

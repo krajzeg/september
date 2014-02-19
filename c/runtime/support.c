@@ -123,6 +123,12 @@ void obj_add_prototype(SepObj *obj, SepV prototype) {
 	}
 }
 
+// Adds a new escape function (like "return", "break", etc.) to a local scope.
+void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, SepV return_value) {
+	// just add it as a field
+	obj_add_field(obj, name, func_to_sepv(make_escape_func(return_to_frame, return_value)));
+}
+
 // ===============================================================
 //  Classes
 // ===============================================================
@@ -157,6 +163,52 @@ SepObj *builtin_exception(char *name) {
 		return NULL;
 	else
 		return sepv_to_obj(value);
+}
+
+// ===============================================================
+//  Escape functions
+// ===============================================================
+
+SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
+	// retrieve data from the function
+	SepV escape_data = ((BuiltInFunc*)frame->function)->data;
+
+	SepV escape_frame_v = sepv_get(escape_data, sepstr_create("scope")).value;
+	ExecutionFrame *escape_frame = (ExecutionFrame*)(intptr_t)escape_frame_v;
+
+	SepItem return_value = item_rvalue(sepv_get(escape_data, sepstr_create("rv")).value);
+
+	// drop frames until we reach the right scope
+	while (frame != NULL) {
+		// finish the frame
+		frame->finished = true;
+		frame->return_value = return_value;
+
+		// have we reached the frame we want to escape out of?
+		if (frame == escape_frame)
+			break;
+
+		// we go one frame up if not
+		frame = frame->prev_frame;
+	}
+
+	// return
+	return return_value;
+}
+
+BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
+	// create a new escape function
+	BuiltInFunc *function = builtin_create(escape_impl, 0);
+
+	// remember some stuff inside the function to be able to escape
+	// to the right place with the right value later
+	SepObj *escape_data = obj_create_with_proto(SEPV_NOTHING);
+	obj_add_field(escape_data, "frame", (SepV)(intptr_t)frame); // rather ugly hack to fit it in a sepv
+	obj_add_field(escape_data, "rv", value_returned);
+	function->data = obj_to_sepv(escape_data);
+
+	// return the function
+	return function;
 }
 
 // ===============================================================
