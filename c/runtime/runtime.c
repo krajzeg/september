@@ -17,7 +17,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-ahoy"
+#define SEPTEMBER_VERSION "0.1-airworthy"
 
 // ===============================================================
 //  Prototype objects
