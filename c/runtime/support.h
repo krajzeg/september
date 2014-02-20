@@ -103,6 +103,7 @@ void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, Se
 // value. This is used to implement 'break', 'continue' and 'return'
 // "keywords".
 BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned);
+BuiltInFunc *make_return_func(ExecutionFrame *frame);
 
 // ===============================================================
 //  Common operations

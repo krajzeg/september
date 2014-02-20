@@ -110,6 +110,10 @@ void lazy_call_impl(ExecutionFrame *frame) {
 		}
 	}
 
+	// add a 'return' function
+	BuiltInFunc *return_f = make_return_func(frame->next_frame);
+	obj_add_field(execution_scope, "return", func_to_sepv(return_f));
+
 	// initialize a new frame for the function being called
 	vm_initialize_scope(frame->vm, func, execution_scope);
 	vm_initialize_frame(frame->vm, frame->next_frame, func, obj_to_sepv(execution_scope));
