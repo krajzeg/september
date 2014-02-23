@@ -90,7 +90,7 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // ===============================================================
-//  New flow control
+//  'if..elseif..else'
 // ===============================================================
 
 SepObj *proto_IfStatement;
@@ -143,6 +143,13 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(obj_to_sepv(ifs));
 }
 
+SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
+	// delegate to statement if
+	SepV statement = statement_if(scope, frame).value;
+	SepFunc *executor = sepv_to_func(sepv_get(statement, sepstr_create("..!")).value);
+	return vm_subcall(frame->vm, executor, 0);
+}
+
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV ifs = target(scope);
 	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")).value);
@@ -188,26 +195,8 @@ SepObj *create_if_statement_prototype() {
 }
 
 // ===============================================================
-//  Flow control
+//  While
 // ===============================================================
-
-SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
-	SepV condition = param(scope, "condition");
-	if (condition == SEPV_TRUE) {
-		SepV body = param(scope, "body");
-		SepV return_value = vm_resolve(frame->vm, body);
-		return item_rvalue(return_value);
-	} else {
-		return si_nothing();
-	}
-}
-
-SepItem func_if_else(SepObj *scope, ExecutionFrame *frame) {
-	SepV condition = param(scope, "condition");
-	SepV body = param(scope, (condition == SEPV_TRUE) ? "true_branch" : "false_branch");
-	SepV return_value = vm_resolve(frame->vm, body);
-	return item_rvalue(return_value);
-}
 
 SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition_l = param(scope, "condition");
@@ -242,6 +231,10 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	// while() has no return value on normal exit
 	return si_nothing();
 }
+
+// ===============================================================
+//  Old try..catch..finally
+// ===============================================================
 
 SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
@@ -315,6 +308,7 @@ void initialize_runtime() {
 
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
