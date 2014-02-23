@@ -18,7 +18,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-airworthy"
+#define SEPTEMBER_VERSION "0.1-ajuga"
 
 // ===============================================================
 //  Prototype objects
