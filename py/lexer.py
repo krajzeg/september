@@ -63,7 +63,7 @@ def Simple(kind):
 
 
 TOKENS = {
-	r"[_a-zA-Z][a-zA-Z0-9]*":     Id,
+	r"[_a-zA-Z][a-zA-Z0-9_]*":     Id,
 	r"[0-9]+":                    IntLiteral,
 	r"[0-9]+\.[0-9]+":            FloatLiteral,
 	r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,

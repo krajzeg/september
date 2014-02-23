@@ -9,6 +9,7 @@
 #include "../vm/types.h"
 #include "../vm/objects.h"
 #include "../vm/exceptions.h"
+#include "../vm/arrays.h"
 #include "../vm/vm.h"
 
 #include "support.h"
@@ -86,6 +87,104 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 
 	// return value
 	return si_nothing();
+}
+
+// ===============================================================
+//  New flow control
+// ===============================================================
+
+SepObj *proto_IfStatement;
+
+SepItem substatement_elseif(SepObj *scope, ExecutionFrame *frame) {
+	SepV ifs = target(scope);
+	SepV condition = param(scope, "condition");
+	SepV body = param(scope, "body");
+
+	// extract the existing 'branches' array
+	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")).value);
+
+	// create the 'else-if' branch
+	SepObj *branch = obj_create_with_proto(SEPV_NOTHING);
+	obj_add_field(branch, "condition", condition);
+	obj_add_field(branch, "body", body);
+	array_push(branches, obj_to_sepv(branch));
+
+	// done, return the object for further chaining
+	return item_rvalue(ifs);
+}
+
+SepItem substatement_else(SepObj *scope, ExecutionFrame *frame) {
+	SepV ifs = target(scope);
+	SepV body = param(scope, "body");
+
+	obj_add_field(sepv_to_obj(ifs), "else_branch", body);
+
+	return item_rvalue(ifs);
+}
+
+SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
+	SepV condition = param(scope, "condition");
+	SepV body = param(scope, "body");
+
+	SepArray *branches = array_create(1);
+
+	// create the 'true' branch
+	SepObj *branch = obj_create_with_proto(SEPV_NOTHING);
+	obj_add_field(branch, "condition", condition);
+	obj_add_field(branch, "body", body);
+	array_push(branches, obj_to_sepv(branch));
+
+	// create if statement object
+	SepObj *ifs = obj_create_with_proto(obj_to_sepv(proto_IfStatement));
+	obj_add_field(ifs, "branches", obj_to_sepv(branches));
+	obj_add_field(ifs, "else_branch", SEPV_NOTHING);
+
+	// return the reified If
+	return item_rvalue(obj_to_sepv(ifs));
+}
+
+SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
+	SepV ifs = target(scope);
+	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")).value);
+
+	// iterate over all the branches guarded with conditions
+	// TODO: replace with better iteration
+	int branch_index = 0, branch_count = array_length(branches);
+	for (; branch_index < branch_count; branch_index++) {
+		SepV branch = array_get(branches, branch_index);
+
+		// evaluate condition
+		SepV condition_l = sepv_get(branch, sepstr_create("condition")).value;
+		SepV fulfilled = vm_resolve(frame->vm, condition_l);
+
+		if (fulfilled == SEPV_TRUE) {
+			// condition true - execute this branch and return
+			SepV body_l = sepv_get(branch, sepstr_create("body")).value;
+			SepV result = vm_resolve(frame->vm, body_l);
+			return item_rvalue(result);
+		}
+	}
+
+	// none of the conditions match - do we have an 'else'?
+	SepV else_l = sepv_get(ifs, sepstr_create("else_branch")).value;
+	if (else_l != SEPV_NOTHING) {
+		// there was an 'else', so execute that
+		SepV result = vm_resolve(frame->vm, else_l);
+		return item_rvalue(result);
+	} else {
+		// no branch matched, did nothing, return nothing
+		return si_nothing();
+	}
+}
+
+SepObj *create_if_statement_prototype() {
+	SepObj *IfStatement = obj_create();
+
+	obj_add_builtin_method(IfStatement, "else_", substatement_else, 1, "body");
+	obj_add_builtin_method(IfStatement, "elseif_", substatement_elseif, 2, "?condition", "body");
+	obj_add_builtin_method(IfStatement, "execute_", statement_if_impl, 0);
+
+	return IfStatement;
 }
 
 // ===============================================================
@@ -213,6 +312,10 @@ void initialize_runtime() {
 	obj_add_field(obj_Syntax, "Nothing", SEPV_NOTHING);
 	obj_add_field(obj_Syntax, "True", SEPV_TRUE);
 	obj_add_field(obj_Syntax, "False", SEPV_FALSE);
+
+	// new flow control
+	proto_IfStatement = create_if_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "if_", &statement_if, 2, "?condition", "body");
 
 	// flow control
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "condition", "body");
