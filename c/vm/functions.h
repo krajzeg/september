@@ -78,8 +78,8 @@ typedef struct BuiltInFunc {
 	// parameters accepted by this function
 	uint8_t parameter_count;
 	FuncParam *parameters;
-	// a special property for additional data associated with this function
-	SepV data;
+	// additional data associated with this function
+	void *data;
 } BuiltInFunc;
 
 // Creates a new built-in based on a C function and September parameter names.

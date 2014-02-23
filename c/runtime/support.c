@@ -170,14 +170,17 @@ SepObj *builtin_exception(char *name) {
 //  Escape functions
 // ===============================================================
 
+typedef struct EscapeData {
+	ExecutionFrame *original_frame;
+	SepV return_value;
+} EscapeData;
+
 SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
 	// retrieve data from the function
-	SepV escape_data = ((BuiltInFunc*)frame->function)->data;
+	EscapeData *data = ((BuiltInFunc*)frame->function)->data;
 
-	SepV escape_frame_v = sepv_get(escape_data, sepstr_create("frame")).value;
-	ExecutionFrame *escape_frame = (ExecutionFrame*)(intptr_t)escape_frame_v;
-
-	SepItem return_value = item_rvalue(sepv_get(escape_data, sepstr_create("rv")).value);
+	ExecutionFrame *escape_frame = data->original_frame;
+	SepItem return_value = item_rvalue(data->return_value);
 
 	// drop frames until we reach the right scope
 	while (frame != NULL) {
@@ -200,8 +203,8 @@ SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
 SepItem return_impl(SepObj *scope, ExecutionFrame *frame) {
 	// set the return value in the 'escape' structure
 	SepV return_value = param(scope, "return_value");
-	SepObj *data = sepv_to_obj(((BuiltInFunc*)frame->function)->data);
-	obj_add_field(data, "rv", return_value);
+	EscapeData *data = ((BuiltInFunc*)frame->function)->data;
+	data->return_value = return_value;
 
 	// delegate to the standard escape functionality
 	return escape_impl(scope, frame);
@@ -213,10 +216,10 @@ BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
 
 	// remember some stuff inside the function to be able to escape
 	// to the right place with the right value later
-	SepObj *escape_data = obj_create_with_proto(SEPV_NOTHING);
-	obj_add_field(escape_data, "frame", (SepV)(intptr_t)frame); // rather ugly hack to fit it in a sepv
-	obj_add_field(escape_data, "rv", value_returned);
-	function->data = obj_to_sepv(escape_data);
+	EscapeData *escape_data = mem_allocate(sizeof(EscapeData));
+	escape_data->original_frame = frame;
+	escape_data->return_value = value_returned;
+	function->data = escape_data;
 
 	// return the function
 	return function;
@@ -227,10 +230,10 @@ BuiltInFunc *make_return_func(ExecutionFrame *frame) {
 	BuiltInFunc *function = builtin_create(return_impl, 1, "return_value");
 
 	// remember some stuff inside the function to be able to escape
-	// to the right place with the right value later
-	SepObj *escape_data = obj_create_with_proto(SEPV_NOTHING);
-	obj_add_field(escape_data, "frame", (SepV)(intptr_t)frame); // rather ugly hack to fit it in a sepv
-	function->data = obj_to_sepv(escape_data);
+	// to the right place, leave return value to be filled later
+	EscapeData *escape_data = mem_allocate(sizeof(EscapeData));
+	escape_data->original_frame = frame;
+	function->data = escape_data;
 
 	// return the function
 	return function;
