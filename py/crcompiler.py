@@ -24,12 +24,9 @@ def emit_id(function, node):
 def emit_constant(function, node):
     function.add(PUSH, "", [], [node.value], [])
 
-def emit_call(function, node):
-    # fetch the function itself
-    function.compile_node(node.first)
-    # create arguments
+def extract_arguments(function, node):
     lazy_arguments = []
-    for arg_node in node.second.children:
+    for arg_node in node.args.children:
         if arg_node.kind == parser.Constant.KIND:
             lazy_arguments.append(arg_node.value)
         elif arg_node.kind == parser.Block.KIND:
@@ -37,7 +34,26 @@ def emit_call(function, node):
             lazy_arguments.append(block_func)
         else:
             lazy_arguments.append(function.compiler.create_function(arg_node))
-    function.add(LAZY, "", [], lazy_arguments, [])
+    return lazy_arguments
+
+def emit_call(function, node):
+    # fetch the function itself
+    function.compile_node(node.first)
+    arguments = extract_arguments(function, node)
+    function.add(LAZY, "", [], arguments, [])
+
+def emit_subcall(function, node):
+    # call the submethod
+    arguments = extract_arguments(function, node)
+    function.add(LAZY, "f", [node.value], arguments, [])
+
+def emit_complex_call(function, node):
+    # compile all the subcalls in the chain
+    for subcall in node.children:
+        function.compile_node(subcall)
+
+    # inject the execution subcall
+    function.compile_node(parser.Subcall("..!"))
 
 def emit_binary_op(function, node):
     # assignment is special-cased
@@ -71,7 +87,10 @@ EMITTERS = {
     parser.FCall.KIND:       emit_call,
     parser.UnaryOp.KIND:     emit_unary_op,
     parser.BinaryOp.KIND:    emit_binary_op,
-    parser.Block.KIND:       emit_block
+    parser.Block.KIND:       emit_block,
+
+    parser.ComplexCall.KIND: emit_complex_call,
+    parser.Subcall.KIND:     emit_subcall
 }
 
 ########################################################################
@@ -138,6 +157,12 @@ class Compiler:
 ########################################################################
 
 class ConstantCompiler:
+    CONST_NODES = [
+        parser.Id.KIND, parser.Constant.KIND, 
+        parser.BinaryOp.KIND, parser.UnaryOp.KIND,
+        parser.ComplexCall.KIND, parser.Subcall.KIND
+    ]
+
     def __init__(self, output):
         self.output = output
 
@@ -166,7 +191,7 @@ class ConstantCompiler:
         return {constant: index+1 for index, constant in enumerate(all_constants)}
 
     def add_occurrence(self, node):
-        if node.kind in [parser.Id.KIND, parser.Constant.KIND, parser.BinaryOp.KIND, parser.UnaryOp.KIND]:
+        if node.kind in ConstantCompiler.CONST_NODES:
             self.constant_occurrences[node.value] = self.constant_occurrences.get(node.value, 0) + 1
 
 ########################################################################

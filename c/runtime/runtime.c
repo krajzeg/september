@@ -180,9 +180,9 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_if_statement_prototype() {
 	SepObj *IfStatement = obj_create();
 
-	obj_add_builtin_method(IfStatement, "else_", substatement_else, 1, "body");
-	obj_add_builtin_method(IfStatement, "elseif_", substatement_elseif, 2, "?condition", "body");
-	obj_add_builtin_method(IfStatement, "execute_", statement_if_impl, 0);
+	obj_add_builtin_method(IfStatement, "else..", substatement_else, 1, "body");
+	obj_add_builtin_method(IfStatement, "elseif..", substatement_elseif, 2, "?condition", "body");
+	obj_add_builtin_method(IfStatement, "..!", statement_if_impl, 0);
 
 	return IfStatement;
 }
@@ -313,17 +313,10 @@ void initialize_runtime() {
 	obj_add_field(obj_Syntax, "True", SEPV_TRUE);
 	obj_add_field(obj_Syntax, "False", SEPV_FALSE);
 
-	// new flow control
-	proto_IfStatement = create_if_statement_prototype();
-	obj_add_builtin_func(obj_Syntax, "if_", &statement_if, 2, "?condition", "body");
-
 	// flow control
-	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "condition", "body");
-	obj_add_builtin_func(obj_Syntax, "if..else", &func_if_else, 3, "condition", "true_branch", "false_branch");
+	proto_IfStatement = create_if_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
-
-	obj_add_builtin_func(obj_Syntax, "try..catch..finally", &func_try_catch_finally, 4,
-			"body", "handler_type", "handler", "finalizer");
 
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "what");

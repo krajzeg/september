@@ -94,6 +94,15 @@ def SimpleNode(kind):
     return Simple
 
 
+class ComplexCall(Node):
+    KIND = "complexcall"
+    EXECUTOR_NAME = "..!"
+
+    def __init__(self, *calls):
+        super().__init__()
+        self.children = list(calls)
+        self.value = ComplexCall.EXECUTOR_NAME
+
 class Id(Node):
     TOKENS = [lexer.Id.KIND]
     KIND = "id"
@@ -107,17 +116,25 @@ class Id(Node):
         return Id(token.raw)
 
     def left_parse(parser, token, left):
+        # swallow the id
+        parser.advance()
+
         if left.kind == FCall.KIND:
             if left.first.kind == Id.KIND:
-                # swallow
-                parser.advance()
-                # append the new identifier to the old
+                # change the original identifier to include '..'
                 original_id = left.first
-                original_id.value += ".." + token.raw
-                # return the call as result
-                return left
+                original_id.value += ".."
+
+                # embed original call in a new complex call
+                subcall = Subcall(token.raw + "..")
+                return ComplexCall(left, subcall)
             else:
+                print(left)
                 parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw)
+        elif left.kind == ComplexCall.KIND:
+            # add a new subcall
+            left.children += [Subcall(token.raw + "..")]
+            return left
         else:
             parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw)
 
@@ -183,8 +200,31 @@ class BinaryOp(Node):
     def left_preference():
         return 10
 
-FCall = SimpleNode("fcall")
 FArgs = SimpleNode("fargs")
+
+class FCall(Node):
+    KIND = "fcall"
+
+    def __init__(self, left):
+        super().__init__()
+        self.first = left
+        self.second = FArgs()
+
+    @property
+    def args(self):
+        return self.second
+
+class Subcall(Node):
+    KIND = "subcall"
+
+    def __init__(self, method_name):
+        super().__init__(method_name)
+        self.first = FArgs()
+    
+    @property
+    def args(self):
+        return self.children[0]
+
 class ParenParser:
     TOKENS = ["("]
 
@@ -192,12 +232,14 @@ class ParenParser:
     def left_parse(parser, token, left):
         if left.kind == FCall.KIND:
             # extend existing call
-            call = left
+            final = call = left
+        if left.kind == ComplexCall.KIND:
+            # extend last call in the complex
+            call = left.children[-1]
+            final = left
         else:
             # new call
-            call = FCall()
-            call.first = left
-            call.second = FArgs()
+            final = call = FCall(left)
             
         parser.advance()
 
@@ -208,10 +250,10 @@ class ParenParser:
 
         while True:
             arg = parser.expression(0)
-            call.second.children += [arg]
+            call.args.children += [arg]
             if parser.token.kind == ")":
                 parser.advance()
-                return call
+                return final
             else:
                 parser.advance(",")
 
@@ -237,20 +279,16 @@ class Block(Node):
     @staticmethod
     def left_parse(parser, token, left):
         if left.kind == FCall.KIND:
-            # add to arguments of the function call on the left
-            block = Block.null_parse(parser, token)
-            fargs = left.second
-            fargs.children += [block]
-
-            return left
+            final = call = left        
+        elif left.kind == ComplexCall.KIND:
+            call = left.children[-1]
+            final = left
         else:
-            # initiate a new call
-            fcall = FCall()
-            fcall.first = left
-            fargs = fcall.second = FArgs()
-            fargs.first = Block.null_parse(parser, token)
+            final = call = FCall(left)
 
-            return fcall
+        call.args.children += [Block.null_parse(parser, token)]
+
+        return final
 
     @staticmethod
     def null_parse(parser, token):
