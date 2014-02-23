@@ -185,7 +185,7 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepObj *create_if_statement_prototype() {
-	SepObj *IfStatement = obj_create();
+	SepObj *IfStatement = make_class("IfStatement", NULL);
 
 	obj_add_builtin_method(IfStatement, "else..", substatement_else, 1, "body");
 	obj_add_builtin_method(IfStatement, "elseif..", substatement_elseif, 2, "?condition", "body");
@@ -230,6 +230,134 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 
 	// while() has no return value on normal exit
 	return si_nothing();
+}
+
+// ===============================================================
+//  New try..catch..finally
+// ===============================================================
+
+SepObj *proto_TryStatement;
+
+SepItem substatement_catch(SepObj *scope, ExecutionFrame *frame) {
+	SepV try_s = target(scope);
+	SepV type = param(scope, "type");
+	SepV body = param(scope, "body");
+
+	// extract catchers array
+	SepV catchers_v = sepv_get(try_s, sepstr_create("catchers")).value;
+	SepArray *catchers = (SepArray*)sepv_to_obj(catchers_v);
+
+	// push a new catcher
+	SepObj *catcher = obj_create_with_proto(SEPV_NOTHING);
+	obj_add_field(catcher, "type", type);
+	obj_add_field(catcher, "body", body);
+	array_push(catchers, obj_to_sepv(catcher));
+
+	// return the statement
+	return item_rvalue(try_s);
+}
+
+SepItem substatement_finally(SepObj *scope, ExecutionFrame *frame) {
+	SepV try_s = target(scope);
+	SepV body = param(scope, "body");
+
+	// extract finalizers array
+	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers")).value;
+	SepArray *finalizers = (SepArray*)sepv_to_obj(finalizers_v);
+
+	// push new finalizer
+	array_push(finalizers, body);
+
+	// return the statement
+	return item_rvalue(try_s);
+}
+
+SepItem statement_try(SepObj *scope, ExecutionFrame *frame) {
+	SepV body_l = param(scope, "body");
+
+	// build statement object
+	SepObj *try_s = obj_create_with_proto(obj_to_sepv(proto_TryStatement));
+	obj_add_field(try_s, "body", body_l);
+	obj_add_field(try_s, "catchers", obj_to_sepv(array_create(1)));
+	obj_add_field(try_s, "finalizers", obj_to_sepv(array_create(1)));
+
+	// return reified statement
+	return item_rvalue(obj_to_sepv(try_s));
+}
+
+SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+
+	// execute the body
+	SepV try_s = target(scope);
+	SepV try_body_l = sepv_get(try_s, sepstr_create("body")).value;
+	SepV try_result = vm_resolve(frame->vm, try_body_l);
+
+	// was there an exception?
+	if (sepv_is_exception(try_result)) {
+		// yes, we have to handle it
+		// go over the catch clauses and try to catch it
+		SepV catchers_v = sepv_get(try_s, sepstr_create("catchers")).value;
+		SepArray *catchers = (SepArray*)sepv_to_obj(catchers_v);
+		int catch_index, catch_count = array_length(catchers);
+		for (catch_index = 0; catch_index < catch_count; catch_index++) {
+			SepV catcher_obj = array_get(catchers, catch_index);
+
+			// check the exception type using Exception.is().
+			SepV catcher_type = sepv_get(catcher_obj, sepstr_create("type")).value;
+			SepV is_v = sepv_get(try_result, sepstr_create("is")).value;
+			SepFunc *is_f = cast_as_named_func("Exception is() method", is_v, &err);
+				or_raise(builtin_exception("ETypeMismatch"));
+			SepV type_matches_v = vm_subcall(frame->vm, is_f, 1, catcher_type).value;
+			if (type_matches_v != SEPV_TRUE) {
+				// type doesn't match - try another catcher
+				continue;
+			}
+
+			// the type matches, run the catcher body
+			SepV catcher_body = sepv_get(catcher_obj, sepstr_create("body")).value;
+			SepV catch_result = vm_resolve(frame->vm, catcher_body);
+
+			// the catch body might have thrown exceptions, unfortunately
+			if (sepv_is_exception(catch_result)) {
+				// we give up in that case
+				return item_rvalue(catch_result);
+			}
+
+			// phew, exception handled!
+			try_result = SEPV_NOTHING;
+			break;
+		}
+	}
+
+	// regardless of whether it was an exception, go through all
+	// finalizers
+	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers")).value;
+	SepArray *finalizers = (SepArray*)sepv_to_obj(finalizers_v);
+	int fin_index, fin_count = array_length(finalizers);
+	for (fin_index = 0; fin_index < fin_count; fin_index++) {
+		SepV finalizer_l = array_get(finalizers, fin_index);
+		SepV fin_result = vm_resolve(frame->vm, finalizer_l);
+
+		// the finalizer might have thrown an exception, unfortunately
+		if (sepv_is_exception(fin_result)) {
+			// we give up in that case
+			return item_rvalue(fin_result);
+		}
+	}
+
+	// return the final result (Nothing if there was an exception)
+	return item_rvalue(try_result);
+}
+
+SepObj *create_try_statement_prototype() {
+	SepObj *TryStatement = make_class("TryStatement", NULL);
+
+	obj_add_builtin_method(TryStatement, "catch..", substatement_catch, 2, "type", "body");
+	obj_add_builtin_method(TryStatement, "finally..", substatement_finally, 1, "body");
+	obj_add_builtin_method(TryStatement, "..!", statement_try_impl, 0);
+
+	return TryStatement;
 }
 
 // ===============================================================
@@ -310,6 +438,10 @@ void initialize_runtime() {
 	proto_IfStatement = create_if_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
+
+	proto_TryStatement = create_try_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
+
 	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
 	// built-in functions are initialized
