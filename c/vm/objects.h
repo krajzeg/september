@@ -209,7 +209,7 @@ SepObj *obj_create();
 SepObj *obj_create_with_proto(SepV proto);
 
 // ===============================================================
-//  Object-like behavior for all types
+//  Property lookup for all types
 // ===============================================================
 
 // Finds a property starting from a given object, taking prototypes
@@ -218,7 +218,10 @@ SepObj *obj_create_with_proto(SepV proto);
 Slot *sepv_lookup(SepV object, SepString *property);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure, and returning a stack item (slot + its value).
-SepItem sepv_get(SepV object, SepString *property);
+SepItem sepv_get_item(SepV object, SepString *property);
+// Gets the value of a property from an arbitrary SepV, using
+// proper lookup procedure. Returns just a SepV.
+SepV sepv_get(SepV object, SepString *property);
 
 // ===============================================================
 //  Macros for working with objects
@@ -233,6 +236,7 @@ SepItem sepv_get(SepV object, SepString *property);
 
 #define sepv_is_array(val) (sepv_is_obj(val) && obj_is_array(sepv_to_obj(val)))
 #define sepv_is_simple_object(val) (sepv_is_obj(val) && obj_is_simple(sepv_to_obj(val)))
+#define sepv_to_array(val) ((SepArray*)(sepv_to_obj(val)))
 
 /*****************************************************************/
 

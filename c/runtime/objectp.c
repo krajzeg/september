@@ -31,7 +31,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	SepString *property_name = cast_as_str(property_name_v, &err);
 		or_raise_with_msg(builtin_exception("EWrongType"), "Incorrect expression used as property name for the '.' operator.");
 
-	SepItem property_value = sepv_get(host_v, property_name);
+	SepItem property_value = sepv_get_item(host_v, property_name);
 	return property_value;
 }
 

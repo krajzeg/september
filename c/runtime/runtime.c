@@ -35,7 +35,6 @@ SepObj *proto_Integer;
 SepObj *proto_Bool;
 SepObj *proto_Nothing;
 
-
 // ===============================================================
 //  Prototype creation methods
 // ===============================================================
@@ -64,10 +63,10 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 
 	if (!sepv_is_str(to_print)) {
 		// maybe we have a toString() method?
-		SepItem to_string_i = sepv_get(to_print, sepstr_create("toString"));
-		if (sepv_is_exception(to_string_i.value))
+		SepV to_string_v = sepv_get(to_print, sepstr_create("toString"));
+		if (sepv_is_exception(to_string_v))
 			raise(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
-		SepFunc *to_string = cast_as_func(to_string_i.value, &err);
+		SepFunc *to_string = cast_as_func(to_string_v, &err);
 			or_raise_with_msg(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
 
 		// invoke it!
@@ -101,7 +100,7 @@ SepItem substatement_elseif(SepObj *scope, ExecutionFrame *frame) {
 	SepV body = param(scope, "body");
 
 	// extract the existing 'branches' array
-	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")).value);
+	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")));
 
 	// create the 'else-if' branch
 	SepObj *branch = obj_create_with_proto(SEPV_NOTHING);
@@ -146,34 +145,34 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	// delegate to statement if
 	SepV statement = statement_if(scope, frame).value;
-	SepFunc *executor = sepv_to_func(sepv_get(statement, sepstr_create("..!")).value);
+	SepFunc *executor = sepv_to_func(sepv_get(statement, sepstr_create("..!")));
 	return vm_subcall(frame->vm, executor, 0);
 }
 
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV ifs = target(scope);
-	SepArray *branches = (SepArray*)sepv_to_obj(sepv_get(ifs, sepstr_create("branches")).value);
+	SepArray *branches = sepv_to_array(sepv_get(ifs, sepstr_create("branches")));
 
 	// iterate over all the branches guarded with conditions
 	// TODO: replace with better iteration
-	int branch_index = 0, branch_count = array_length(branches);
-	for (; branch_index < branch_count; branch_index++) {
+	int branch_index, branch_count = array_length(branches);
+	for (branch_index = 0; branch_index < branch_count; branch_index++) {
 		SepV branch = array_get(branches, branch_index);
 
 		// evaluate condition
-		SepV condition_l = sepv_get(branch, sepstr_create("condition")).value;
+		SepV condition_l = sepv_get(branch, sepstr_create("condition"));
 		SepV fulfilled = vm_resolve(frame->vm, condition_l);
 
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
-			SepV body_l = sepv_get(branch, sepstr_create("body")).value;
+			SepV body_l = sepv_get(branch, sepstr_create("body"));
 			SepV result = vm_resolve(frame->vm, body_l);
 			return item_rvalue(result);
 		}
 	}
 
 	// none of the conditions match - do we have an 'else'?
-	SepV else_l = sepv_get(ifs, sepstr_create("else_branch")).value;
+	SepV else_l = sepv_get(ifs, sepstr_create("else_branch"));
 	if (else_l != SEPV_NOTHING) {
 		// there was an 'else', so execute that
 		SepV result = vm_resolve(frame->vm, else_l);
@@ -244,7 +243,7 @@ SepItem substatement_catch(SepObj *scope, ExecutionFrame *frame) {
 	SepV body = param(scope, "body");
 
 	// extract catchers array
-	SepV catchers_v = sepv_get(try_s, sepstr_create("catchers")).value;
+	SepV catchers_v = sepv_get(try_s, sepstr_create("catchers"));
 	SepArray *catchers = (SepArray*)sepv_to_obj(catchers_v);
 
 	// push a new catcher
@@ -262,7 +261,7 @@ SepItem substatement_finally(SepObj *scope, ExecutionFrame *frame) {
 	SepV body = param(scope, "body");
 
 	// extract finalizers array
-	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers")).value;
+	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers"));
 	SepArray *finalizers = (SepArray*)sepv_to_obj(finalizers_v);
 
 	// push new finalizer
@@ -290,22 +289,22 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 
 	// execute the body
 	SepV try_s = target(scope);
-	SepV try_body_l = sepv_get(try_s, sepstr_create("body")).value;
+	SepV try_body_l = sepv_get(try_s, sepstr_create("body"));
 	SepV try_result = vm_resolve(frame->vm, try_body_l);
 
 	// was there an exception?
 	if (sepv_is_exception(try_result)) {
 		// yes, we have to handle it
 		// go over the catch clauses and try to catch it
-		SepV catchers_v = sepv_get(try_s, sepstr_create("catchers")).value;
-		SepArray *catchers = (SepArray*)sepv_to_obj(catchers_v);
+		SepV catchers_v = sepv_get(try_s, sepstr_create("catchers"));
+		SepArray *catchers = sepv_to_array(catchers_v);
 		int catch_index, catch_count = array_length(catchers);
 		for (catch_index = 0; catch_index < catch_count; catch_index++) {
 			SepV catcher_obj = array_get(catchers, catch_index);
 
 			// check the exception type using Exception.is().
-			SepV catcher_type = sepv_get(catcher_obj, sepstr_create("type")).value;
-			SepV is_v = sepv_get(try_result, sepstr_create("is")).value;
+			SepV catcher_type = sepv_get(catcher_obj, sepstr_create("type"));
+			SepV is_v = sepv_get(try_result, sepstr_create("is"));
 			SepFunc *is_f = cast_as_named_func("Exception is() method", is_v, &err);
 				or_raise(builtin_exception("ETypeMismatch"));
 			SepV type_matches_v = vm_subcall(frame->vm, is_f, 1, catcher_type).value;
@@ -315,7 +314,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 			}
 
 			// the type matches, run the catcher body
-			SepV catcher_body = sepv_get(catcher_obj, sepstr_create("body")).value;
+			SepV catcher_body = sepv_get(catcher_obj, sepstr_create("body"));
 			SepV catch_result = vm_resolve(frame->vm, catcher_body);
 
 			// the catch body might have thrown exceptions, unfortunately
@@ -332,8 +331,8 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 
 	// regardless of whether it was an exception, go through all
 	// finalizers
-	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers")).value;
-	SepArray *finalizers = (SepArray*)sepv_to_obj(finalizers_v);
+	SepV finalizers_v = sepv_get(try_s, sepstr_create("finalizers"));
+	SepArray *finalizers = sepv_to_array(finalizers_v);
 	int fin_index, fin_count = array_length(finalizers);
 	for (fin_index = 0; fin_index < fin_count; fin_index++) {
 		SepV finalizer_l = array_get(finalizers, fin_index);
@@ -378,7 +377,7 @@ SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
 		// exception - first check the catch clause
 		if (catch_l != SEPV_NOTHING) {
 			// check for type match
-			SepFunc *exception_is = cast_as_named_func("is() method", sepv_get(result, sepstr_create("is")).value, &err);
+			SepFunc *exception_is = cast_as_named_func("is() method", sepv_get(result, sepstr_create("is")), &err);
 				or_raise(builtin_exception("EWrongType"));
 			bool type_matches = vm_subcall(frame->vm, exception_is, 1, catch_type_v).value == SEPV_TRUE;
 

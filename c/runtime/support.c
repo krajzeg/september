@@ -251,7 +251,7 @@ SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
 	if (class_slot) {
 		// retrieve the name of the class
 		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);
-		SepV class_name_v = sepv_get(class_v, sepstr_create("<name>")).value;
+		SepV class_name_v = sepv_get(class_v, sepstr_create("<name>"));
 		SepString *class_name = cast_as_named_str("Class name", class_name_v, &err);
 			or_quit_with(NULL);
 

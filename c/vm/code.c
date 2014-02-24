@@ -137,7 +137,7 @@ void fetch_prop_impl(ExecutionFrame *frame) {
 	log("opcodes", "fetchprop %d(%s)", index, sepstr_to_cstr(property));
 
 	// retrieve the value
-	SepItem property_value = sepv_get(host, property);
+	SepItem property_value = sepv_get_item(host, property);
 	if (sepv_is_exception(property_value.value)) {
 		frame_raise(frame, property_value.value);
 		return;
