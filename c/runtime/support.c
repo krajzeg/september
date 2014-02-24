@@ -131,6 +131,17 @@ void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, Se
 }
 
 // ===============================================================
+//  Retrieving properties quickly
+// ===============================================================
+
+// Retrieves a property from a SepV using proper lookup.
+// Function simplifying property retrieval with constant name,
+// used instead of sepv_get when you don't have a SepStr.
+SepV property(SepV host, char *name) {
+	return sepv_get(host, sepstr_create(name));
+}
+
+// ===============================================================
 //  Classes
 // ===============================================================
 
@@ -251,8 +262,7 @@ SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
 	if (class_slot) {
 		// retrieve the name of the class
 		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);
-		SepV class_name_v = sepv_get(class_v, sepstr_create("<name>"));
-		SepString *class_name = cast_as_named_str("Class name", class_name_v, &err);
+		SepString *class_name = prop_as_str(class_v, "<name>", &err);
 			or_quit_with(NULL);
 
 		if (sepv_is_obj(sepv))

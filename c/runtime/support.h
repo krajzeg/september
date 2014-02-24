@@ -79,7 +79,24 @@ SepObj *make_class(char *name, SepObj *parent);
 SepObj *builtin_exception(char *name);
 
 // ===============================================================
-//  Operating on properties
+//  Retrieving properties quickly
+// ===============================================================
+
+// Retrieves a property from a SepV using proper lookup.
+// Function simplifying property retrieval with constant name,
+// used instead of sepv_get when you don't have a SepStr.
+SepV property(SepV host, char *name);
+// Retrieves a property and casts it to a SepObj*.
+#define prop_as_obj(host, name, err) (cast_as_named_obj("Property '" name "'", property(host, name), err))
+// Retrieves a property and casts it to a SepFunc*.
+#define prop_as_func(host, name, err) (cast_as_named_func("Property '" name "'", property(host, name), err))
+// Retrieves a property and casts it to an integer.
+#define prop_as_int(host, name, err) (cast_as_named_int("Property '" name "'", property(host, name), err))
+// Retrieves a property and casts it to a string.
+#define prop_as_str(host, name, err) (cast_as_named_str("Property '" name "'", property(host, name), err))
+
+// ===============================================================
+//  Adding properties
 // ===============================================================
 
 // Adds a new field to a given object.
