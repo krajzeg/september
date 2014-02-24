@@ -29,6 +29,7 @@
 #include "vm/vm.h"
 #include "io/decoder.h"
 #include "runtime/runtime.h"
+#include "runtime/support.h"
 
 // ===============================================================
 //  Exit codes

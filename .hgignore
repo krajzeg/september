@@ -1,4 +1,5 @@
 .*\.o
+.*\.d
 .*\.pyc
 __pycache__
 tests
