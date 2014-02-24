@@ -312,27 +312,37 @@ def file_compile(ast, file):
     output = crencoder.ModuleFileOutput(file)
     Compiler(output).compile(ast)
 
+if __name__ == "__main__":
+    import sys
+    import lexer
+    import os.path
 
-import sys
-import lexer
-import os.path
-
-if len(sys.argv) > 1:
-    filename = sys.argv[1]
-    if len(sys.argv) > 2:
-        outname = sys.argv[2]
-    else:
-        basename, extension = os.path.splitext(filename)
-        if extension != "09":
-            outname = basename + ".09"
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        if len(sys.argv) > 2:
+            outname = sys.argv[2]
         else:
-            outname = filename + ".09"
+            basename, extension = os.path.splitext(filename)
+            if extension != "09":
+                outname = basename + ".09"
+            else:
+                outname = filename + ".09"
 
-    with open(filename, "r") as f:
-        code = f.read()
+        with open(filename, "r") as f:
+            code = f.read()
 
-    ast = parser.parse(lexer.lex(code))
+        # parse the code
+        try:
+            ast = parser.parse(lexer.lex(code))
+        except parser.ParsingError as pe:
+            print("Error at %s\n" % pe)
+            
+            line, column = pe.token.location            
+            offending_line = code.split("\n")[line-1].replace("\t", " ")            
+            print(offending_line)
+            print(" " * (column-1) + "^")
 
-    print(debug_compile(ast))
-    with open(outname, "wb") as out:
-        file_compile(ast, out)
+            sys.exit(1)
+
+        with open(outname, "wb") as out:
+            file_compile(ast, out)

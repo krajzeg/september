@@ -1,9 +1,11 @@
 import lexer
 
 class ParsingError(Exception):
-    def __init__(self, message):
+    def __init__(self, message, token):
+        self.token = token
+        if token:
+            message = "[line %d,col %d]: %s" % (token.location[0], token.location[1], message)
         super().__init__(message)
-
 
 class Node:
     KIND = "<unknown>"
@@ -14,11 +16,11 @@ class Node:
 
     @staticmethod
     def null_parse(parser, token):
-        Node.error("%s is not expected to be used at the beginning of an expression." % token.kind)
+        parser.error("%s is not expected to be used at the beginning of an expression." % token.kind, token)
 
     @staticmethod
     def left_parse(parser, token, left):
-        Node.error("%s is not expected to be used as an operator." % token.kind)
+        parser.error("%s is not expected to be used as an operator." % token.kind, token)
 
     @staticmethod
     def binding_power(token):
@@ -129,14 +131,13 @@ class Id(Node):
                 subcall = Subcall(token.raw + "..")
                 return ComplexCall(left, subcall)
             else:
-                print(left)
-                parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw)
+                parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw, token)
         elif left.kind == ComplexCall.KIND:
             # add a new subcall
             left.children += [Subcall(token.raw + "..")]
             return left
         else:
-            parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw)
+            parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw, token)
 
     @staticmethod
     def binding_power(token):
@@ -337,8 +338,6 @@ for parser_class in PARSER_CLASSES:
     for token in parser_class.TOKENS:
         PARSERS[token] = PARSERS.get(token, []) + [parser_class]
 
-print(PARSERS)
-
 class Parser:
     LEFT = "left"
     NULL = "null"
@@ -390,7 +389,7 @@ class Parser:
         if self.token is None:
             self.error("Unexpected end of file, expected %s instead." % token_kind)
         if self.token.kind != token_kind:
-            self.error("Expected %s, got %s('%s') instead." % (token_kind, self.token.kind, self.token))
+            self.error("Expected %s, got %s('%s') instead." % (token_kind, self.token.kind, self.token), self.token)
 
     def advance(self, expected = None):
         if expected:
@@ -416,8 +415,8 @@ class Parser:
         self.advance(";")
         return expr
 
-    def error(self, text):
-        raise ParsingError(text)
+    def error(self, text, token = None):
+        raise ParsingError(text, token)
 
 
 

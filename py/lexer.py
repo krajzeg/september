@@ -63,7 +63,7 @@ def Simple(kind):
 
 
 TOKENS = {
-	r"[_a-zA-Z][a-zA-Z0-9_]*":     Id,
+	r"[_a-zA-Z][a-zA-Z0-9_]*":    Id,
 	r"[0-9]+":                    IntLiteral,
 	r"[0-9]+\.[0-9]+":            FloatLiteral,
 	r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
@@ -114,6 +114,9 @@ class Lexer:
 				self.error("unrecognized input: '%s'" % self.rest_of_line())
 				return None
 
+			# remember token location
+			token.location = (self.line, self.column)
+			
 			# nope
 			results.append(token)
 			self.consume(token.raw)
