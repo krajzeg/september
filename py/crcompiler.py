@@ -312,6 +312,17 @@ def file_compile(ast, file):
     output = crencoder.ModuleFileOutput(file)
     Compiler(output).compile(ast)
 
+def print_error(error, location):
+    line, column = location
+    print("Error at [%d:%d]: %s\n" % (line, column, error))
+
+    offending_line = code.split("\n")[line-1].replace("\t", " ")            
+    print(offending_line)
+    print(" " * (column-1) + "^")
+
+    sys.exit(1)
+
+
 if __name__ == "__main__":
     import sys
     import lexer
@@ -335,14 +346,9 @@ if __name__ == "__main__":
         try:
             ast = parser.parse(lexer.lex(code))
         except parser.ParsingError as pe:
-            print("Error at %s\n" % pe)
-            
-            line, column = pe.token.location            
-            offending_line = code.split("\n")[line-1].replace("\t", " ")            
-            print(offending_line)
-            print(" " * (column-1) + "^")
-
-            sys.exit(1)
+            print_error(pe, pe.token.location)
+        except lexer.LexerError as le:
+            print_error(le, le.location)
 
         with open(outname, "wb") as out:
             file_compile(ast, out)

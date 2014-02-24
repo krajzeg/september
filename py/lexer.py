@@ -1,5 +1,11 @@
 import re
 
+class LexerError(Exception):
+	def __init__(self, message, location):
+		super().__init__(message)
+		self.location = location
+
+
 class Token:
 	def __init__(self, kind, raw):
 		self.kind = kind
@@ -111,12 +117,12 @@ class Lexer:
 			# did we fail to find anything?
 			token, length = longest
 			if length == 0:
-				self.error("unrecognized input: '%s'" % self.rest_of_line())
+				self.error("Unrecognized input: '%s'" % self.rest_of_line())
 				return None
 
 			# remember token location
 			token.location = (self.line, self.column)
-			
+
 			# nope
 			results.append(token)
 			self.consume(token.raw)
@@ -133,7 +139,7 @@ class Lexer:
 		self.stream = self.stream[len(string):]
 
 	def error(self, text):
-		raise Exception("Parsing error at [line %d:col %d]: %s" % (self.line, self.column, text))
+		raise LexerError(text, (self.line, self.column))
 
 	def rest_of_line(self):
 		try:

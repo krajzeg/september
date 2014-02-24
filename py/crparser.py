@@ -2,9 +2,7 @@ import lexer
 
 class ParsingError(Exception):
     def __init__(self, message, token):
-        self.token = token
-        if token:
-            message = "[line %d,col %d]: %s" % (token.location[0], token.location[1], message)
+        self.token = token        
         super().__init__(message)
 
 class Node:
@@ -401,7 +399,7 @@ class Parser:
     def expression(self, min_bp):
         first_fact = self.factory(self.token, Parser.NULL)
         if first_fact is None:
-            self.error("Incorrect token used at beginning of expression: %s." % self.token.raw)
+            self.error("Incorrect token used at beginning of expression: %s." % self.token.raw, self.token)
         expr = first_fact.null_parse(self, self.token)
 
         while self.token and self.factory(self.token, Parser.LEFT) and self.factory(self.token, Parser.LEFT).binding_power(self.token) > min_bp:
