@@ -1,0 +1,16 @@
+print("Executing the try.. block.");
+
+locals:try_return_value = try {
+	missing = "Something";
+	print("This part of try body should not be reached.");
+} catch (EWrongType) {
+	print("EWrongType should not be caught.");	
+} catch (EMissingProperty) {
+	print("EMissingProperty caught correctly.");
+} finally {
+	print("Finalizer executed correctly.");
+};
+
+print("Execution continued safely after catching exception.");
+print("Try should return Nothing, and returned:");
+print(try_return_value);

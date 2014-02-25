@@ -1,0 +1,19 @@
+locals:from = 9;
+locals:to = 3;
+
+locals:dir = if (from > to) { -1; } else { 1; };
+
+print("Iterating over numbers, starting at:");
+print(from);
+print("And ending at:");
+print(to);
+print("======");
+
+while (from != to) {
+	print(from);
+	from = from + dir;	
+};
+print(from);
+
+print("======");
+print("While loop exited cleanly.");
