@@ -1,4 +1,4 @@
-locals:i = 0;
+i := 0;
 
 print("The loop should print odd numbers up to 9.");
 while (True) {

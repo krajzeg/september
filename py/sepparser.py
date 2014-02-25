@@ -165,7 +165,7 @@ class BinaryOp(Node):
     TOKENS = [seplexer.Operator.KIND]
     KIND = "binary"
     PRECEDENCE = {
-        "=": 10,
+        "=": 10, ":=": 10,
         "==": 20, "!=": 20, "<": 20, ">": 20, "<=": 20, ">=": 20,
         "+": 30, "-": 30,
         "*": 40, "/": 40, "%": 40,

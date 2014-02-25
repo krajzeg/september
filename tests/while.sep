@@ -1,7 +1,4 @@
-locals:from = 9;
-locals:to = 3;
-
-locals:dir = if (from > to) { -1; } else { 1; };
+from := 9; to := 3;
 
 print("Iterating over numbers, starting at:");
 print(from);
@@ -9,6 +6,7 @@ print("And ending at:");
 print(to);
 print("======");
 
+dir := if (from > to) (-1) else (1);
 while (from != to) {
 	print(from);
 	from = from + dir;	

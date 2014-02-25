@@ -1,6 +1,6 @@
 print("Executing the try.. block.");
 
-locals:try_return_value = try {
+try_return_value := try {
 	missing = "Something";
 	print("This part of try body should not be reached.");
 } catch (EWrongType) {

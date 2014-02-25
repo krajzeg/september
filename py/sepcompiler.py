@@ -57,9 +57,25 @@ def emit_complex_call(function, node):
     function.compile_node(parser.Subcall("..!"))
 
 def emit_binary_op(function, node):
-    # assignment is special-cased
+    # various types of assignment are special-cased
     if node.value == "=":
+        # plain assignment
         function.compile_node(node.first)
+        function.compile_node(node.second)
+        function.add(NOP, "s", [], [], [])
+        return
+
+    if node.value == ":=":
+        # new variable assignment
+        if node.first.kind != parser.Id.KIND:
+            raise parser.ParsingError(":= requires a single identifier on the left side.")
+        # compile it
+        # create the field first
+        op = parser.BinaryOp(":")
+        op.first = parser.Id("locals")
+        op.second = node.first
+        emit_binary_op(function, op)
+        # then assign it with the value provided
         function.compile_node(node.second)
         function.add(NOP, "s", [], [], [])
         return
@@ -194,6 +210,9 @@ class ConstantCompiler:
     def add_occurrence(self, node):
         if node.kind in ConstantCompiler.CONST_NODES:
             self.constant_occurrences[node.value] = self.constant_occurrences.get(node.value, 0) + 1
+        if node.kind == parser.BinaryOp.KIND and node.value == ":=":
+            self.constant_occurrences["locals"] = self.constant_occurrences.get("locals", 0) + 1
+            self.constant_occurrences[":"] = self.constant_occurrences.get(":", 0) + 1
 
 ########################################################################
 
