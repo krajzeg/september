@@ -1,0 +1,16 @@
+# ==========================
+# Toolchain
+# ==========================
+
+CC = gcc
+RM = del
+CFLAGS = -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
+LDFLAGS = 
+
+# ==========================
+# Adapt file paths for use with Windows commands
+# ==========================
+
+OBJECT_FILES = $(OBJECTS)
+DEP_FILES = $(DEPS)
+

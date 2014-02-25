@@ -21,4 +21,5 @@ To try it out, build the interpreter, then compile one of the examples, and run 
 	cd ../c
     ./09 ../tests/<oneoftheexamples>.09
 
-Your `python` should be Python 3.x.
+Your `python` should be Python 3.x. If you want to build under Windows, you will need MinGW to compile the interpreter.
+
