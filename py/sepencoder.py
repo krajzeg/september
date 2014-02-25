@@ -1,6 +1,6 @@
 import math
 
-from crconstants import *
+from sepconstants import *
 
 ###################################################
 

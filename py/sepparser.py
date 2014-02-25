@@ -1,4 +1,4 @@
-import lexer
+import seplexer
 
 class ParsingError(Exception):
     def __init__(self, message, token):
@@ -104,7 +104,7 @@ class ComplexCall(Node):
         self.value = ComplexCall.EXECUTOR_NAME
 
 class Id(Node):
-    TOKENS = [lexer.Id.KIND]
+    TOKENS = [seplexer.Id.KIND]
     KIND = "id"
 
     def __init__(self, name):
@@ -142,7 +142,7 @@ class Id(Node):
         return 90
 
 class UnaryOp(Node):
-    TOKENS = [lexer.Operator.KIND]
+    TOKENS = [seplexer.Operator.KIND]
     KIND = "unary"
     PRECEDENCE = 80
 
@@ -162,7 +162,7 @@ class UnaryOp(Node):
         return 10
 
 class BinaryOp(Node):
-    TOKENS = [lexer.Operator.KIND]
+    TOKENS = [seplexer.Operator.KIND]
     KIND = "binary"
     PRECEDENCE = {
         "=": 10,
@@ -310,7 +310,7 @@ class Block(Node):
 
 class Constant(Node):
     KIND = "const"
-    TOKENS = [lexer.IntLiteral.KIND, lexer.FloatLiteral.KIND, lexer.StrLiteral.KIND]
+    TOKENS = [seplexer.IntLiteral.KIND, seplexer.FloatLiteral.KIND, seplexer.StrLiteral.KIND]
 
     def __init__(self, value):
         super().__init__(value)

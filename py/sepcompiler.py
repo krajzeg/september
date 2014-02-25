@@ -1,7 +1,8 @@
-from crconstants import *
+#!/usr/bin/python3
 
-import crparser as parser
-import crencoder
+from sepconstants import *
+import sepparser as parser
+import sepencoder as encoder
 
 ########################################################################
 
@@ -95,8 +96,8 @@ EMITTERS = {
 
 ########################################################################
 
-PRE_FLAGS  = set([F_PUSH_LOCALS,F_FETCH_PROPERTY])
-POST_FLAGS = set([F_POP_RESULT, F_STORE_VALUE])
+PRE_FLAGS  = {F_PUSH_LOCALS, F_FETCH_PROPERTY}
+POST_FLAGS = {F_POP_RESULT, F_STORE_VALUE}
 
 def merge_nops_forward(func):
     code = func.code
@@ -309,7 +310,7 @@ def debug_compile(ast):
     return output.string
 
 def file_compile(ast, file):
-    output = crencoder.ModuleFileOutput(file)
+    output = encoder.ModuleFileOutput(file)
     Compiler(output).compile(ast)
 
 def print_error(error, location):
@@ -322,10 +323,9 @@ def print_error(error, location):
 
     sys.exit(1)
 
-
 if __name__ == "__main__":
     import sys
-    import lexer
+    import seplexer as lexer
     import os.path
 
     if len(sys.argv) > 1:
