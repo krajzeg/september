@@ -65,10 +65,11 @@ enum OpCodes {
 	OP_LAZY_CALL = 0x4,
 
 	// 'virtual' operations implementing the instruction flags
-	OP_PUSH_LOCALS = 0x8,
-	OP_FETCH_PROP  = 0x9,
-	OP_POP         = 0xA,
-	OP_STORE       = 0xB,
+	OP_PUSH_LOCALS   = 0x8,
+	OP_FETCH_PROPERTY    = 0x9,
+	OP_POP           = 0xA,
+	OP_STORE         = 0xB,
+	OP_CREATE_PROPERTY  = 0xC,
 
 	// maximum value
 	OP_MAX

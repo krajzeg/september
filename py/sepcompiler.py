@@ -57,7 +57,8 @@ def emit_complex_call(function, node):
     function.compile_node(parser.Subcall("..!"))
 
 def emit_binary_op(function, node):
-    # various types of assignment are special-cased
+    # several operators (mostly assignment) are special-cased
+
     if node.value == "=":
         # plain assignment
         function.compile_node(node.first)
@@ -68,13 +69,11 @@ def emit_binary_op(function, node):
     if node.value == ":=":
         # new variable assignment
         if node.first.kind != parser.Id.KIND:
-            raise parser.ParsingError(":= requires a single identifier on the left side.")
+            raise parser.ParsingError(":= requires a single identifier on the left side.", None)
+
         # compile it
         # create the field first
-        op = parser.BinaryOp(":")
-        op.first = parser.Id("locals")
-        op.second = node.first
-        emit_binary_op(function, op)
+        function.add(NOP, "lc", [node.first.value], [], [])
         # then assign it with the value provided
         function.compile_node(node.second)
         function.add(NOP, "s", [], [], [])
@@ -112,7 +111,7 @@ EMITTERS = {
 
 ########################################################################
 
-PRE_FLAGS  = {F_PUSH_LOCALS, F_FETCH_PROPERTY}
+PRE_FLAGS  = {F_PUSH_LOCALS, F_FETCH_PROPERTY, F_CREATE_PROPERTY}
 POST_FLAGS = {F_POP_RESULT, F_STORE_VALUE}
 
 def merge_nops_forward(func):
@@ -210,9 +209,6 @@ class ConstantCompiler:
     def add_occurrence(self, node):
         if node.kind in ConstantCompiler.CONST_NODES:
             self.constant_occurrences[node.value] = self.constant_occurrences.get(node.value, 0) + 1
-        if node.kind == parser.BinaryOp.KIND and node.value == ":=":
-            self.constant_occurrences["locals"] = self.constant_occurrences.get("locals", 0) + 1
-            self.constant_occurrences[":"] = self.constant_occurrences.get(":", 0) + 1
 
 ########################################################################
 
@@ -344,10 +340,17 @@ def print_error(error, location):
 
 if __name__ == "__main__":
     import sys
-    import seplexer as lexer
     import os.path
+    import seplexer as lexer
 
     if len(sys.argv) > 1:
+        # bytecode debugging turned on?
+        debug_output = False
+        if sys.argv[1] == "-d":
+            debug_output = True
+            sys.argv[1:2] = []
+
+        # extract input and output filename filename
         filename = sys.argv[1]
         if len(sys.argv) > 2:
             outname = sys.argv[2]
@@ -362,6 +365,7 @@ if __name__ == "__main__":
             code = f.read()
 
         # parse the code
+        ast = None
         try:
             ast = parser.parse(lexer.lex(code))
         except parser.ParsingError as pe:
@@ -369,5 +373,10 @@ if __name__ == "__main__":
         except lexer.LexerError as le:
             print_error(le, le.location)
 
+        # compile the code
+        if debug_output:
+            print(debug_compile(ast))
         with open(outname, "wb") as out:
             file_compile(ast, out)
+    else:
+        print("Usage:\n\tsepcompiler.py [-d] <source file> [<target file>]")

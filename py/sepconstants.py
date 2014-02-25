@@ -7,7 +7,9 @@ LAZY = "lazy"
 EAGER = "eager"
 
 # flags
-F_PUSH_LOCALS    = "l"
-F_FETCH_PROPERTY = "f"
-F_STORE_VALUE    = "s"
-F_POP_RESULT     = "v"
+F_PUSH_LOCALS     = "l"
+F_FETCH_PROPERTY  = "f"
+F_CREATE_PROPERTY = "c"
+F_STORE_VALUE     = "s"
+F_POP_RESULT      = "v"
+

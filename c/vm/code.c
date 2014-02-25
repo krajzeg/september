@@ -167,6 +167,39 @@ void store_impl(ExecutionFrame *frame) {
 	stack_push_rvalue(frame->data, value);
 }
 
+void create_field_impl(ExecutionFrame *frame) {
+	// get the object to fetch from
+	SepV host_v = stack_pop_value(frame->data);
+
+	// get the property name
+	int16_t index = frame_read(frame);
+	SepString *property = sepv_to_str(frame_constant(frame, index));
+	log("opcodes", "createprop %d(%s)", index, sepstr_to_cstr(property));
+
+	// ensure the host is an object
+	if (!sepv_is_obj(host_v)) {
+		frame_raise(frame, sepv_exception(builtin_exception("EWrongType"),
+				sepstr_create("New properties can only be created on objects, not primitives.")));
+		return;
+	}
+	SepObj *host = sepv_to_obj(host_v);
+
+	// check if the field exists
+	if (props_find_prop(host, property)) {
+		SepString *message = sepstr_sprintf("Property '%s' already exists and cannot be created.",
+				sepstr_to_cstr(property));
+		frame_raise(frame, sepv_exception(builtin_exception("EPropertyExists"), message));
+		return;
+	}
+
+	// it doesn't, so let's create it
+	Slot *slot = props_accept_prop(host, property, field_create(SEPV_NOTHING));
+
+	// push it on the stack
+	SepItem property_item = item_lvalue(slot, SEPV_NOTHING);
+	stack_push_item(frame->data, property_item);
+}
+
 void pop_impl(ExecutionFrame *frame) {
 	log0("opcodes", "pop");
 
@@ -186,5 +219,6 @@ void pop_impl(ExecutionFrame *frame) {
 InstructionLogic instruction_lut[OP_MAX] = {
 	NULL, &push_const_impl, NULL, NULL,
 	&lazy_call_impl, NULL, NULL, NULL,
-	&push_locals_impl, &fetch_prop_impl, &pop_impl, &store_impl
+	&push_locals_impl, &fetch_prop_impl, &pop_impl,
+	&store_impl, &create_field_impl
 };

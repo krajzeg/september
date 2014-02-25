@@ -14,6 +14,7 @@ OPCODE_ENCODING = {
 FLAG_ENCODING = {
     F_PUSH_LOCALS:    0x80,
     F_FETCH_PROPERTY: 0x40,
+    F_CREATE_PROPERTY: 0x20,
     F_STORE_VALUE:    0x10,
     F_POP_RESULT:     0x08,
 }
@@ -99,7 +100,7 @@ class ModuleFileOutput:
     def code(self, opcode, flags, pre, args, post):
         self.write_byte(encode_operation(opcode, flags))
         for arg in pre:
-        	self.write_int(arg)
+            self.write_int(arg)
         if is_vararg(opcode):
             self.write_int(len(args))
         for arg in args:

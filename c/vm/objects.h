@@ -118,8 +118,9 @@ typedef struct PropertyMap {
 void props_init(void *this,
 		int initial_capacity);
 
-// Adds a new property to the map.
-void props_accept_prop(void *this, SepString *name,
+// Adds a new property to the map and returns the new slot stored
+// inside the map.
+Slot *props_accept_prop(void *this, SepString *name,
 		Slot *slot);
 // Removes a previously existing property.
 // TODO: implement SepV props_delete_prop(void *this, SepString *name);

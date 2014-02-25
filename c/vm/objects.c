@@ -167,7 +167,7 @@ void props_init(void *map, int initial_capacity) {
 }
 
 // Adds a new property to the map.
-void props_accept_prop(void *map, SepString *name, Slot *slot) {
+Slot *props_accept_prop(void *map, SepString *name, Slot *slot) {
 	PropertyMap *this = (PropertyMap*) map;
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
 
@@ -175,6 +175,7 @@ void props_accept_prop(void *map, SepString *name, Slot *slot) {
 	if (entry->name) {
 		// yes, simply reassign the slot
 		entry->slot = *slot;
+		return &entry->slot;
 	} else {
 		// no, this is an empty entry to be filled
 		entry->name = name;
@@ -196,10 +197,12 @@ void props_accept_prop(void *map, SepString *name, Slot *slot) {
 			if (this->overflow == this->capacity * 2) {
 				// yes - resize to a bigger size
 				_props_resize(this,
-						(int) (this->capacity * PROPERTY_MAP_GROWTH_FACTOR)
-								+ 1);
+						(int)(this->capacity * PROPERTY_MAP_GROWTH_FACTOR) + 1);
 			}
 		}
+
+		// find the slot again, it might have moved due to resizing
+		return props_find_prop(this, name);
 	}
 }
 

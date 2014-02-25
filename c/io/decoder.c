@@ -27,9 +27,10 @@
 
 enum OpcodeFlags {
 	MFILE_FLAG_LOCALS = 0x80,
-	MFILE_FLAG_FETCH = 0x40,
-	MFILE_FLAG_POP = 0x08,
-	MFILE_FLAG_SET = 0x10
+	MFILE_FLAG_FETCH_PROPERTY = 0x40,
+	MFILE_FLAG_CREATE_PROPERTY = 0x20,
+	MFILE_FLAG_STORE = 0x10,
+	MFILE_FLAG_POP = 0x08
 };
 
 // ===============================================================
@@ -221,10 +222,14 @@ void decoder_read_block_code(Decoder *this, BlockPool *pool, SepError *out_err) 
 		// handle pre-operation flags
 		if (opcode & MFILE_FLAG_LOCALS)
 			bpool_write_code(pool, OP_PUSH_LOCALS);
-		if (opcode & MFILE_FLAG_FETCH) {
-			// the operation
-			bpool_write_code(pool, OP_FETCH_PROP);
-			// ... and the argument
+		if (opcode & MFILE_FLAG_FETCH_PROPERTY) {
+			// write the operation and its argument
+			bpool_write_code(pool, OP_FETCH_PROPERTY);
+			bpool_write_code(pool, (int16_t)decoder_read_int(this, &err));
+		}
+		if (opcode & MFILE_FLAG_CREATE_PROPERTY) {
+			// write the operation and its argument
+			bpool_write_code(pool, OP_CREATE_PROPERTY);
 			bpool_write_code(pool, (int16_t)decoder_read_int(this, &err));
 		}
 		
@@ -257,8 +262,9 @@ void decoder_read_block_code(Decoder *this, BlockPool *pool, SepError *out_err) 
 		}
 		
 		// handle post-operation flags
-		if (opcode & MFILE_FLAG_SET)
+		if (opcode & MFILE_FLAG_STORE) {
 			bpool_write_code(pool, OP_STORE);
+		}
 		if (opcode & MFILE_FLAG_POP)
 			bpool_write_code(pool, OP_POP);
 		

@@ -1,0 +1,24 @@
+declare_from_within := {
+	module:property = 0;	
+};
+
+test_scopes := {
+	print("Property should be 0 here (from declaration scope), and is:");
+	print(property);
+
+	property := 1;
+	print("Property should be a 1 here (local variable shadowing), and is:");
+	print(property);
+};
+
+
+
+declare_from_within();
+
+print("Property should be 0 here (at module scope), and is:");
+print(property);
+
+test_scopes();
+
+print("Property should be 0 again (test_scopes() shouldn't change it), and is:");
+print(property);
