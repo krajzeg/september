@@ -1,10 +1,21 @@
 #!/usr/bin/python3
 
+##########################################################################
+#
+# sepcompiler
+#
+# The main compiler package - contains the back-end code to go from AST to
+# bytecode. This is also the main entry point for the time being.
+#
+##########################################################################
+
 from sepconstants import *
 import sepparser as parser
 import sepencoder as encoder
 
-########################################################################
+##############################################
+# Exceptions
+##############################################
 
 class CompilationError(Exception):
     def __init__(self, node, message):
@@ -12,20 +23,19 @@ class CompilationError(Exception):
         self.message = message
         super().__init__(message)
 
-########################################################################
+##############################################
+# Emitters
+##############################################
 
-class ArgCount:
-    def __init__(self, count):
-        self.count = count
-
-########################################################################
+# Emitter functions write code corresponding to AST nodes to a provided
+# function object.
 
 def emit_id(function, node):
     function.add(NOP, "lf", [node.value], [], [])
 def emit_constant(function, node):
     function.add(PUSH, "", [], [node.value], [])
 
-def extract_arguments(function, node):
+def create_function_arguments(function, node):
     lazy_arguments = []
     for arg_node in node.child("args").children:
         if arg_node.kind == parser.Constant:
@@ -40,38 +50,40 @@ def extract_arguments(function, node):
 def emit_call(function, node):
     # fetch the function itself
     function.compile_node(node.first)
-    arguments = extract_arguments(function, node)
+    arguments = create_function_arguments(function, node)
     function.add(LAZY, "", [], arguments, [])
 
 def emit_subcall(function, node):
     # call the submethod
-    arguments = extract_arguments(function, node)
+    arguments = create_function_arguments(function, node)
     function.add(LAZY, "f", [node.value], arguments, [])
 
 def emit_complex_call(function, node):
     # compile all the subcalls in the chain
     for subcall in node.children:
         function.compile_node(subcall)
-
-    # inject the execution subcall
+    # artificially inject the subcall that executes the chain
     function.compile_node(parser.Subcall("..!"))
 
 def emit_binary_op(function, node):
-    # several operators (mostly assignment) are special-cased
+    # several operators (mostly assignment) have to be special-cased
 
     if node.value == "=":
-        # plain assignment
+        # plain assignment is done by an operation flag "store"
         function.compile_node(node.first)
         function.compile_node(node.second)
         function.add(NOP, "s", [], [], [])
         return
 
     if node.value == ":=":
-        # new variable assignment
+        # new variable creation is done by an operation flag "create property"
+
+        # check if the left-hand side is an id
         if node.first.kind != parser.Id:
+            # TODO: fix this error to contain the right token (requires
+            # adding tokens to nodes).
             raise parser.ParsingException(":= requires a single identifier on the left side.", None)
 
-        # compile it
         # create the field first
         function.add(NOP, "lc", [node.first.value], [], [])
         # then assign it with the value provided
@@ -79,7 +91,7 @@ def emit_binary_op(function, node):
         function.add(NOP, "s", [], [], [])
         return
 
-    # lazy binary ops
+    # non-special case - the operator is just a method
     function.compile_node(node.first)
     if node.second.kind == parser.Constant:
         function.add(LAZY, "f", [node.value], [node.second.value], [])
@@ -88,14 +100,19 @@ def emit_binary_op(function, node):
         function.add(LAZY, "f", [node.value], [subfunc], [])
 
 def emit_unary_op(function, node):
+    # unary operators are just methods with a funky name
     function.compile_node(node.first)
-    function.add(LAZY, "f", [node.value], [], []) # TODO: should be EAGER, once that's done
+    function.add(LAZY, "f", [node.value], [], [])
 
 def emit_block(function, node):
-    # compile the block body separately
+    # compile the block body as a new function
     block = function.compiler.create_function(node.child("body"))
-    # just push it here
+    # at the point it was encountered, we have to push it on the stack
     function.add(PUSH, "", [], [block], [])
+
+##############################################
+# Matching emit_* functions to node types
+##############################################
 
 EMITTERS = {
     parser.Id:           emit_id,
@@ -109,12 +126,17 @@ EMITTERS = {
     parser.Subcall:      emit_subcall
 }
 
-########################################################################
+##############################################
+# Optimizers
+##############################################
 
 PRE_FLAGS  = {F_PUSH_LOCALS, F_FETCH_PROPERTY, F_CREATE_PROPERTY}
 POST_FLAGS = {F_POP_RESULT, F_STORE_VALUE}
 
 def merge_nops_forward(func):
+    """If the flags allow it, merges NOP operation with the next operation
+    below them. For example NOP.lf and PUSH.s can be merged into PUSH.lfs.
+    """
     code = func.code
     index = 0
     while index < len(code):
@@ -136,6 +158,9 @@ def merge_nops_forward(func):
     func.code = code
 
 def merge_nops_backward(func):
+    """If the flags allow it, merges NOP operation with the operation
+    before them. For example LAZY.lf and NOP.s can be merged into LAZY.lfs.
+    """
     code = func.code
     index = 0
     while index < len(code):
@@ -158,21 +183,36 @@ def merge_nops_backward(func):
 
 OPTIMIZERS = [merge_nops_forward, merge_nops_backward]
 
-########################################################################
+##############################################
+# Optimizers
+##############################################
 
 class Compiler:
+    """The compiler class for converting an abstract syntax tree into
+    September bytecode at the specified output.
+    """
     def __init__(self, output):
         self.output = output
 
     def compile(self, ast):
+        """Compiles the provided AST to the output given when the compiler
+        was created.
+        """
         self.output.file_header()
         constant_mapping = ConstantCompiler(self.output).compile(ast)
         CodeCompiler(self.output, constant_mapping).compile(ast)
         self.output.file_footer()
 
-########################################################################
+##############################################
+# Constant pool handling
+##############################################
 
 class ConstantCompiler:
+    """This class goes over the entire AST and collects constant occurences.
+    Once collected, those constants are written to the module's constant pool.
+    """
+
+    # The node types whose values are treated as needed constants.
     CONST_NODES = [
         parser.Id, parser.Constant,
         parser.BinaryOp, parser.UnaryOp,
@@ -184,16 +224,21 @@ class ConstantCompiler:
 
     @staticmethod
     def walk_ast_tree(tree, callback):
+        """Walks the AST, calling the callback at each node."""
         callback(tree)
         for child in tree.children:
             ConstantCompiler.walk_ast_tree(child, callback)
 
     def compile(self, ast):
-        # collect all needed constants together with how much they occur
+        """Collects all the constants and writes the constant pool to the
+        output. Returns a dict mapping each constant to its index in the
+        constant pool."""
+
+        # collect
         self.constant_occurrences = {}
         self.walk_ast_tree(ast, self.add_occurrence)
 
-        # sort them according to how much they occur
+        # sort them according to how often they occur
         all_constants = list(self.constant_occurrences.keys())
         all_constants.sort(key=lambda c: self.constant_occurrences[c], reverse=True)
 
@@ -203,16 +248,19 @@ class ConstantCompiler:
             self.output.constant(constant)
         self.output.constants_footer()
 
-        # return constant -> constant index mapping
+        # return a constant -> constant index mapping
         return {constant: index+1 for index, constant in enumerate(all_constants)}
 
     def add_occurrence(self, node):
         if node.kind in ConstantCompiler.CONST_NODES:
             self.constant_occurrences[node.value] = self.constant_occurrences.get(node.value, 0) + 1
 
-########################################################################
+##############################################
+# Compiling actual code
+##############################################
 
 class CompiledFunction:
+    """Represents a single September function."""
     def __init__(self, compiler, index, args=None):
         if args is None:
             args = []
@@ -226,12 +274,13 @@ class CompiledFunction:
         self.compiler.compile_node(self, node)
 
     def args_to_ints(self, args):
+        """Converts operation arguments into encoded integers that can be
+        written to the module file.
+        """
         actual_args = []
         for arg in args:
             if isinstance(arg, CompiledFunction):
                 actual_args += [-arg.index]
-            elif isinstance(arg, ArgCount):
-                actual_args += [arg.count]
             else:
                 try:
                     constant_index = self.compiler.constants[arg]
@@ -241,17 +290,22 @@ class CompiledFunction:
         return actual_args
     
     def add(self, opcode, flags, pre_args, args, post_args):
+        """Adds a new operation to the function."""
         pre_args, args, post_args = map(self.args_to_ints, [pre_args, args, post_args])
         self.code += [(opcode, flags, pre_args, args, post_args)]
 
 
 class CodeCompiler:
+    """Walks over the AST and compiles all the functions contained within,
+    starting from the root function of the module.
+    """
     def __init__(self, output, constants):
         self.output = output
         self.constants = constants
         self.functions = []
 
     def create_function(self, body):
+        """Creates a new function to be compiled with the provided body."""
         if body.kind != parser.Body:
             statements = [body]
         else:
@@ -267,12 +321,14 @@ class CodeCompiler:
         return func
 
     def compile_node(self, target_function, node):
+        """Emits code for a single node into the provided function."""
         emitter = EMITTERS[node.kind]
         if emitter is None:
             raise CompilationError(node, "Uncompilable node type: %s" % node.kind)
         emitter(target_function, node)
 
     def compile(self, ast):
+        """Compiles the code in the provided AST into the compiler's output."""
         self.create_function(ast)
 
         for func in self.functions:
@@ -285,7 +341,13 @@ class CodeCompiler:
                 self.output.code(*line)
             self.output.function_footer()
 
+##############################################
+# Debugging
+##############################################
+
 class StringOutput:
+    """A special mock output class that prints the emitted code on the screen
+     instead of writing it to a file."""
     def __init__(self):
         self.string = ""
 
@@ -318,13 +380,18 @@ class StringOutput:
         self.string += ", ".join([str(arg) for arg in pre + args + post])
         self.string += "\n"
 
+##############################################
+# Main execution
+##############################################
 
 def debug_compile(ast):
+    """Compiles the AST and outputs the resulting bytecode to the console."""
     output = StringOutput()
     Compiler(output).compile(ast)
     return output.string
 
 def file_compile(ast, file):
+    """Compiles the AST and outputs it to the file provided."""
     output = encoder.ModuleFileOutput(file)
     Compiler(output).compile(ast)
 
@@ -344,6 +411,7 @@ def print_error(error, location):
     print(" " * (column-1) + "^")
 
     sys.exit(1)
+
 
 if __name__ == "__main__":
     import sys
@@ -368,6 +436,7 @@ if __name__ == "__main__":
             else:
                 outname = filename + ".09"
 
+        # try reading the file (UTF-8 assumed)
         with open(filename, "r", encoding="utf8") as f:
             try:
                 code = f.read()
@@ -387,6 +456,7 @@ if __name__ == "__main__":
 
         # compile the code
         if debug_output:
+            # debugging enabled, compile it to the console first
             print(debug_compile(ast))
         with open(outname, "wb") as out:
             file_compile(ast, out)
