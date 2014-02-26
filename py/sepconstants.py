@@ -1,15 +1,20 @@
-###################################################
+##########################################################################
+#
+# sepconstants
+#
+# Some common constants used to represent September bytecode inside the
+# compiler.
+#
+##########################################################################
 
-# opcodes
+### Opcode constants
 NOP = "nop"
 PUSH = "push"
 LAZY = "lazy"
-EAGER = "eager"
 
-# flags
+### Operation flags
 F_PUSH_LOCALS     = "l"
 F_FETCH_PROPERTY  = "f"
 F_CREATE_PROPERTY = "c"
 F_STORE_VALUE     = "s"
 F_POP_RESULT      = "v"
-
