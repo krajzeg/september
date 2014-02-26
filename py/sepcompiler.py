@@ -27,10 +27,10 @@ def emit_constant(function, node):
 
 def extract_arguments(function, node):
     lazy_arguments = []
-    for arg_node in node.args.children:
-        if arg_node.kind == parser.Constant.KIND:
+    for arg_node in node.child("args").children:
+        if arg_node.kind == parser.Constant:
             lazy_arguments.append(arg_node.value)
-        elif arg_node.kind == parser.Block.KIND:
+        elif arg_node.kind == parser.Block:
             block_func = function.compiler.create_function(arg_node)
             lazy_arguments.append(block_func)
         else:
@@ -68,8 +68,8 @@ def emit_binary_op(function, node):
 
     if node.value == ":=":
         # new variable assignment
-        if node.first.kind != parser.Id.KIND:
-            raise parser.ParsingError(":= requires a single identifier on the left side.", None)
+        if node.first.kind != parser.Id:
+            raise parser.ParsingException(":= requires a single identifier on the left side.", None)
 
         # compile it
         # create the field first
@@ -81,7 +81,7 @@ def emit_binary_op(function, node):
 
     # lazy binary ops
     function.compile_node(node.first)
-    if node.second.kind == parser.Constant.KIND:
+    if node.second.kind == parser.Constant:
         function.add(LAZY, "f", [node.value], [node.second.value], [])
     else:
         subfunc = function.compiler.create_function(node.second)
@@ -93,20 +93,20 @@ def emit_unary_op(function, node):
 
 def emit_block(function, node):
     # compile the block body separately
-    block = function.compiler.create_function(node.body)
+    block = function.compiler.create_function(node.child("body"))
     # just push it here
     function.add(PUSH, "", [], [block], [])
 
 EMITTERS = {
-    parser.Id.KIND:          emit_id,
-    parser.Constant.KIND:    emit_constant,
-    parser.FCall.KIND:       emit_call,
-    parser.UnaryOp.KIND:     emit_unary_op,
-    parser.BinaryOp.KIND:    emit_binary_op,
-    parser.Block.KIND:       emit_block,
+    parser.Id:          emit_id,
+    parser.Constant:    emit_constant,
+    parser.FCall:       emit_call,
+    parser.UnaryOp:     emit_unary_op,
+    parser.BinaryOp:    emit_binary_op,
+    parser.Block:       emit_block,
 
-    parser.ComplexCall.KIND: emit_complex_call,
-    parser.Subcall.KIND:     emit_subcall
+    parser.ComplexCall: emit_complex_call,
+    parser.Subcall:     emit_subcall
 }
 
 ########################################################################
@@ -174,9 +174,9 @@ class Compiler:
 
 class ConstantCompiler:
     CONST_NODES = [
-        parser.Id.KIND, parser.Constant.KIND, 
-        parser.BinaryOp.KIND, parser.UnaryOp.KIND,
-        parser.ComplexCall.KIND, parser.Subcall.KIND
+        parser.Id, parser.Constant,
+        parser.BinaryOp, parser.UnaryOp,
+        parser.ComplexCall, parser.Subcall
     ]
 
     def __init__(self, output):
@@ -252,7 +252,7 @@ class CodeCompiler:
         self.functions = []
 
     def create_function(self, body):
-        if body.kind != parser.Body.KIND:
+        if body.kind != parser.Body:
             statements = [body]
         else:
             statements = body.children
@@ -273,7 +273,7 @@ class CodeCompiler:
         emitter(target_function, node)
 
     def compile(self, ast):
-        main = self.create_function(ast)
+        self.create_function(ast)
 
         for func in self.functions:
             for optimizer in OPTIMIZERS:
@@ -368,9 +368,9 @@ if __name__ == "__main__":
         ast = None
         try:
             ast = parser.parse(lexer.lex(code))
-        except parser.ParsingError as pe:
+        except parser.ParsingException as pe:
             print_error(pe, pe.token.location)
-        except lexer.LexerError as le:
+        except lexer.LexerException as le:
             print_error(le, le.location)
 
         # compile the code

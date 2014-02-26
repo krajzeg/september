@@ -14,7 +14,7 @@ import re
 # Exceptions
 ##############################################
 
-class LexerError(Exception):
+class LexerException(Exception):
     """Represents errors encountered during the lexing step of compilation,
     mostly malformed input.
     """
@@ -55,7 +55,7 @@ def token_type(tag, initialization = None):
         return token
 
     # remember the token tag inside the factory
-    token_factory.KIND = tag
+    token_factory.kind = tag
     return token_factory
 
 ##############################################
@@ -171,7 +171,7 @@ class Lexer:
 
     def error(self, text):
         """Streamlines raising lexing problems."""
-        raise LexerError(text, (self.line, self.column))
+        raise LexerException(text, (self.line, self.column))
 
     def rest_of_line(self):
         """Returns the remaining un-lexed part of the current line."""

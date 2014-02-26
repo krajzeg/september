@@ -1,50 +1,61 @@
-import seplexer
+##########################################################################
+#
+# sepparser
+#
+# This package implements a parser for September, using an approach based on
+# Top-Down Operator Precedence (http://javascript.crockford.com/tdop/tdop
+# .html), adapted to make it more readable and suitable to Python.
+#
+##########################################################################
 
-class ParsingError(Exception):
+import seplexer as lexer
+
+##############################################
+# Exceptions
+##############################################
+
+class ParsingException(Exception):
     def __init__(self, message, token):
-        self.token = token        
+        self.token = token
         super().__init__(message)
 
-class Node:
-    KIND = "<unknown>"
+##############################################
+# The AST node
+##############################################
 
-    def __init__(self, value = None):
+class Node:
+    """Represents a single node in the abstract syntax tree."""
+    def __init__(self, kind, value=None, children_names=None):
+        self._kind = (kind,) # wrapping in a tuple prevents method-assigning
+                             # magic that Python does
         self.value = value
         self.children = []
-
-    @staticmethod
-    def null_parse(parser, token):
-        parser.error("%s is not expected to be used at the beginning of an expression." % token.kind, token)
-
-    @staticmethod
-    def left_parse(parser, token, left):
-        parser.error("%s is not expected to be used as an operator." % token.kind, token)
-
-    @staticmethod
-    def binding_power(token):
-        return -1
-
-    @staticmethod
-    def left_preference():
-        return -1
-    
-    @staticmethod
-    def null_preference():
-        return -1
-
-    @staticmethod
-    def error(text):
-        raise ParsingError(text)
+        if children_names:
+            # create a mapping from name to its index
+            self.name_map = dict(zip(children_names,
+                                     range(len(children_names))))
+        else:
+            self.name_map = None
 
     @property
     def kind(self):
-        return self.__class__.KIND
+        return self._kind[0]
 
-    def child(self, index):
-        if len(self.children) > index:
-            return self.children[index]
+    def child(self, index_or_name):
+        if isinstance(index_or_name, int):
+            # treat as an index
+            if len(self.children) > index_or_name:
+                return self.children[index_or_name]
+            else:
+                raise Exception("Internal error: node %s does not have a "
+                                "child with index %d" % (self.kind,
+                                                         index_or_name))
         else:
-            return None
+            # treat as a name
+            if self.name_map and index_or_name in self.name_map:
+                return self.child(self.name_map[index_or_name])
+            else:
+                return None
 
     def set_child(self, index, value):
         if len(self.children) <= index:
@@ -54,22 +65,30 @@ class Node:
     @property
     def first(self):
         return self.child(0)
+
     @property
     def second(self):
         return self.child(1)
+
     @property
     def third(self):
         return self.child(2)
 
     @first.setter
     def first(self, value):
-        self.set_child(0, value)        
+        self.set_child(0, value)
+
     @second.setter
     def second(self, value):
         self.set_child(1, value)
+
     @third.setter
     def third(self, value):
         self.set_child(2, value)
+
+    def add(self, child):
+        """Adds a new child node."""
+        self.children.append(child)
 
     def __str__(self):
         if self.value is not None:
@@ -86,84 +105,240 @@ class Node:
             text += child.indented_string(indent_level + 1)
         return text
 
-def SimpleNode(kind):
-    class Simple(Node):
-        KIND = kind
-        def __init__(self):
-            super().__init__()
-    return Simple
+##############################################
+# Individual node types
+##############################################
 
+def Id(name):
+    return Node(Id, name)
 
-class ComplexCall(Node):
-    KIND = "complexcall"
-    EXECUTOR_NAME = "..!"
+def Constant(value):
+    return Node(Constant, value)
 
-    def __init__(self, *calls):
-        super().__init__()
-        self.children = list(calls)
-        self.value = ComplexCall.EXECUTOR_NAME
+def UnaryOp(operator, operand):
+    node = Node(UnaryOp, operator, ["operand"])
+    node.first = operand
+    return node
 
-class Id(Node):
-    TOKENS = [seplexer.Id.KIND]
-    KIND = "id"
+def BinaryOp(operator, left, right):
+    node = Node(BinaryOp, operator, ["left", "right"])
+    node.children = [left, right]
+    return node
 
-    def __init__(self, name):
-        super().__init__(name)
+def FArgs():
+    return Node(FArgs)
 
-    @staticmethod
-    def null_parse(parser, token):
+def FCall(call_target):
+    node = Node(FCall, children_names=["target", "args"])
+    node.children = [call_target, FArgs()]
+    node.second = FArgs()
+    return node
+
+def Subcall(identifier):
+    node = Node(Subcall, identifier, ["args"])
+    node.first = FArgs()
+    return node
+
+def ComplexCall(*calls):
+    node = Node(ComplexCall, "..!", ["calls"])
+    node.children = list(calls)
+    return node
+
+def Body():
+    return Node(Body, children_names=["statements"])
+
+def Block():
+    node = Node(Block, children_names=["body"])
+    node.first = Body()
+    return node
+
+##############################################
+# Parsers
+##############################################
+
+class ContextlessParser:
+    """Base class for contextless parsers, i.e. parsers that can consume tokens
+    that can stand alone in an expression or statement (like identifiers or
+    constants).
+    """
+
+    @classmethod
+    def null_parse(cls, parser, token):
+        """Parses the token. Responsible for advancing the parser beyond
+        the token using parser.advance(), or the .expression()/.statement()
+        methods.
+        """
+        raise ParsingException(
+            "null_parse() not implemented properly for %s" % cls.__name__,
+            token)
+
+    @classmethod
+    def strength(cls, token):
+        """Returns how strongly this parser wants to consume the given token.
+        In the event of two parsers wanting the same token, the one with the
+        higher strength will win.
+        """
+        return 0
+
+class OperationParser:
+    """Base class for operation parsers, i.e. parsers that can consume tokens
+    appearing in the middle of an expression, like an operator or a paren.
+    """
+
+    @classmethod
+    def op_parse(cls, parser, token, left):
+        """Parses the token. Responsible for advancing the parser beyond
+        the token using parser.advance(), or the .expression()/.statement()
+        methods. The subtree representing the left-hand-side argument of the
+        operation is passed in.
+        """
+        raise ParsingException(
+            "op_parse() not implemented properly for %s" % cls.__name__,
+            token)
+
+    @classmethod
+    def op_precedence(cls, token):
+        """Returns the precedence this operation should have. Higher values
+        result in more tightly binding operations, so '*' will have higher
+        precedence than '+'. The default is 50.
+        """
+        return 50
+
+    @classmethod
+    def strength(cls, token):
+        """Returns how strongly this parser wants to consume the given token.
+        In the event of two parsers wanting the same token, the one with the
+        higher strength will win.
+        """
+        return 0
+
+##############################################
+# Individual parsers
+##############################################
+
+class IdParser(ContextlessParser):
+    """Parses standalone identifiers."""
+    TOKENS = [lexer.Id]
+
+    @classmethod
+    def null_parse(cls, parser, token):
         parser.advance()
         return Id(token.raw)
 
-    def left_parse(parser, token, left):
-        # swallow the id
+
+class ConstantParser(ContextlessParser):
+    """Parses constants of all types."""
+    TOKENS = [lexer.IntLiteral, lexer.FloatLiteral, lexer.StrLiteral]
+
+    @classmethod
+    def null_parse(cls, parser, token):
         parser.advance()
+        return Constant(token.value)
 
-        if left.kind == FCall.KIND:
-            if left.first.kind == Id.KIND:
-                # change the original identifier to include '..'
-                original_id = left.first
-                original_id.value += ".."
 
-                # embed original call in a new complex call
-                subcall = Subcall(token.raw + "..")
-                return ComplexCall(left, subcall)
-            else:
-                parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw, token)
-        elif left.kind == ComplexCall.KIND:
-            # add a new subcall
-            left.children += [Subcall(token.raw + "..")]
-            return left
-        else:
-            parser.error("Identifier '%s' encountered in a place where it makes no sense." % token.raw, token)
+class FunctionCallParser(OperationParser):
+    """Parses simple and complex call constructs."""
+    TOKENS = ["{", "(", lexer.Id]
 
-    @staticmethod
-    def binding_power(token):
+    @classmethod
+    def op_parse(cls, parser, token, left):
+        if token.kind == "{":
+            return cls.parse_block(parser, token, left)
+        elif token.kind == "(":
+            return cls.parse_argument_list(parser, token, left)
+        else: # identifier
+            return cls.parse_identifier(parser, token, left)
+
+    @classmethod
+    def op_precedence(cls, token):
         return 90
 
-class UnaryOp(Node):
-    TOKENS = [seplexer.Operator.KIND]
-    KIND = "unary"
-    PRECEDENCE = 80
+    @classmethod
+    def parse_block(cls, parser, token, left):
+        """Parses calls of type: id { ... }, and more complex versions of a
+        code block appearing inline in a call.
+        """
+        if left.kind == FCall:
+            # add block as argument to the call
+            returned = host = left
+        elif left.kind == ComplexCall:
+            # if we are parsing a complex call chain,
+            # the block will go as argument to the last subcall
+            host = left.children[-1]
+            returned = left
+        else:
+            # make a new call out of it
+            returned = host = FCall(left)
 
-    def __init__(self, operator):
-        super().__init__("unary" + operator)
+        block = BlockParser.null_parse(parser, token)
+        host.child("args").add(block)
+        return returned
 
-    @staticmethod
-    def null_parse(parser, token):
-        op = UnaryOp(token.raw)
+    @classmethod
+    def parse_argument_list(cls, parser, token, left):
+        """Parses standard argument lists, e.g.: id(a,b,c),
+        and more complex variants used in call chains.
+        """
+        if left.kind == FCall:
+            # add arguments to the existing call
+            returned = host = left
+        elif left.kind == ComplexCall:
+            host = left.children[-1]
+            returned = left
+        else:
+            returned = host = FCall(left)
+
+        # empty argument list?
         parser.advance()
+        if parser.token.kind == ")":
+            parser.advance()
+            return returned
 
-        op.first = parser.expression(UnaryOp.PRECEDENCE)
-        return op
+        # nope, let's parse the arguments
+        while True:
+            argument = parser.expression(0)
+            host.child("args").children += [argument]
+            if parser.token.kind == ")":
+                # end of argument list
+                parser.advance(")")
+                return returned
+            else:
+                # more arguments have to be here, expect a comma
+                parser.advance(",")
 
-    @staticmethod
-    def null_preference():
-        return 10
+    @classmethod
+    def parse_identifier(cls, parser, token, left):
+        """Parses identifiers used as continuation of a complex call chain."""
+        if left.kind == FCall:
+            # modify the original call to work in a call chain
+            # this requires the original call to have just an identifier as
+            # the target
+            parser.advance()
+            original_target = left.child("target")
+            if original_target.kind != Id:
+                parser.error("Illegal complex call - the original call target"
+                             "must be a single identifier for complex calls.",
+                             token)
+            original_target.value += ".."
 
-class BinaryOp(Node):
-    TOKENS = [seplexer.Operator.KIND]
-    KIND = "binary"
+            # start a new complex call chain
+            new_subcall = Subcall(token.raw + "..")
+            return ComplexCall(left, new_subcall)
+        elif left.kind == ComplexCall:
+            # extend the existing chain
+            parser.advance()
+            left.add(Subcall(token.raw + ".."))
+            return left
+        else:
+            # not a valid position for an identifier
+            parser.error("Expected operator or end of statement, " +
+                         "not an identifier.", token)
+
+
+class BinaryOpParser(OperationParser):
+    """Parser for binary operators."""
+    TOKENS = [lexer.Operator]
+
     PRECEDENCE = {
         "=": 10, ":=": 10,
         "==": 20, "!=": 20, "<": 20, ">": 20, "<=": 20, ">=": 20,
@@ -172,188 +347,105 @@ class BinaryOp(Node):
         ".": 95, ":": 95
     }
 
-    def __init__(self, operator):
-        super().__init__(operator)
-
-    @staticmethod
-    def left_parse(parser, token, left):
-        op = BinaryOp(token.raw)
-        op.first = left
-
+    @classmethod
+    def op_parse(cls, parser, token, left):
         parser.advance()
-        op.second = parser.expression(BinaryOp.binding_power(token))
+        precedence = cls.op_precedence(token)
+        return BinaryOp(token.raw, left, parser.expression(precedence))
 
-        return op
-
-    @staticmethod
-    def binding_power(token):
-        first = token.raw[0]
-        if token.raw in BinaryOp.PRECEDENCE:
-            return BinaryOp.PRECEDENCE[token.raw]
-        elif first in BinaryOp.PRECEDENCE:
-            return BinaryOp.PRECEDENCE[first]
+    @classmethod
+    def op_precedence(cls, token):
+        if token.raw in cls.PRECEDENCE:
+            return cls.PRECEDENCE[token.raw]
+        elif token.raw[0] in cls.PRECEDENCE:
+            return cls.PRECEDENCE[token.raw[0]]
         else:
-            return 0
+            return 50
 
-    @staticmethod
-    def left_preference():
-        return 10
 
-FArgs = SimpleNode("fargs")
+class UnaryOpParser(ContextlessParser):
+    """Parser for unary operators."""
+    TOKENS = [lexer.Operator]
+    PRECEDENCE = 80
 
-class FCall(Node):
-    KIND = "fcall"
+    @classmethod
+    def null_parse(cls, parser, token):
+        parser.advance()
+        return UnaryOp(token.raw, parser.expression(cls.PRECEDENCE))
 
-    def __init__(self, left):
-        super().__init__()
-        self.first = left
-        self.second = FArgs()
+class BlockParser(ContextlessParser):
+    """Parser for code blocks."""
+    TOKENS = ["{"]
 
-    @property
-    def args(self):
-        return self.second
+    @classmethod
+    def null_parse(cls, parser, token):
+        parser.advance("{")
+        block = Block()
+        while parser.token.kind != "}":
+            statement = parser.statement()
+            block.child("body").children.append(statement)
+        parser.advance("}")
 
-class Subcall(Node):
-    KIND = "subcall"
+        return block
 
-    def __init__(self, method_name):
-        super().__init__(method_name)
-        self.first = FArgs()
-    
-    @property
-    def args(self):
-        return self.children[0]
-
-class ParenParser:
+class ParenthesisedExpressionParser(ContextlessParser):
+    """Parses parenthesised expression like (a + b)."""
     TOKENS = ["("]
 
-    @staticmethod
-    def left_parse(parser, token, left):
-        if left.kind == FCall.KIND:
-            # extend existing call
-            final = call = left
-        if left.kind == ComplexCall.KIND:
-            # extend last call in the complex
-            call = left.children[-1]
-            final = left
-        else:
-            # new call
-            final = call = FCall(left)
-            
-        parser.advance()
-
-        # zero-arg call
-        if parser.token.kind == ")":
-            parser.advance()
-            return call
-
-        while True:
-            arg = parser.expression(0)
-            call.args.children += [arg]
-            if parser.token.kind == ")":
-                parser.advance()
-                return final
-            else:
-                parser.advance(",")
-
-    @staticmethod
-    def null_parse(parser, token):
+    @classmethod
+    def null_parse(cls, parser, token):
         parser.advance()
         expression = parser.expression(0)
         parser.advance(")")
         return expression
 
-    @staticmethod
-    def binding_power(token):
-        return 90
 
-class Block(Node):
-    TOKENS = ["{"]
-    KIND = "block"
+##############################################
+# Parsers list
+##############################################
 
-    def __init__(self):
-        super().__init__()
-        self.first = Body()
+NULL_PARSERS = [IdParser, ConstantParser, BlockParser, UnaryOpParser,
+                ParenthesisedExpressionParser]
+OP_PARSERS = [BinaryOpParser, FunctionCallParser]
 
-    @staticmethod
-    def left_parse(parser, token, left):
-        if left.kind == FCall.KIND:
-            final = call = left        
-        elif left.kind == ComplexCall.KIND:
-            call = left.children[-1]
-            final = left
-        else:
-            final = call = FCall(left)
-
-        call.args.children += [Block.null_parse(parser, token)]
-
-        return final
-
-    @staticmethod
-    def null_parse(parser, token):
-        parser.advance()
-        block = Block()
-        while (parser.token.kind != "}"):
-            stmt = parser.statement()
-            block.body.add(stmt)
-        parser.advance("}")
-
-        return block
-
-    @staticmethod
-    def binding_power(token):
-        return 90
-
-    @property
-    def body(self):
-        return self.first
-
-class Constant(Node):
-    KIND = "const"
-    TOKENS = [seplexer.IntLiteral.KIND, seplexer.FloatLiteral.KIND, seplexer.StrLiteral.KIND]
-
-    def __init__(self, value):
-        super().__init__(value)
-
-    @staticmethod
-    def null_parse(parser, token):
-        parser.advance()
-        return Constant(token.value)
-
-class Body(Node):
-    KIND = "body"
-
-    def __init__(self):
-        super().__init__()
-
-    def add(self, stmt):
-        self.children += [stmt]
-
-
-PARSER_CLASSES = [Id, UnaryOp, BinaryOp, ParenParser, Block, Constant]
-PARSERS = {}
-for parser_class in PARSER_CLASSES:
-    for token in parser_class.TOKENS:
-        PARSERS[token] = PARSERS.get(token, []) + [parser_class]
+##############################################
+# The parsing code itself
+##############################################
 
 class Parser:
+    """The actual parser in a class."""
+
     LEFT = "left"
     NULL = "null"
 
-    def __init__(self, parsers):
-        self.parsers = parsers
+    def __init__(self, null_parsers, op_parsers):
+        self.null_parsers = self._create_parser_map(null_parsers)
+        self.op_parsers = self._create_parser_map(op_parsers)
+
+    def _create_parser_map(self, parsers):
+        pm = {}
+        for parser in parsers:
+            for token_kind in parser.TOKENS:
+                if not isinstance(token_kind, str):
+                    token_kind = token_kind.kind
+                pm[token_kind] = pm.get(token_kind, []) + [parser]
+        return pm
 
     def parse(self, tokens):
+        """Parses a list of tokens into an abstract syntax tree of Node
+        objects.
+        """
         self.tokens = tokens
 
-        stmts = Body()
+        module_body = Body()
         while self.tokens:
-            stmts.add(self.statement())
+            module_body.children.append(self.statement())
 
-        return stmts
+        return module_body
 
     @property
     def token(self):
+        """The token currently being processed."""
         if len(self.tokens) > 0:
             return self.tokens[0]
         else:
@@ -361,63 +453,97 @@ class Parser:
 
     @property
     def next(self):
+        """The upcoming token after the current one."""
         if len(self.tokens) > 1:
             return self.tokens[1]
         else:
             return None
 
-    def factory(self, token, context):
+    def null_parser(self, token):
+        """Picks the best parser for a given token when we have no current
+        context.
+        """
+        return self.pick_parser(self.null_parsers, token)
+
+    def op_parser(self, token):
+        """Picks the best parser for a given token when we have a
+        left-hand-side context and expect an operator.
+        """
+        return self.pick_parser(self.op_parsers, token)
+
+    def pick_parser(self, parsers, token):
         try:
-            collection = self.parsers[token.kind]
+            collection = parsers[token.kind]
             if len(collection) == 1:
                 return collection[0]
-
-            # decide among many possible - they will have preferences
-            if context == Parser.LEFT:
-                return sorted(collection, key = lambda x: -x.left_preference())[0]
-            if context == Parser.NULL:
-                return sorted(collection, key = lambda x: -x.null_preference())[0]
-
-            raise ParsingError("Unable to decide how to parse token: %s" % token)
+            else:
+                # multiple parsers, get the one with the best strength
+                ordered = sorted(collection, key=lambda p:-p.strength(token))
+                return ordered[0]
 
         except KeyError:
+            # no match, no parser
             return None
 
     def expect(self, token_kind):
-        if self.token is None:
-            self.error("Unexpected end of file, expected %s instead." % token_kind)
-        if self.token.kind != token_kind:
-            self.error("Expected %s, got %s('%s') instead." % (token_kind, self.token.kind, self.token), self.token)
+        """Asserts that the current token matches the kind given. Anything
+        else will trigger a parse error.
+        """
+        token = self.token
+        if token is None:
+            self.error(
+                "Unexpected end of file, expected %s instead." % token_kind)
+        if token.kind != token_kind:
+            self.error("Expected %s, got %s instead." % (token_kind, token),
+                       token)
 
-    def advance(self, expected = None):
+    def advance(self, expected=None):
+        """Advance one token ahead in the stream. Optionally,
+        you can provide the expected kind of token to find in that place -
+        any other token will trigger a parse error.
+        """
         if expected:
             self.expect(expected)
         self.tokens = self.tokens[1:]
         return self.token
 
 
-    def expression(self, min_bp):
-        first_fact = self.factory(self.token, Parser.NULL)
-        if first_fact is None:
-            self.error("Incorrect token used at beginning of expression: %s." % self.token.raw, self.token)
-        expr = first_fact.null_parse(self, self.token)
+    def expression(self, min_precedence):
+        """Parses an entire expression starting at the current position. The
+        expression will terminate when there is no more operators,
+        or the next operator has precedence lower than the minimum specified.
+        This ensures correct operator nesting.
+        """
 
-        while self.token and self.factory(self.token, Parser.LEFT) and self.factory(self.token, Parser.LEFT).binding_power(self.token) > min_bp:
-            factory = self.factory(self.token, Parser.LEFT)
-            expr = factory.left_parse(self, self.token, expr)
+        # read the first term
+        first_term_parser = self.null_parser(self.token)
+        if not first_term_parser:
+            self.error("This token cannot start an expression.", self.token)
+        expression = first_term_parser.null_parse(self, self.token)
 
-        return expr
+        # and the following terms
+        while True:
+            if not self.token:
+                # end of stream, nothing more to parse
+                return expression
+            parser = self.op_parser(self.token)
+            if not parser or parser.op_precedence(self.token) <= min_precedence:
+                # either there is no way to parse the expression further or
+                # the operator precedence is too low, this expression will
+                # become the left-side to the following operator
+                return expression
+            expression = parser.op_parse(self, self.token, expression)
 
     def statement(self):
-        expr = self.expression(0)
+        """Parses a statement, which is just a terminated expression."""
+        expression = self.expression(0)
         self.advance(";")
-        return expr
+        return expression
 
-    def error(self, text, token = None):
-        raise ParsingError(text, token)
-
+    def error(self, text, token=None):
+        raise ParsingException(text, token)
 
 
 def parse(tokens):
-    parser = Parser(PARSERS)
+    parser = Parser(NULL_PARSERS, OP_PARSERS)
     return parser.parse(tokens)
