@@ -125,18 +125,17 @@ def BinaryOp(operator, left, right):
     node.children = [left, right]
     return node
 
-def FArgs():
-    return Node(FArgs)
+def ArgumentList():
+    return Node(ArgumentList)
 
-def FCall(call_target):
-    node = Node(FCall, children_names=["target", "args"])
-    node.children = [call_target, FArgs()]
-    node.second = FArgs()
+def FunctionCall(call_target):
+    node = Node(FunctionCall, children_names=["target", "args"])
+    node.children = [call_target, ArgumentList()]
     return node
 
 def Subcall(identifier):
     node = Node(Subcall, identifier, ["args"])
-    node.first = FArgs()
+    node.first = ArgumentList()
     return node
 
 def ComplexCall(*calls):
@@ -258,7 +257,7 @@ class FunctionCallParser(OperationParser):
         """Parses calls of type: id { ... }, and more complex versions of a
         code block appearing inline in a call.
         """
-        if left.kind == FCall:
+        if left.kind == FunctionCall:
             # add block as argument to the call
             returned = host = left
         elif left.kind == ComplexCall:
@@ -268,25 +267,25 @@ class FunctionCallParser(OperationParser):
             returned = left
         else:
             # make a new call out of it
-            returned = host = FCall(left)
+            returned = host = FunctionCall(left)
 
         block = BlockParser.null_parse(parser, token)
         host.child("args").add(block)
         return returned
 
     @classmethod
-    def parse_argument_list(cls, parser, token, left):
+    def parse_argument_list(cls, parser, _, left):
         """Parses standard argument lists, e.g.: id(a,b,c),
         and more complex variants used in call chains.
         """
-        if left.kind == FCall:
+        if left.kind == FunctionCall:
             # add arguments to the existing call
             returned = host = left
         elif left.kind == ComplexCall:
             host = left.children[-1]
             returned = left
         else:
-            returned = host = FCall(left)
+            returned = host = FunctionCall(left)
 
         # empty argument list?
         parser.advance()
@@ -309,19 +308,18 @@ class FunctionCallParser(OperationParser):
     @classmethod
     def parse_identifier(cls, parser, token, left):
         """Parses identifiers used as continuation of a complex call chain."""
-        if left.kind == FCall:
+        if left.kind == FunctionCall:
             # modify the original call to work in a call chain
             # this requires the original call to have just an identifier as
             # the target
-            parser.advance()
             original_target = left.child("target")
             if original_target.kind != Id:
-                parser.error("Illegal complex call - the original call target"
-                             "must be a single identifier for complex calls.",
-                             token)
+                parser.error("Illegal complex call - the original call target "
+                             "must be a single identifier for complex calls.")
             original_target.value += ".."
 
             # start a new complex call chain
+            parser.advance()
             new_subcall = Subcall(token.raw + "..")
             return ComplexCall(left, new_subcall)
         elif left.kind == ComplexCall:
@@ -332,7 +330,7 @@ class FunctionCallParser(OperationParser):
         else:
             # not a valid position for an identifier
             parser.error("Expected operator or end of statement, " +
-                         "not an identifier.", token)
+                         "not an identifier.")
 
 
 class BinaryOpParser(OperationParser):
@@ -494,8 +492,7 @@ class Parser:
             self.error(
                 "Unexpected end of file, expected %s instead." % token_kind)
         if token.kind != token_kind:
-            self.error("Expected %s, got %s instead." % (token_kind, token),
-                       token)
+            self.error("Expected %s but got %s instead." % (token_kind, token))
 
     def advance(self, expected=None):
         """Advance one token ahead in the stream. Optionally,
@@ -518,7 +515,7 @@ class Parser:
         # read the first term
         first_term_parser = self.null_parser(self.token)
         if not first_term_parser:
-            self.error("This token cannot start an expression.", self.token)
+            self.error("This token cannot start an expression.")
         expression = first_term_parser.null_parse(self, self.token)
 
         # and the following terms
@@ -540,10 +537,18 @@ class Parser:
         self.advance(";")
         return expression
 
-    def error(self, text, token=None):
+    def error(self, text, token = None):
+        """Raises a parsing error, either from the current token,
+        or the token given as parameter.
+        """
+        if not token:
+            token = self.token
         raise ParsingException(text, token)
 
 
 def parse(tokens):
+    """Sets up the parser with the default configuration and parses the given
+     stream of tokens.
+    """
     parser = Parser(NULL_PARSERS, OP_PARSERS)
     return parser.parse(tokens)

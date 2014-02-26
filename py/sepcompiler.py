@@ -98,15 +98,15 @@ def emit_block(function, node):
     function.add(PUSH, "", [], [block], [])
 
 EMITTERS = {
-    parser.Id:          emit_id,
-    parser.Constant:    emit_constant,
-    parser.FCall:       emit_call,
-    parser.UnaryOp:     emit_unary_op,
-    parser.BinaryOp:    emit_binary_op,
-    parser.Block:       emit_block,
+    parser.Id:           emit_id,
+    parser.Constant:     emit_constant,
+    parser.FunctionCall: emit_call,
+    parser.UnaryOp:      emit_unary_op,
+    parser.BinaryOp:     emit_binary_op,
+    parser.Block:        emit_block,
 
-    parser.ComplexCall: emit_complex_call,
-    parser.Subcall:     emit_subcall
+    parser.ComplexCall:  emit_complex_call,
+    parser.Subcall:      emit_subcall
 }
 
 ########################################################################
@@ -329,10 +329,17 @@ def file_compile(ast, file):
     Compiler(output).compile(ast)
 
 def print_error(error, location):
-    line, column = location
+    lines = code.split("\n")
+
+    if location is not None:
+        line, column = location
+    else:
+        line = len(lines)
+        column = len(lines[line-1]) + 1
+
     print("Error at [%d:%d]: %s\n" % (line, column, error))
 
-    offending_line = code.split("\n")[line-1].replace("\t", " ")            
+    offending_line = code.split("\n")[line-1].replace("\t", " ")
     print(offending_line)
     print(" " * (column-1) + "^")
 
@@ -361,15 +368,20 @@ if __name__ == "__main__":
             else:
                 outname = filename + ".09"
 
-        with open(filename, "r") as f:
-            code = f.read()
+        with open(filename, "r", encoding="utf8") as f:
+            try:
+                code = f.read()
+            except UnicodeDecodeError as ude:
+                print("Error: Input file was not proper UTF-8. Offending byte "
+                      "at position %d." % ude.start)
+                sys.exit(1)
 
         # parse the code
         ast = None
         try:
             ast = parser.parse(lexer.lex(code))
         except parser.ParsingException as pe:
-            print_error(pe, pe.token.location)
+            print_error(pe, pe.token.location if pe.token else None)
         except lexer.LexerException as le:
             print_error(le, le.location)
 
