@@ -32,6 +32,7 @@ class Token:
     def __init__(self, kind, raw_text):
         self.kind = kind
         self.raw = raw_text
+        self.value = raw_text
 
     def __str__(self):
         if self.kind == self.raw:
@@ -100,7 +101,8 @@ TOKENS = {
     r'\{':                        token_type("{"),
     r'\}':                        token_type("}"),
     r',':                         token_type(","),
-    r';':                         token_type(";")
+    r';':                         token_type(";"),
+    r'\|':                        token_type("|")
 }
 
 WHITESPACE = r"\s+"

@@ -109,12 +109,14 @@ class Node:
 # Individual node types
 ##############################################
 
+## leaf nodes
 def Id(name):
     return Node(Id, name)
 
 def Constant(value):
     return Node(Constant, value)
 
+## operators
 def UnaryOp(operator, operand):
     node = Node(UnaryOp, operator, ["operand"])
     node.first = operand
@@ -125,31 +127,40 @@ def BinaryOp(operator, left, right):
     node.children = [left, right]
     return node
 
-def ArgumentList():
-    return Node(ArgumentList)
-
+## function calls and related nodes
 def FunctionCall(call_target):
     node = Node(FunctionCall, children_names=["target", "args"])
-    node.children = [call_target, ArgumentList()]
+    node.children = [call_target, Arguments()]
     return node
 
-def Subcall(identifier):
-    node = Node(Subcall, identifier, ["args"])
-    node.first = ArgumentList()
-    return node
+def Arguments():
+    return Node(Arguments)
 
 def ComplexCall(*calls):
     node = Node(ComplexCall, "..!", ["calls"])
     node.children = list(calls)
     return node
 
+def Subcall(identifier):
+    node = Node(Subcall, identifier, ["args"])
+    node.first = Arguments()
+    return node
+
+## function blocks and related node types
+def Block():
+    node = Node(Block, children_names=["parameters", "body"])
+    node.first = Parameters()
+    node.second = Body()
+    return node
+
 def Body():
     return Node(Body, children_names=["statements"])
 
-def Block():
-    node = Node(Block, children_names=["body"])
-    node.first = Body()
-    return node
+def Parameters():
+    return Node(Parameters)
+
+def Parameter(name):
+    return Node(Parameter, name)
 
 ##############################################
 # Parsers
@@ -373,12 +384,36 @@ class UnaryOpParser(ContextlessParser):
 
 class BlockParser(ContextlessParser):
     """Parser for code blocks."""
-    TOKENS = ["{"]
+    TOKENS = ["|", "{"]
 
     @classmethod
     def null_parse(cls, parser, token):
-        parser.advance("{")
         block = Block()
+        # do we have an argument list?
+        if token.kind == "|":
+            # non-empty argument list, read it
+            params = Parameters()
+            parser.advance()
+
+            while True:
+                # is it an id?
+                if parser.token.kind != lexer.Id.kind:
+                    parser.error("Expected parameter name or '|' but got %s "
+                                 "instead." % parser.token)
+                # add parameter and advance
+                params.add(Parameter(parser.token.value))
+                parser.advance()
+                # end of list?
+                if parser.token.kind == "|":
+                    parser.advance()
+                    break
+                # no, swallow a comma
+                parser.advance(",")
+
+            block.first = params
+
+        # read the block body
+        parser.advance("{")
         while parser.token.kind != "}":
             statement = parser.statement()
             block.child("body").children.append(statement)

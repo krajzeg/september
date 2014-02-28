@@ -93,7 +93,7 @@ class ModuleFileOutput:
                 mask >>= 8
                 shift -= 8
 
-    def write_str(self, str_value):
+    def _write_str(self, str_value):
         """Encodes a string inside the file.
         The encoding is (int:string length)(utf8 encoded bytes).
         """
@@ -118,17 +118,20 @@ class ModuleFileOutput:
         if isinstance(value, int):
             self._write_int(value)
         if isinstance(value, str):
-            self.write_str(value)
+            self._write_str(value)
 
     def constants_footer(self):
         """Writes the module constants footer after all the constants are
         encoded (currently there is no footer needed)."""
         pass
 
-    def function_header(self, args):
-        """Writes the function header."""
-        # TODO: function parameters are not supported yet
-        self._write_int(0)
+    def function_header(self, parameters):
+        """Writes the function header for a function with the given parameter
+         list.
+        """
+        self._write_int(len(parameters))
+        for parameter in parameters:
+            self._write_str(parameter)
 
     def function_footer(self):
         """Writes the function footer after the function's code is encoded."""

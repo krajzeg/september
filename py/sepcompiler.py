@@ -32,20 +32,29 @@ class CompilationError(Exception):
 
 def emit_id(function, node):
     function.add(NOP, "lf", [node.value], [], [])
+
+
 def emit_constant(function, node):
     function.add(PUSH, "", [], [node.value], [])
 
+
 def create_function_arguments(function, node):
-    lazy_arguments = []
+    args = []
     for arg_node in node.child("args").children:
         if arg_node.kind == parser.Constant:
-            lazy_arguments.append(arg_node.value)
+            # add the constant as argument directly
+            args.append(arg_node.value)
         elif arg_node.kind == parser.Block:
-            block_func = function.compiler.create_function(arg_node)
-            lazy_arguments.append(block_func)
+            # create a new function that pushes that block on the stack
+            block_func = function.compiler.create_function(None, arg_node)
+            args.append(block_func)
         else:
-            lazy_arguments.append(function.compiler.create_function(arg_node))
-    return lazy_arguments
+            # create a new function representing the expression used as
+            # argument
+            lazy_func = function.compiler.create_function(None, arg_node)
+            args.append(lazy_func)
+    return args
+
 
 def emit_call(function, node):
     # fetch the function itself
@@ -53,17 +62,20 @@ def emit_call(function, node):
     arguments = create_function_arguments(function, node)
     function.add(LAZY, "", [], arguments, [])
 
+
 def emit_subcall(function, node):
     # call the submethod
     arguments = create_function_arguments(function, node)
     function.add(LAZY, "f", [node.value], arguments, [])
 
+
 def emit_complex_call(function, node):
     # compile all the subcalls in the chain
     for subcall in node.children:
         function.compile_node(subcall)
-    # artificially inject the subcall that executes the chain
+        # artificially inject the subcall that executes the chain
     function.compile_node(parser.Subcall("..!"))
+
 
 def emit_binary_op(function, node):
     # several operators (mostly assignment) have to be special-cased
@@ -82,7 +94,8 @@ def emit_binary_op(function, node):
         if node.first.kind != parser.Id:
             # TODO: fix this error to contain the right token (requires
             # adding tokens to nodes).
-            raise parser.ParsingException(":= requires a single identifier on the left side.", None)
+            raise parser.ParsingException(
+                ":= requires a single identifier on the left side.", None)
 
         # create the field first
         function.add(NOP, "lc", [node.first.value], [], [])
@@ -96,42 +109,46 @@ def emit_binary_op(function, node):
     if node.second.kind == parser.Constant:
         function.add(LAZY, "f", [node.value], [node.second.value], [])
     else:
-        subfunc = function.compiler.create_function(node.second)
+        subfunc = function.compiler.create_function(None, node.second)
         function.add(LAZY, "f", [node.value], [subfunc], [])
+
 
 def emit_unary_op(function, node):
     # unary operators are just methods with a funky name
     function.compile_node(node.first)
     function.add(LAZY, "f", [node.value], [], [])
 
+
 def emit_block(function, node):
     # compile the block body as a new function
-    block = function.compiler.create_function(node.child("body"))
+    params, body = node.child("parameters"), node.child("body")
+    func = function.compiler.create_function(params, body)
     # at the point it was encountered, we have to push it on the stack
-    function.add(PUSH, "", [], [block], [])
+    function.add(PUSH, "", [], [func], [])
 
 ##############################################
 # Matching emit_* functions to node types
 ##############################################
 
 EMITTERS = {
-    parser.Id:           emit_id,
-    parser.Constant:     emit_constant,
+    parser.Id: emit_id,
+    parser.Constant: emit_constant,
     parser.FunctionCall: emit_call,
-    parser.UnaryOp:      emit_unary_op,
-    parser.BinaryOp:     emit_binary_op,
-    parser.Block:        emit_block,
+    parser.UnaryOp: emit_unary_op,
+    parser.BinaryOp: emit_binary_op,
+    parser.Block: emit_block,
 
-    parser.ComplexCall:  emit_complex_call,
-    parser.Subcall:      emit_subcall
+    parser.ComplexCall: emit_complex_call,
+    parser.Subcall: emit_subcall
 }
 
 ##############################################
 # Optimizers
 ##############################################
 
-PRE_FLAGS  = {F_PUSH_LOCALS, F_FETCH_PROPERTY, F_CREATE_PROPERTY}
+PRE_FLAGS = {F_PUSH_LOCALS, F_FETCH_PROPERTY, F_CREATE_PROPERTY}
 POST_FLAGS = {F_POP_RESULT, F_STORE_VALUE}
+
 
 def merge_nops_forward(func):
     """If the flags allow it, merges NOP operation with the next operation
@@ -145,17 +162,20 @@ def merge_nops_forward(func):
 
         only_pre_flags = flag_set.issubset(PRE_FLAGS)
         if opcode == NOP and only_pre_flags and index < len(code) - 1:
-            n_opcode, n_flags, n_pre, n_args, n_post = code[index+1]
+            n_opcode, n_flags, n_pre, n_args, n_post = code[index + 1]
             if flag_set.isdisjoint(set(n_flags)):
                 # merge the nop.xxx as preamble to the next instruction
-                code[index+1] = (n_opcode, flags + n_flags, pre + n_pre, args + n_args, post + n_post)
-                code = code[:index] + code[index+1:]
+                code[index + 1] = (
+                n_opcode, flags + n_flags, pre + n_pre, args + n_args,
+                post + n_post)
+                code = code[:index] + code[index + 1:]
             else:
                 index += 1
         else:
             index += 1
 
     func.code = code
+
 
 def merge_nops_backward(func):
     """If the flags allow it, merges NOP operation with the operation
@@ -169,17 +189,20 @@ def merge_nops_backward(func):
 
         only_post_flags = flag_set.issubset(POST_FLAGS)
         if opcode == NOP and only_post_flags and index > 0:
-            p_opcode, p_flags, p_pre, p_args, p_post = code[index-1]
+            p_opcode, p_flags, p_pre, p_args, p_post = code[index - 1]
             if flag_set.isdisjoint(set(p_flags)):
                 # merge the nop.xxx into previous instruction
-                code[index-1] = (p_opcode, p_flags + flags, p_pre + pre, p_args + args, p_post + post)
-                code = code[:index] + code[index+1:]
+                code[index - 1] = (
+                p_opcode, p_flags + flags, p_pre + pre, p_args + args,
+                p_post + post)
+                code = code[:index] + code[index + 1:]
             else:
                 index += 1
         else:
             index += 1
 
     func.code = code
+
 
 OPTIMIZERS = [merge_nops_forward, merge_nops_backward]
 
@@ -191,6 +214,7 @@ class Compiler:
     """The compiler class for converting an abstract syntax tree into
     September bytecode at the specified output.
     """
+
     def __init__(self, output):
         self.output = output
 
@@ -240,7 +264,8 @@ class ConstantCompiler:
 
         # sort them according to how often they occur
         all_constants = list(self.constant_occurrences.keys())
-        all_constants.sort(key=lambda c: self.constant_occurrences[c], reverse=True)
+        all_constants.sort(key=lambda c: self.constant_occurrences[c],
+                           reverse=True)
 
         # generate code for them
         self.output.constants_header(len(all_constants))
@@ -249,11 +274,13 @@ class ConstantCompiler:
         self.output.constants_footer()
 
         # return a constant -> constant index mapping
-        return {constant: index+1 for index, constant in enumerate(all_constants)}
+        return {constant: index + 1 for index, constant in
+                enumerate(all_constants)}
 
     def add_occurrence(self, node):
         if node.kind in ConstantCompiler.CONST_NODES:
-            self.constant_occurrences[node.value] = self.constant_occurrences.get(node.value, 0) + 1
+            self.constant_occurrences[
+                node.value] = self.constant_occurrences.get(node.value, 0) + 1
 
 ##############################################
 # Compiling actual code
@@ -261,13 +288,14 @@ class ConstantCompiler:
 
 class CompiledFunction:
     """Represents a single September function."""
-    def __init__(self, compiler, index, args=None):
-        if args is None:
-            args = []
+
+    def __init__(self, compiler, index, params=None):
+        if params is None:
+            params = []
 
         self.compiler = compiler
         self.index = index
-        self.args = args
+        self.params = params
         self.code = []
 
     def compile_node(self, node):
@@ -286,12 +314,14 @@ class CompiledFunction:
                     constant_index = self.compiler.constants[arg]
                     actual_args += [constant_index]
                 except KeyError:
-                    raise CompilationError(None, "Constant '%s' is not present in index." % arg)
+                    raise CompilationError(None,
+                                           "Constant '%s' is not present in index." % arg)
         return actual_args
-    
+
     def add(self, opcode, flags, pre_args, args, post_args):
         """Adds a new operation to the function."""
-        pre_args, args, post_args = map(self.args_to_ints, [pre_args, args, post_args])
+        pre_args, args, post_args = map(self.args_to_ints,
+                                        [pre_args, args, post_args])
         self.code += [(opcode, flags, pre_args, args, post_args)]
 
 
@@ -299,19 +329,30 @@ class CodeCompiler:
     """Walks over the AST and compiles all the functions contained within,
     starting from the root function of the module.
     """
+
     def __init__(self, output, constants):
         self.output = output
         self.constants = constants
         self.functions = []
 
-    def create_function(self, body):
-        """Creates a new function to be compiled with the provided body."""
+    def create_function(self, parameters, body):
+        """Creates a new function to be compiled with the provided body.
+        Parameters have to be provided as a parser.Parameters node, or
+        None if there are none. The body must be either a parser.Body node
+        (when compiling a function specified explicitly) or any other node
+        (when creating an anonymous function out of a single expression).
+        """
         if body.kind != parser.Body:
             statements = [body]
         else:
             statements = body.children
 
-        func = CompiledFunction(self, len(self.functions)+1, [])
+        if parameters is not None:
+            param_names = [p.value for p in parameters.children]
+        else:
+            param_names = []
+
+        func = CompiledFunction(self, len(self.functions) + 1, param_names)
         self.functions.append(func)
 
         for statement in statements:
@@ -324,19 +365,20 @@ class CodeCompiler:
         """Emits code for a single node into the provided function."""
         emitter = EMITTERS[node.kind]
         if emitter is None:
-            raise CompilationError(node, "Uncompilable node type: %s" % node.kind)
+            raise CompilationError(node,
+                                   "Uncompilable node type: %s" % node.kind)
         emitter(target_function, node)
 
     def compile(self, ast):
         """Compiles the code in the provided AST into the compiler's output."""
-        self.create_function(ast)
+        self.create_function(None, ast)
 
         for func in self.functions:
             for optimizer in OPTIMIZERS:
                 optimizer(func)
 
         for func in self.functions:
-            self.output.function_header([])
+            self.output.function_header(func.params)
             for line in func.code:
                 self.output.code(*line)
             self.output.function_footer()
@@ -348,6 +390,7 @@ class CodeCompiler:
 class StringOutput:
     """A special mock output class that prints the emitted code on the screen
      instead of writing it to a file."""
+
     def __init__(self):
         self.string = ""
 
@@ -360,9 +403,9 @@ class StringOutput:
     def constants_footer(self):
         self.string += "\n===\n\n"
 
-    def function_header(self, args):
+    def function_header(self, param_names):
         self.string += "FUNC("
-        self.string += ",".join(args)
+        self.string += ",".join(param_names)
         self.string += "):\n"
 
     def function_footer(self):
@@ -390,10 +433,12 @@ def debug_compile(ast):
     Compiler(output).compile(ast)
     return output.string
 
+
 def file_compile(ast, file):
     """Compiles the AST and outputs it to the file provided."""
     output = encoder.ModuleFileOutput(file)
     Compiler(output).compile(ast)
+
 
 def print_error(error, location):
     lines = code.split("\n")
@@ -402,13 +447,13 @@ def print_error(error, location):
         line, column = location
     else:
         line = len(lines)
-        column = len(lines[line-1]) + 1
+        column = len(lines[line - 1]) + 1
 
     print("Error at [%d:%d]: %s\n" % (line, column, error))
 
-    offending_line = code.split("\n")[line-1].replace("\t", " ")
+    offending_line = code.split("\n")[line - 1].replace("\t", " ")
     print(offending_line)
-    print(" " * (column-1) + "^")
+    print(" " * (column - 1) + "^")
 
     sys.exit(1)
 

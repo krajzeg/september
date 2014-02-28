@@ -1,0 +1,2 @@
+lessThan := |x,y|{ x < y; };
+print(lessThan(2,4));
