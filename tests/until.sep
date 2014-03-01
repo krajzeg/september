@@ -1,5 +1,5 @@
 until := |?condition, body| {
-	while(!(condition.resolve())) {
+	while(!condition.resolve()) {
 		body.resolve();
 	};
 };

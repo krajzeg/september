@@ -23,3 +23,6 @@ To try it out, build the interpreter, then compile one of the examples, and run 
 
 Your `python` should be Python 3.x. If you want to build under Windows, you will need MinGW to compile the interpreter.
 
+## Read more
+
+More information about the language can be found on my [blog](http://wasyl.eu/tags/september/), where I intend to post rationales, updates and generally interesting stuff on the language.
