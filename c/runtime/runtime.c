@@ -18,7 +18,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-ambition"
+#define SEPTEMBER_VERSION "0.1-anchovy"
 
 // ===============================================================
 //  Prototype objects

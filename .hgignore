@@ -9,5 +9,6 @@ scribbles
 \.c?project
 .*\.iml
 09.exe
-Default
 cmp.bat
+run.bat
+
