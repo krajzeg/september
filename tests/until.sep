@@ -1,0 +1,17 @@
+until := |?condition, body| {
+	while(!(condition.resolve())) {
+		body.resolve();
+	};
+};
+
+print("This should print values from 1 to 5 and nothing else.");
+
+i := 1;
+until (i > 5) {
+	print(i);
+	i = i + 1;	
+};
+
+until (True) {
+	print("This should not be printed.");
+};
