@@ -18,7 +18,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-aloe"
+#define SEPTEMBER_VERSION "0.1-ambition"
 
 // ===============================================================
 //  Prototype objects
