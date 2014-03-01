@@ -248,7 +248,7 @@ BlockPool *bpool_create(SepModule *module, uint32_t initial_memory_size) {
 }
 
 // Starts a new code block.
-void bpool_start_block(BlockPool *this, int parameter_count) {
+CodeBlock *bpool_start_block(BlockPool *this, int parameter_count) {
 	assert(!this->current_block);
 
 	// ensure we have enough memory
@@ -269,6 +269,9 @@ void bpool_start_block(BlockPool *this, int parameter_count) {
 	// remember it
 	this->current_block = block;
 	this->total_blocks++;
+
+	// return block
+	return block;
 }
 
 // Writes a single operation or its argument to the current block's

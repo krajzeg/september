@@ -1,2 +1,8 @@
-lessThan := |x,y|{ x < y; };
+greet := |greeting| { print(greeting); };
+lessThan := |x,y| { x < y; };
+multiply := |a,b,c| { return (a * b * c); };
+
+greet("Hello!");
 print(lessThan(2,4));
+print(multiply(3,4,5));
+

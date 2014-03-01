@@ -131,8 +131,9 @@ typedef struct BlockPool {
 
 // Creates a new, empty block pool.
 BlockPool *bpool_create(SepModule *module, uint32_t initial_memory_size);
-// Starts a new code block.
-void bpool_start_block(BlockPool *this, int parameter_count);
+// Starts a new code block. Returns a pointer to it, but the pointer is only
+// guaranteed to remain valid until you start writing code to the block.
+CodeBlock *bpool_start_block(BlockPool *this, int parameter_count);
 // Writes a single operation or its argument to the current block's
 // instruction stream.
 void bpool_write_code(BlockPool *this, CodeUnit code);

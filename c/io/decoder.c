@@ -19,6 +19,7 @@
 #include "../common/debugging.h"
 #include "../common/errors.h"
 #include "../vm/code.h"
+#include "../vm/functions.h"
 #include "decoder.h"
 
 // ===============================================================
@@ -203,12 +204,21 @@ ConstantPool *decoder_read_cpool(Decoder *this, SepError *out_err) {
 	return pool;
 }
 
-void decoder_read_block_args(Decoder *this, BlockPool *pool, int arg_count, SepError *out_err) {
-	//SepError err = NO_ERROR;
-	if (arg_count != 0)
-		fail(e_not_implemented_yet("Block arguments not supported yet."));
+void decoder_read_block_args(Decoder *this, BlockPool *pool, int param_count, SepError *out_err) {
+	SepError err = NO_ERROR;
+	// initialize the block with the right amount of space
+	CodeBlock *block = bpool_start_block(pool, param_count);
 
-	bpool_start_block(pool, arg_count);
+	// read parameter list
+	int index;
+	for (index = 0; index < param_count; index++) {
+		char *param_name = decoder_read_string(this, &err);
+			or_quit();
+		FuncParam parameter;
+		parameter.name = sepstr_create(param_name);
+		parameter.flags.lazy = 0; // TODO: for now, no flags supported
+		block->parameters[index] = parameter;
+	}
 }
 
 void decoder_read_block_code(Decoder *this, BlockPool *pool, SepError *out_err) {
@@ -286,12 +296,16 @@ BlockPool *decoder_read_bpool(Decoder *this, SepModule *module, SepError *out_er
 	uint8_t function_header_byte = decoder_read_byte(this, &err);
 		or_quit_with(blocks);
 		
+	// read until the end marker
 	while (function_header_byte != 0xFF) {
-		// if not 0xFF, it's the argument count
-		uint8_t argument_count = function_header_byte;
+		// if it's not 0xFF, it's the next function's parameter count
+		uint8_t parameter_count = function_header_byte;
+
 		// read the function
-		decoder_read_block_args(this, blocks, argument_count, &err);
+		decoder_read_block_args(this, blocks, parameter_count, &err);
+			or_quit_with(blocks);
 		decoder_read_block_code(this, blocks, &err);
+			or_quit_with(blocks);
 		
 		// next!
 		function_header_byte = decoder_read_byte(this, &err);

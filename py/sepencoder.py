@@ -129,7 +129,7 @@ class ModuleFileOutput:
         """Writes the function header for a function with the given parameter
          list.
         """
-        self._write_int(len(parameters))
+        self._write_byte(len(parameters))
         for parameter in parameters:
             self._write_str(parameter)
 
