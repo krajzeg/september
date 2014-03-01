@@ -60,9 +60,20 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // ===============================================================
-//  Stringifying things
+//  Common operations
 // ===============================================================
 
+// Object.resolve()
+// Used for resolving a lazy parameter. If the object is a function created for
+// lazy evaluation, it will be evaluated. Otherwise, the object itself is returned
+// unchanged. This ensures safe treatment of lazy parameters.
+SepItem object_resolve(SepObj *scope, ExecutionFrame *frame) {
+	SepV target = target(scope);
+	return item_rvalue(vm_resolve(frame->vm, target));
+}
+
+// Object.is(desired_class)
+// Checks whether the object belongs to a class given as parameter.
 SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
 	Slot *cls_slot = sepv_lookup(target, sepstr_create("<class>"));
@@ -120,6 +131,7 @@ SepObj *create_object_prototype() {
 
 	// add common methods
 	obj_add_builtin_method(Object, "debugString", object_debug_string, 0);
+	obj_add_builtin_method(Object, "resolve", object_resolve, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
 
 	return Object;

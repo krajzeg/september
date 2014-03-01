@@ -334,6 +334,11 @@ SepV sepv_prototypes(SepV sepv) {
 	case SEPV_TYPE_STRING:
 		return obj_to_sepv(proto_String);
 
+	case SEPV_TYPE_FUNC:
+		// TODO: functions will get their own prototype later,
+		// they use Object now to have access to .resolve()
+		return obj_to_sepv(proto_Object);
+
 		// special?
 	case SEPV_TYPE_SPECIAL:
 		if ((sepv == SEPV_TRUE) || (sepv == SEPV_FALSE))
