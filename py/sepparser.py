@@ -118,7 +118,7 @@ def Constant(value):
 
 ## operators
 def UnaryOp(operator, operand):
-    node = Node(UnaryOp, operator, ["operand"])
+    node = Node(UnaryOp, "unary" + operator, ["operand"])
     node.first = operand
     return node
 
