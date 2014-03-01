@@ -202,6 +202,7 @@ SepObj *create_if_statement_prototype() {
 SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition_l = param(scope, "condition");
 	SepV condition = vm_resolve(frame->vm, condition_l);
+		or_propagate(condition);
 
 	// not looping even once?
 	if (condition != SEPV_TRUE)
@@ -217,16 +218,16 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	while (condition == SEPV_TRUE) {
 		// execute body
 		SepV result = vm_resolve_in(frame->vm, body_l, obj_to_sepv(while_body_scope));
+			or_propagate(result);
 
-		if (sepv_is_exception(result)) {
-			// propagate exceptions from body
-			return item_rvalue(result);
-		} else if (result == SEPV_BREAK) {
+		// break?
+		if (result == SEPV_BREAK) {
 			break;
 		}
 
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
+			or_propagate(condition);
 	}
 
 	// while() has no return value on normal exit
