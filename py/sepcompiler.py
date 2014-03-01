@@ -347,12 +347,13 @@ class CodeCompiler:
         else:
             statements = body.children
 
-        if parameters is not None:
-            param_names = [p.value for p in parameters.children]
+        if parameters is None:
+            parameter_nodes = []
         else:
-            param_names = []
+            parameter_nodes = parameters.children
 
-        func = CompiledFunction(self, len(self.functions) + 1, param_names)
+        func = CompiledFunction(self, len(self.functions) + 1,
+                                parameter_nodes)
         self.functions.append(func)
 
         for statement in statements:
@@ -403,7 +404,14 @@ class StringOutput:
     def constants_footer(self):
         self.string += "\n===\n\n"
 
-    def function_header(self, param_names):
+    def function_header(self, params):
+        param_names = []
+        for param in params:
+            name = param.value
+            if P_LAZY_EVALUATED in param.flags:
+                name = "?" + name
+            param_names.append(name)
+
         self.string += "FUNC("
         self.string += ",".join(param_names)
         self.string += "):\n"

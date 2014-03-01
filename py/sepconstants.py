@@ -13,8 +13,11 @@ PUSH = "push"
 LAZY = "lazy"
 
 ### Operation flags
-F_PUSH_LOCALS     = "l"
-F_FETCH_PROPERTY  = "f"
+F_PUSH_LOCALS = "l"
+F_FETCH_PROPERTY = "f"
 F_CREATE_PROPERTY = "c"
-F_STORE_VALUE     = "s"
-F_POP_RESULT      = "v"
+F_STORE_VALUE = "s"
+F_POP_RESULT = "v"
+
+### Parameter flags
+P_LAZY_EVALUATED = 1

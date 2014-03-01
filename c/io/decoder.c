@@ -34,6 +34,10 @@ enum OpcodeFlags {
 	MFILE_FLAG_POP = 0x08
 };
 
+enum ParamFlags {
+	MFILE_P_LAZY_EVALUATED = 0x01
+};
+
 // ===============================================================
 //  Internal constants
 // ===============================================================
@@ -204,7 +208,7 @@ ConstantPool *decoder_read_cpool(Decoder *this, SepError *out_err) {
 	return pool;
 }
 
-void decoder_read_block_args(Decoder *this, BlockPool *pool, int param_count, SepError *out_err) {
+void decoder_read_block_params(Decoder *this, BlockPool *pool, int param_count, SepError *out_err) {
 	SepError err = NO_ERROR;
 	// initialize the block with the right amount of space
 	CodeBlock *block = bpool_start_block(pool, param_count);
@@ -212,11 +216,15 @@ void decoder_read_block_args(Decoder *this, BlockPool *pool, int param_count, Se
 	// read parameter list
 	int index;
 	for (index = 0; index < param_count; index++) {
+
+		uint8_t param_flags = decoder_read_byte(this, &err);
+			or_quit();
 		char *param_name = decoder_read_string(this, &err);
 			or_quit();
+
 		FuncParam parameter;
 		parameter.name = sepstr_create(param_name);
-		parameter.flags.lazy = 0; // TODO: for now, no flags supported
+		parameter.flags.lazy = (param_flags & MFILE_P_LAZY_EVALUATED) != 0;
 		block->parameters[index] = parameter;
 	}
 }
@@ -302,7 +310,7 @@ BlockPool *decoder_read_bpool(Decoder *this, SepModule *module, SepError *out_er
 		uint8_t parameter_count = function_header_byte;
 
 		// read the function
-		decoder_read_block_args(this, blocks, parameter_count, &err);
+		decoder_read_block_params(this, blocks, parameter_count, &err);
 			or_quit_with(blocks);
 		decoder_read_block_code(this, blocks, &err);
 			or_quit_with(blocks);

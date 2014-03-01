@@ -8,6 +8,7 @@
 #
 ##########################################################################
 
+from sepconstants import *
 import seplexer as lexer
 
 ##############################################
@@ -159,8 +160,10 @@ def Body():
 def Parameters():
     return Node(Parameters)
 
-def Parameter(name):
-    return Node(Parameter, name)
+def Parameter(name, flags):
+    param = Node(Parameter, name)
+    param.flags = flags
+    return param
 
 ##############################################
 # Parsers
@@ -382,6 +385,56 @@ class UnaryOpParser(ContextlessParser):
         parser.advance()
         return UnaryOp(token.raw, parser.expression(cls.PRECEDENCE))
 
+class ParameterListParser(ContextlessParser):
+    """Parses block argument lists. Only invoked by BlockParser,
+    never directly based on the token stream.
+    """
+
+    @classmethod
+    def null_parse(cls, parser, token):
+        # non-empty argument list, read it
+        params = Parameters()
+        parser.advance("|")
+
+        while not parser.token.is_a("|"):
+            # parameter flags will be visible as an operator token
+            # preceding the parameter name
+            flags = set()
+            if parser.token.is_a(lexer.Operator):
+                flag_string = parser.token.value
+                # lazy?
+                if "?" in flag_string:
+                    flag_string = flag_string.replace("?", "")
+                    flags.add(P_LAZY_EVALUATED)
+                # did we miss anything?
+                if flag_string != "":
+                    parser.error("Unrecognized parameter flags: %s" %
+                                 flag_string)
+                # advance over the "operator"
+                parser.advance()
+
+            # OK, this has to be an Id
+            if not parser.token.is_a(lexer.Id):
+                parser.error("Expected parameter name but got %s instead." %
+                             parser.token)
+            name = parser.token.value
+
+            # add parameter and advance
+            params.add(Parameter(name, flags))
+            parser.advance()
+
+            # no, swallow a comma if not in the end yet
+            if not parser.token.kind == "|":
+                parser.advance(",")
+
+        # swallow the closing |
+        parser.advance("|")
+
+        return params
+
+
+
+
 class BlockParser(ContextlessParser):
     """Parser for code blocks."""
     TOKENS = ["|", "{"]
@@ -391,25 +444,7 @@ class BlockParser(ContextlessParser):
         block = Block()
         # do we have an argument list?
         if token.kind == "|":
-            # non-empty argument list, read it
-            params = Parameters()
-            parser.advance()
-
-            while True:
-                # is it an id?
-                if parser.token.kind != lexer.Id.kind:
-                    parser.error("Expected parameter name or '|' but got %s "
-                                 "instead." % parser.token)
-                # add parameter and advance
-                params.add(Parameter(parser.token.value))
-                parser.advance()
-                # end of list?
-                if parser.token.kind == "|":
-                    parser.advance()
-                    break
-                # no, swallow a comma
-                parser.advance(",")
-
+            params = ParameterListParser.null_parse(parser, token)
             block.first = params
 
         # read the block body

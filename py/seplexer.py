@@ -34,13 +34,19 @@ class Token:
         self.raw = raw_text
         self.value = raw_text
 
+    def is_a(self, token_type):
+        if isinstance(token_type, str):
+            return self.kind == token_type
+        else:
+            return self.kind == token_type.kind
+
     def __str__(self):
         if self.kind == self.raw:
             return self.raw  # simple token like '(' or ','
         elif hasattr(self, "value"):
-            return "%s'%s'" % (self.kind, self.value)
+            return "%s:'%s'" % (self.kind, self.value)
         else:
-            return "%s'%s'" % (self.kind, self.raw)
+            return "%s:'%s'" % (self.kind, self.raw)
 
     def __repr__(self):
         return "[%s]" % str(self)
@@ -95,7 +101,7 @@ TOKENS = {
     r"[0-9]+":                    IntLiteral,
     r"[0-9]+\.[0-9]+":            FloatLiteral,
     r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
-    r'[+*/%:.!<>=-]+':            Operator,
+    r'[?+*/%:.!<>=-]+':           Operator,
     r'\(':                        token_type("("),
     r'\)':                        token_type(")"),
     r'\{':                        token_type("{"),
@@ -118,11 +124,11 @@ class Lexer:
         self.tokens = {re.compile(exp): cls for exp,cls in token_map.items()}
         self.whitespace = re.compile(white_exp)
 
-    def lex(self, input):
+    def lex(self, input_string):
         """Lexes the string provided as input and returns a list of tokens."""
 
         # initial state
-        self.stream = input
+        self.stream = input_string
         self.line = 1
         self.column = 1
         results = []

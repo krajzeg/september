@@ -126,12 +126,19 @@ class ModuleFileOutput:
         pass
 
     def function_header(self, parameters):
-        """Writes the function header for a function with the given parameter
-         list.
+        """Writes the function header for a function with the given parameters,
+         provided as a list of Parameter nodes.
         """
         self._write_byte(len(parameters))
         for parameter in parameters:
-            self._write_str(parameter)
+            # extract properties from Parameter node
+            param_name = parameter.value
+            flag_byte = 0
+            for flag in parameter.flags:
+                flag_byte |= flag
+            # write it down flags first
+            self._write_byte(flag_byte)
+            self._write_str(param_name)
 
     def function_footer(self):
         """Writes the function footer after the function's code is encoded."""
