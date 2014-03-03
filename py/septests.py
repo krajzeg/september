@@ -67,7 +67,7 @@ class TestFile:
 
         # compile the script
         compiler = path.join(distribution_root, "py/sepcompiler.py")
-        compilation_error = subprocess.call(["python", compiler,
+        compilation_error = subprocess.call([sys.executable, compiler,
                                              self.source_name,
                                              self.binary_name])
         if compilation_error:
@@ -76,6 +76,12 @@ class TestFile:
         # execute the script
         try:
             interpreter = path.join(distribution_root, "c/09.exe")
+            if not path.exists(interpreter):
+                interpreter = path.join(distribution_root, "c/09")
+            if not path.exists(interpreter):
+                sys.stderr.write("Interpreter not found.\n")
+                sys.exit(2)
+
             output = subprocess.check_output([interpreter, self.binary_name])
             output = output.decode(sys.getdefaultencoding())
             output = output.replace("\r\n", "\n")
@@ -259,7 +265,7 @@ def run_tests(tests, distribution_root):
 ##############################################
 
 if __name__ == "__main__":
-    # find the "09" executable in the 'c' subdirectory
+    # determine the root of the September distribution
     path_to_septests = path.dirname(sys.argv[0])
     distribution_root = path.abspath(path.join(path_to_septests, "../"))
 
