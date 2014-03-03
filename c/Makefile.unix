@@ -3,14 +3,20 @@
 # ==========================
 
 CC = gcc
-RM = del
+RM = rm -f
 CFLAGS = -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
 LDFLAGS = 
 
 # ==========================
-# Adapt file paths for use with Windows commands
+# Adapt file paths (no change on Unix)
 # ==========================
 
 OBJECT_FILES = $(OBJECTS)
 DEP_FILES = $(DEPS)
+
+# ==========================
+# Executable
+# ==========================
+
+OUT = 09
 

@@ -33,8 +33,6 @@ endif
 # Executable
 # ==========================
 
-OUT = 09.exe
-
 $(OUT): $(OBJECTS)
 	$(CC) $(OBJECTS) $(LDFLAGS) -o$(OUT)
 

@@ -2,6 +2,7 @@
 .*\.d
 .*\.pyc
 .*\.09
+.*~
 __pycache__
 scribbles
 \.idea
@@ -9,6 +10,7 @@ scribbles
 \.c?project
 .*\.iml
 09.exe
+09
 cmp.bat
 run.bat
 

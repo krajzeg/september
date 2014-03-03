@@ -13,3 +13,11 @@ LDFLAGS =
 
 OBJECT_FILES = $(subst /,\,$(OBJECTS))
 DEP_FILES = $(subst /,\,$(DEPS))
+
+# ==========================
+# Executable name
+# ==========================
+
+OUT = 09.exe
+
+
