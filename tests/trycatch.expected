@@ -1,0 +1,6 @@
+Executing the try.. block.
+EMissingProperty caught correctly.
+Finalizer executed correctly.
+Execution continued safely after catching exception.
+Try should return Nothing, and returned:
+<Nothing>

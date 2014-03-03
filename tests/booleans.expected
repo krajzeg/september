@@ -1,0 +1,8 @@
+Should print true, false, true, false.
+<True>
+<False>
+<True>
+<False>
+Should avoid exception via operator short-circuiting.
+<False>
+<True>

@@ -1,0 +1,14 @@
+Iterating over numbers, starting at:
+9
+And ending at:
+3
+======
+9
+8
+7
+6
+5
+4
+3
+======
+While loop exited cleanly.
