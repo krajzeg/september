@@ -181,14 +181,20 @@ def ask_for_blessing(test):
 
 def check_new_test(test):
     """Asks the user to bless a new test."""
-    print("Test '%s' was run for the first time with the following output:" %
+    print()
+    print("#" * 79)
+    print("Test '%s' was run for the first time with the following output:\n" %
           test.name)
-    print(test.output)
+
+    for line in test.output.split("\n"):
+        print("  ", line)
 
     ask_for_blessing(test)
 
 def check_bad_test(test):
     """Asks the user to bless a test that gave a new output."""
+    print()
+    print("#" * 79)
     print("Test '%s' gave output different than expected:" %
           test.name)
     print("Lines marked with 'E' are from expected output.")
@@ -224,14 +230,14 @@ def run_tests(tests, distribution_root):
         result = test.run(distribution_root)
         print(" %s" % result)
 
+    # bad tests
+    for test in filter(lambda t: t.result == WRONG_OUTPUT, tests):
+        check_bad_test(test)
+
     # first runs
     first_runs = [t for t in tests if t.result == FIRST_RUN]
     for test in first_runs:
         check_new_test(test)
-
-    # bad tests
-    for test in filter(lambda t: t.result == WRONG_OUTPUT, tests):
-        check_bad_test(test)
 
     # final result
     failed_tests = [t for t in tests if t.failed]
