@@ -1,12 +1,10 @@
-i := 0;
+i := 0
 
-print("The loop should print odd numbers up to 9.");
+print("The loop should print odd numbers up to 9.")
 while (True) {
-	i = i + 1;
-	if (i >= 10) { break(); };
-	if (i % 2 == 0) { continue(); };
-	print(i);
-};
-print("break() exited the loop exited cleanly.");
-
-
+	i = i + 1
+	if (i >= 10) { break() }
+	if (i % 2 == 0) { continue() }
+	print(i)
+}
+print("break() exited the loop exited cleanly.")

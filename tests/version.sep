@@ -1,2 +1,2 @@
-print("September version:");
-print(version);
+print("September version:")
+print(version)

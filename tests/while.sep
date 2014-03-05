@@ -1,17 +1,17 @@
-from := 9; to := 3;
+from := 9; to := 3
 
-print("Iterating over numbers, starting at:");
-print(from);
-print("And ending at:");
-print(to);
-print("======");
+print("Iterating over numbers, starting at:")
+print(from)
+print("And ending at:")
+print(to)
+print("======")
 
-dir := if (from > to) {-1;} else {1;};
+dir := if (from > to) {-1} else {1}
 while (from != to) {
-	print(from);
-	from = from + dir;	
-};
-print(from);
+	print(from)
+	from = from + dir	
+}
+print(from)
 
-print("======");
-print("While loop exited cleanly.");
+print("======")
+print("While loop exited cleanly.")

@@ -1,0 +1,5 @@
+print("Omitting semicolons should be OK.")
+if (2 < 3) { print("Also inside braces.") }
+if (3 < 4) {
+	print("But it should not break multi-line blocks.")
+}

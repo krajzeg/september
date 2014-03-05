@@ -1,0 +1,3 @@
+Omitting semicolons should be OK.
+Also inside braces.
+But it should not break multi-line blocks.

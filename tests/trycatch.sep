@@ -1,16 +1,16 @@
-print("Executing the try.. block.");
+print("Executing the try.. block.")
 
 try_return_value := try {
-	missing = "Something";
-	print("This part of try body should not be reached.");
+	missing = "Something"
+	print("This part of try body should not be reached.")
 } catch (EWrongType) {
-	print("EWrongType should not be caught.");	
+	print("EWrongType should not be caught.")	
 } catch (EMissingProperty) {
-	print("EMissingProperty caught correctly.");
+	print("EMissingProperty caught correctly.")
 } finally {
-	print("Finalizer executed correctly.");
-};
+	print("Finalizer executed correctly.")
+}
 
-print("Execution continued safely after catching exception.");
-print("Try should return Nothing, and returned:");
-print(try_return_value);
+print("Execution continued safely after catching exception.")
+print("Try should return Nothing, and returned:")
+print(try_return_value)
