@@ -91,6 +91,7 @@ Operator = token_type("operator")
 IntLiteral = token_type("int", int_literal_init)
 FloatLiteral = token_type("float", float_literal_init)
 StrLiteral = token_type("str", str_literal_init)
+StatementEnd = token_type(";")
 
 ##############################################
 # Regex mappings
@@ -102,16 +103,21 @@ TOKENS = {
     r"[0-9]+\.[0-9]+":            FloatLiteral,
     r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
     r'[?&^+*/%:.!<>=-]+|\|\|':    Operator,
+    r';':                         StatementEnd,
     r'\(':                        token_type("("),
     r'\)':                        token_type(")"),
     r'\{':                        token_type("{"),
     r'\}':                        token_type("}"),
     r',':                         token_type(","),
-    r';':                         token_type(";"),
     r'\|':                        token_type("|")
 }
 
 WHITESPACE = r"\s+"
+STATEMENT_ENDING_TOKENS = [
+    Id.kind, IntLiteral.kind, FloatLiteral.kind, StrLiteral.kind,
+    ")", "}"
+]
+ASI_TRIGGER_TOKENS = ["}"]
 
 ##############################################
 # The lexer code
@@ -131,13 +137,15 @@ class Lexer:
         self.stream = input_string
         self.line = 1
         self.column = 1
-        results = []
+        self.results = []
 
         # scan all the input, if possible
         while self.stream != "":
             # eat any whitespace first
             white_match = self.whitespace.match(self.stream)
             if white_match:
+                if "\n" in white_match.group(0):
+                    self.inject_semicolon_if_needed()
                 self.consume(white_match.group(0))
 
             # did we run out of stream?
@@ -156,14 +164,27 @@ class Lexer:
             if length == 0:
                 self.error("Unrecognized input: '%s'" % self.rest_of_line())
 
+            # auto-insertion of semicolons before }
+            if token.is_a("}"):
+                self.inject_semicolon_if_needed()
+
             # store the location we got the token from and append it
             token.location = (self.line, self.column)
-            results.append(token)
+            self.results.append(token)
 
             # consume the text
             self.consume(token.raw)
 
-        return results
+        # one more ASI at end of file
+        self.inject_semicolon_if_needed()
+
+        return self.results
+
+    def inject_semicolon_if_needed(self):
+        if self.results[-1].kind in STATEMENT_ENDING_TOKENS:
+            token = StatementEnd(";")
+            token.location = (self.line, self.column)
+            self.results.append(token)
 
     def consume(self, string):
         """Consumes the provided string, advancing line and column
