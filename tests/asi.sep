@@ -3,3 +3,8 @@ if (2 < 3) { print("Also inside braces.") }
 if (3 < 4) {
 	print("But it should not break multi-line blocks.")
 }
+
+print("Now, let's try an operator on the next line.")
+upper_version := locals.version
+    .upper()
+print(upper_version)

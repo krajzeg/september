@@ -92,6 +92,7 @@ IntLiteral = token_type("int", int_literal_init)
 FloatLiteral = token_type("float", float_literal_init)
 StrLiteral = token_type("str", str_literal_init)
 StatementEnd = token_type(";")
+EndOfFile = token_type("end of file")
 
 ##############################################
 # Regex mappings
@@ -113,11 +114,15 @@ TOKENS = {
 }
 
 WHITESPACE = r"\s+"
-STATEMENT_ENDING_TOKENS = [
+
+# noinspection PyUnresolvedReferences
+ASI_STATEMENT_ENDING_TOKENS = [
     Id.kind, IntLiteral.kind, FloatLiteral.kind, StrLiteral.kind,
     ")", "}"
 ]
 ASI_TRIGGER_TOKENS = ["}"]
+# noinspection PyUnresolvedReferences
+ASI_DISABLING_TOKENS = [Operator.kind]
 
 ##############################################
 # The lexer code
@@ -141,12 +146,13 @@ class Lexer:
 
         # scan all the input, if possible
         while self.stream != "":
+            asi_triggered = False
             # eat any whitespace first
             white_match = self.whitespace.match(self.stream)
             if white_match:
                 # new-lines trigger ASI
                 if "\n" in white_match.group(0):
-                    self.inject_semicolon_if_needed()
+                    asi_triggered = True
                 # eat the whitespace
                 self.consume(white_match.group(0))
 
@@ -166,9 +172,10 @@ class Lexer:
             if length == 0:
                 self.error("Unrecognized input: '%s'" % self.rest_of_line())
 
-            # auto-insertion of semicolons before }
-            if token.is_a("}"):
-                self.inject_semicolon_if_needed()
+            # before we store the token, we have to check for semicolon
+            # insertion
+            if token.kind in ASI_TRIGGER_TOKENS or asi_triggered:
+                self.inject_semicolon_if_needed(token)
 
             # store the location we got the token from and append it
             token.location = (self.line, self.column)
@@ -178,16 +185,18 @@ class Lexer:
             self.consume(token.raw)
 
         # one more possible ASI at end of file
-        self.inject_semicolon_if_needed()
+        self.inject_semicolon_if_needed(EndOfFile(""))
 
         return self.results
 
-    def inject_semicolon_if_needed(self):
+    def inject_semicolon_if_needed(self, following_token):
         """Handles automatic semicolon insertion. If the last token was
-        something that could end a statement, this method injects an implicit
-        semicolon into the token stream.
+        something that could end a statement, and the next token is
+        something that could reasonably start a statement this method injects
+        an implicit semicolon into the token stream.
         """
-        if self.results[-1].kind in STATEMENT_ENDING_TOKENS:
+        if (self.results[-1].kind in ASI_STATEMENT_ENDING_TOKENS and
+           following_token.kind not in ASI_DISABLING_TOKENS):
             token = StatementEnd(";")
             token.location = (self.line, self.column)
             self.results.append(token)
