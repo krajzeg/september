@@ -211,6 +211,7 @@ def ask_for_blessing(test):
     """Asks the user to bless the output of the test, and blesses it if the
     user chooses so.
     """
+    print()
     msg = "Is this output correct ([Y]es/[N]o/[S]top)? "
     print(Ansi.in_color(msg, Ansi.WHITE), end="")
     choice = input().lower()
@@ -228,7 +229,7 @@ def check_new_test(test):
     print(Ansi.clear_screen())
     print(Ansi.in_color(msg % test.name, Ansi.WHITE))
 
-    for line in test.output.split("\n"):
+    for line in test.output.split("\n")[:-1]:
         print("  ", line)
 
     ask_for_blessing(test)
@@ -240,10 +241,10 @@ def check_bad_test(test):
     print(Ansi.in_color(msg % test.name, Ansi.WHITE))
     print("Lines marked with 'E' are from expected output.")
     print("Lines marked with 'A' are from actual output.")
-
+    print()
     # print a pseudo-diff
-    expected = test.expected_output().split("\n")
-    actual = test.output.split("\n")
+    expected = test.expected_output().split("\n")[:-1]
+    actual = test.output.split("\n")[:-1]
     if len(expected) < len(actual):
         expected += ["<line missing>"] * (len(actual) - len(expected))
     elif len(actual) < len(expected):
