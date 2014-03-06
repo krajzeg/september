@@ -144,8 +144,10 @@ class Lexer:
             # eat any whitespace first
             white_match = self.whitespace.match(self.stream)
             if white_match:
+                # new-lines trigger ASI
                 if "\n" in white_match.group(0):
                     self.inject_semicolon_if_needed()
+                # eat the whitespace
                 self.consume(white_match.group(0))
 
             # did we run out of stream?
@@ -175,12 +177,16 @@ class Lexer:
             # consume the text
             self.consume(token.raw)
 
-        # one more ASI at end of file
+        # one more possible ASI at end of file
         self.inject_semicolon_if_needed()
 
         return self.results
 
     def inject_semicolon_if_needed(self):
+        """Handles automatic semicolon insertion. If the last token was
+        something that could end a statement, this method injects an implicit
+        semicolon into the token stream.
+        """
         if self.results[-1].kind in STATEMENT_ENDING_TOKENS:
             token = StatementEnd(";")
             token.location = (self.line, self.column)
