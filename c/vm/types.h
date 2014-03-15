@@ -154,6 +154,12 @@ uint32_t sepstr_hash(SepString *this);
 int sepstr_cmp(SepString *this, SepString *other);
 const char *sepstr_to_cstr(SepString *sstring);
 
+// ===============================================================
+//  Objects
+// ===============================================================
+
+SepItem si_obj(void *object);
+
 /*******************************************************************/
 
 #endif

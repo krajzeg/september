@@ -42,6 +42,7 @@ SepObj *create_builtin_exceptions() {
 	obj_add_exception(exceptions, "ENumericOverflow", Exception);
 	obj_add_exception(exceptions, "EWrongArguments", Exception);
 	obj_add_exception(exceptions, "ECannotAssign", Exception);
+	obj_add_exception(exceptions, "ENoMoreElements", Exception);
 
 	// return the prototype
 	return exceptions;

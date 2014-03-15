@@ -202,6 +202,10 @@ typedef struct SepObj {
 
 	// a set of flags describing the object
 	ObjectTraits traits;
+
+	// a space for additional data in the form of a C struct
+	// usually used by C methods of a prototype
+	void *data;
 } SepObj;
 
 // Creates a new, empty object.

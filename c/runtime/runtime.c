@@ -30,6 +30,7 @@ SepObj *obj_Syntax;
 SepObj *proto_Exceptions;
 
 SepObj *proto_Object;
+SepObj *proto_Array;
 SepObj *proto_String;
 SepObj *proto_Integer;
 SepObj *proto_Bool;
@@ -40,6 +41,7 @@ SepObj *proto_Nothing;
 // ===============================================================
 
 SepObj *create_object_prototype();
+SepObj *create_array_prototype();
 SepObj *create_integer_prototype();
 SepObj *create_string_prototype();
 SepObj *create_bool_prototype();
@@ -367,6 +369,7 @@ void initialize_runtime() {
 	// primitive types' prototypes are initialized here
 	proto_Nothing = create_nothing_prototype();
 	obj_add_field(obj_Globals, "Object", obj_to_sepv(proto_Object));
+	obj_add_field(obj_Globals, "Array", obj_to_sepv((proto_Array = create_array_prototype())));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv((proto_Bool = create_bool_prototype())));
 	obj_add_field(obj_Globals, "Integer", obj_to_sepv((proto_Integer = create_integer_prototype())));
 	obj_add_field(obj_Globals, "String", obj_to_sepv((proto_String = create_string_prototype())));

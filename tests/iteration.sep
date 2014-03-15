@@ -1,0 +1,24 @@
+test_array := Array.test()
+
+for := |sequence, body| {
+	iterator := test_array.iterator()
+	element := Nothing;
+	
+	# first element
+	while(True) {
+		try {
+			element = iterator.next()
+			body(element)
+		} catch (ENoMoreElements) {
+			break()
+		}
+	}
+}
+
+print("This should output numbers from 1 to 3.")
+for (test_array, |x| {
+	print(x);
+})
+
+
+

@@ -21,6 +21,7 @@
 #include "arrays.h"
 
 #include "../common/garray.h"
+#include "../runtime/runtime.h"
 #include "../runtime/support.h"
 
 // ===============================================================
@@ -39,7 +40,7 @@ SepArray *array_create(uint32_t initial_size) {
 	props_init((PropertyMap*)array, 1);
 
 	// prototypes and traits
-	array->base.prototypes = SEPV_NOTHING;
+	array->base.prototypes = obj_to_sepv(proto_Array);
 	array->base.traits = ARRAY_TRAITS;
 
 	// allocate the underlying dynamic array
