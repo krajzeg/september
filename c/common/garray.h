@@ -17,6 +17,7 @@
 // ===============================================================
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // ===============================================================
 //  Genericized arrays
@@ -47,6 +48,29 @@ void *ga_set(GenericArray *this, uint32_t index, void *value_ptr);
 void ga_grow(GenericArray *this, uint32_t cells);
 // Gets the length of this array.
 uint32_t ga_length(GenericArray *this);
+
+// ===============================================================
+//  Genericized arrays
+// ===============================================================
+
+// An iterator to facilitate iterating over a generic array's elements.
+typedef struct GenericArrayIterator {
+	// the array
+	GenericArray *array;
+	// array start (used for reacting to modification from within iteration)
+	void *start;
+	// current position
+	void *position;
+} GenericArrayIterator;
+
+// Starts a new iteration over an array.
+GenericArrayIterator ga_iterate_over(GenericArray *this);
+// Returns the current element under the iterator.
+void *gait_current(GenericArrayIterator *this);
+// Advances the iterator to the next element.
+void gait_advance(GenericArrayIterator *this);
+// Returns true if we have reached past the last element in the array.
+bool gait_end(GenericArrayIterator *this);
 
 /*****************************************************************/
 

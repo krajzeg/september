@@ -106,3 +106,25 @@ uint32_t array_length(SepArray *this) {
 	return ga_length(&this->array);
 }
 
+// ===============================================================
+//  Iteration
+// ===============================================================
+
+// Starts a new iteration over an array.
+SepArrayIterator array_iterate_over(SepArray *this) {
+	return ga_iterate_over(&this->array);
+}
+
+// Returns the current element under the iterator and advances the iterator itself.
+SepV arrayit_next(SepArrayIterator *this) {
+	SepV value = *((SepV*)gait_current(this));
+	gait_advance(this);
+	return value;
+}
+
+// Returns true if we have iterated over all the elements.
+bool arrayit_end(SepArrayIterator *this) {
+	return gait_end(this);
+}
+
+

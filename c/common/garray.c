@@ -127,3 +127,29 @@ void ga_grow(GenericArray *this, uint32_t cells) {
 uint32_t ga_length(GenericArray *this) {
 	return (this->end - this->start) / this->element_size;
 }
+
+// ===============================================================
+//  Iteration
+// ===============================================================
+
+// Starts a new iteration over an array.
+GenericArrayIterator ga_iterate_over(GenericArray *this) {
+	GenericArrayIterator it = {this, this->start, this->start};
+	return it;
+}
+
+// Returns the current element under the iterator.
+void *gait_current(GenericArrayIterator *this) {
+	return this->position;
+}
+
+// Advances the iterator to the next element.
+void gait_advance(GenericArrayIterator *this) {
+	this->position += this->array->element_size;
+}
+
+// Returns true if we have reached past the last element in the array.
+bool gait_end(GenericArrayIterator *this) {
+	return this->position >= this->array->end;
+}
+

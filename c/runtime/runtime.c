@@ -156,10 +156,10 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 		or_raise(builtin_exception("InternalError"));
 
 	// iterate over all the branches guarded with conditions
-	// TODO: replace with better iteration
-	int branch_index, branch_count = array_length(branches);
-	for (branch_index = 0; branch_index < branch_count; branch_index++) {
-		SepV branch = array_get(branches, branch_index);
+	SepArrayIterator it = array_iterate_over(branches);
+	while(!arrayit_end(&it)) {
+		// next branch
+		SepV branch = arrayit_next(&it);
 
 		// evaluate condition
 		SepV condition_l = property(branch, "condition");
@@ -298,9 +298,9 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 		// yes, we have to handle it
 		// go over the catch clauses and try to catch it
 		SepArray *catchers = sepv_to_array(property(try_s, "catchers"));
-		int catch_index, catch_count = array_length(catchers);
-		for (catch_index = 0; catch_index < catch_count; catch_index++) {
-			SepV catcher_obj = array_get(catchers, catch_index);
+		SepArrayIterator it = array_iterate_over(catchers);
+		while(!arrayit_end(&it)) {
+			SepV catcher_obj = arrayit_next(&it);
 
 			// check the exception type using Exception.is().
 			SepV catcher_type = property(catcher_obj, "type");
@@ -331,15 +331,15 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	// regardless of whether it was an exception, go through all
 	// finalizers
 	SepArray *finalizers = sepv_to_array(property(try_s, "finalizers"));
-	int fin_index, fin_count = array_length(finalizers);
-	for (fin_index = 0; fin_index < fin_count; fin_index++) {
-		SepV finalizer_l = array_get(finalizers, fin_index);
-		SepV fin_result = vm_resolve(frame->vm, finalizer_l);
+	SepArrayIterator it = array_iterate_over(finalizers);
+	while (!arrayit_end(&it)) {
+		SepV finalizer_l = arrayit_next(&it);
+		SepV finalizer_result = vm_resolve(frame->vm, finalizer_l);
 
 		// the finalizer might have thrown an exception, unfortunately
-		if (sepv_is_exception(fin_result)) {
+		if (sepv_is_exception(finalizer_result)) {
 			// we give up in that case
-			return item_rvalue(fin_result);
+			return item_rvalue(finalizer_result);
 		}
 	}
 
