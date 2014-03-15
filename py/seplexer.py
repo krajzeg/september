@@ -92,6 +92,7 @@ IntLiteral = token_type("int", int_literal_init)
 FloatLiteral = token_type("float", float_literal_init)
 StrLiteral = token_type("str", str_literal_init)
 StatementEnd = token_type(";")
+Comment = token_type("comment")
 EndOfFile = token_type("end of file")
 
 ##############################################
@@ -110,7 +111,9 @@ TOKENS = {
     r'\{':                        token_type("{"),
     r'\}':                        token_type("}"),
     r',':                         token_type(","),
-    r'\|':                        token_type("|")
+    r'\|':                        token_type("|"),
+
+    r'#.*':                       Comment
 }
 
 WHITESPACE = r"\s+"
@@ -150,7 +153,7 @@ class Lexer:
             # eat any whitespace first
             white_match = self.whitespace.match(self.stream)
             if white_match:
-                # new-lines trigger ASI
+                # new-lines trigger semicolon insertion
                 if "\n" in white_match.group(0):
                     asi_triggered = True
                 # eat the whitespace
@@ -161,27 +164,16 @@ class Lexer:
                 break
 
             # find the longest match
-            longest = (None, 0)
-            for rexp, token_class in self.tokens.items():
-                match = rexp.match(self.stream)
-                if match and len(match.group(0)) > longest[1]:
-                    longest = (token_class(match.group(0)), len(match.group(0)))
-
-            # did we fail to find a suitable match?
-            token, length = longest
-            if length == 0:
+            token = self.longest_matching_token()
+            if token is None:
                 self.error("Unrecognized input: '%s'" % self.rest_of_line())
 
-            # before we store the token, we have to check for semicolon
-            # insertion
+            # before we store the token, we check for semicolon insertion
             if token.kind in ASI_TRIGGER_TOKENS or asi_triggered:
                 self.inject_semicolon_if_needed(token)
 
-            # store the location we got the token from and append it
-            token.location = (self.line, self.column)
-            self.results.append(token)
-
-            # consume the text
+            # append the token and remove it from the character stream
+            self.append(token)
             self.consume(token.raw)
 
         # one more possible ASI at end of file
@@ -189,17 +181,48 @@ class Lexer:
 
         return self.results
 
+
+    def longest_matching_token(self):
+        longest_token, best_length = None, 0
+
+        for rexp, token_class in self.tokens.items():
+            match = rexp.match(self.stream)
+            if match and len(match.group(0)) > best_length:
+                text = match.group(0)
+                longest_token = token_class(text)
+                best_length = len(text)
+
+        return longest_token
+
+
+    def rest_of_line(self):
+        """Returns the remaining un-lexed part of the current line."""
+        try:
+            new_line_pos = self.stream.index("\n")
+            return self.stream[:new_line_pos]
+        except ValueError:
+            return self.stream
+
+
+    def append(self, token):
+        """Appends a token to the token stream."""
+        if not token.is_a(Comment):
+            token.location = (self.line, self.column)
+            self.results.append(token)
+
+
     def inject_semicolon_if_needed(self, following_token):
         """Handles automatic semicolon insertion. If the last token was
         something that could end a statement, and the next token is
         something that could reasonably start a statement this method injects
         an implicit semicolon into the token stream.
         """
+        if not self.results:
+            return
         if (self.results[-1].kind in ASI_STATEMENT_ENDING_TOKENS and
            following_token.kind not in ASI_DISABLING_TOKENS):
-            token = StatementEnd(";")
-            token.location = (self.line, self.column)
-            self.results.append(token)
+            self.append(StatementEnd(";"))
+
 
     def consume(self, string):
         """Consumes the provided string, advancing line and column
@@ -213,17 +236,11 @@ class Lexer:
                 self.column += 1
         self.stream = self.stream[len(string):]
 
+
     def error(self, text):
-        """Streamlines raising lexing problems."""
+        """Raises a lexing exception with the current line-column position."""
         raise LexerException(text, (self.line, self.column))
 
-    def rest_of_line(self):
-        """Returns the remaining un-lexed part of the current line."""
-        try:
-            new_line_pos = self.stream.index("\n")
-            return self.stream[:new_line_pos]
-        except ValueError:
-            return self.stream
 
 def lex(string):
     """Creates a new lexer instance using the standard tables and

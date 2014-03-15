@@ -1,0 +1,4 @@
+# This is commented out.
+
+print("# This is not.") # But this is!
+print("And semicolon insertion is not misled by comments.")
