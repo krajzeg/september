@@ -68,8 +68,7 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 
 		// invoke it!
 		SepItem string_i = vm_subcall(frame->vm, to_string, 0);
-		if (sepv_is_exception(string_i.value))
-			return string_i;
+			or_propagate(string_i.value);
 
 		// we have a string now
 		string = cast_as_named_str("Return value of toString()", string_i.value, &err);
@@ -315,12 +314,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 			// the type matches, run the catcher body
 			SepV catcher_body = property(catcher_obj, "body");
 			SepV catch_result = vm_resolve(frame->vm, catcher_body);
-
-			// the catch body might have thrown exceptions, unfortunately
-			if (sepv_is_exception(catch_result)) {
-				// we give up in that case
-				return item_rvalue(catch_result);
-			}
+				or_propagate(catch_result);
 
 			// phew, exception handled!
 			try_result = SEPV_NOTHING;
@@ -335,12 +329,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	while (!arrayit_end(&it)) {
 		SepV finalizer_l = arrayit_next(&it);
 		SepV finalizer_result = vm_resolve(frame->vm, finalizer_l);
-
-		// the finalizer might have thrown an exception, unfortunately
-		if (sepv_is_exception(finalizer_result)) {
-			// we give up in that case
-			return item_rvalue(finalizer_result);
-		}
+			or_propagate(finalizer_result);
 	}
 
 	// return the final result (Nothing if there was an exception)
@@ -355,49 +344,6 @@ SepObj *create_try_statement_prototype() {
 	obj_add_builtin_method(TryStatement, "..!", statement_try_impl, 0);
 
 	return TryStatement;
-}
-
-// ===============================================================
-//  Old try..catch..finally
-// ===============================================================
-
-SepItem func_try_catch_finally(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-
-	SepV try_l = param(scope, "body");
-	SepV catch_type_v = param(scope, "handler_type");
-	SepV catch_l = param(scope, "handler");
-	SepV finally_l = param(scope, "finalizer");
-
-	// try executing the body
-	SepV result = vm_resolve(frame->vm, try_l);
-	if (sepv_is_exception(result)) {
-		// exception - first check the catch clause
-		if (catch_l != SEPV_NOTHING) {
-			// check for type match
-			SepFunc *exception_is = prop_as_func(result, "is", &err);
-				or_raise_with_msg(builtin_exception("EWrongType"), "No 'is()' method missing on exception value.");
-			bool type_matches = vm_subcall(frame->vm, exception_is, 1, catch_type_v).value == SEPV_TRUE;
-
-			if (type_matches) {
-				// handle it!
-				SepV catch_result = vm_resolve(frame->vm, catch_l);
-					or_propagate(catch_result);
-
-				// caught - clear exception
-				result = SEPV_NOTHING;
-			}
-		}
-
-		// .. and then execute the finalizer
-		if (finally_l != SEPV_NOTHING) {
-			SepV finally_result = vm_resolve(frame->vm, finally_l);
-				or_propagate(finally_result);
-		}
-	}
-
-	// return final result (whether an exception, or the result from the body)
-	return item_rvalue(result);
 }
 
 // ===============================================================
