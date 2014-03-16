@@ -36,14 +36,6 @@ SepItem array_iterator(SepObj *scope, ExecutionFrame *frame) {
 	return si_obj(iterator_obj);
 }
 
-SepItem array_test(SepObj *scope, ExecutionFrame *frame) {
-	SepArray *array = array_create(3);
-	int i;
-	for (i = 1; i <= 3; i++)
-		array_push(array, int_to_sepv(i));
-	return si_obj(array);
-}
-
 // Actual iteration over the array
 SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
@@ -74,8 +66,6 @@ SepObj *create_array_prototype() {
 	// create Array prototype
 	SepObj *Array = make_class("Array", NULL);
 	obj_add_builtin_method(Array, "iterator", array_iterator, 0);
-	// TODO: remove this when we have a way to create an array from September code
-	obj_add_builtin_method(Array, "test", array_test, 0);
 
 	return Array;
 }
