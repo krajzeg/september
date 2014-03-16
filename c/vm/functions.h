@@ -30,7 +30,7 @@ struct ExecutionFrame;
 struct SepFunc;
 
 // ===============================================================
-//  Common function interface
+//  Function parameters
 // ===============================================================
 
 typedef struct FuncParam {
@@ -42,6 +42,16 @@ typedef struct FuncParam {
 		int sink:1;
 	} flags;
 } FuncParam;
+
+// Sets the value of the parameter in a given execution scope object.
+void funcparam_set_in_scope(FuncParam *this, SepObj *scope, SepV value);
+// Finalizes the value of the parameter - this is where default parameter
+// values are set and parameters are validated.
+void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err);
+
+// ===============================================================
+//  Common function interface
+// ===============================================================
 
 typedef struct SepFuncVTable {
 	// initializes an execution frame, setting the instruction pointer

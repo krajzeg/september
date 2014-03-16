@@ -55,10 +55,10 @@ void push_const_impl(ExecutionFrame *frame) {
 }
 
 void lazy_call_impl(ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+
 	// quick references
 	SepStack *stack = frame->data;
-
-	// what are we calling?
 	SepFunc *func = sepv_to_func(stack_pop_value(stack));
 
 	// verify argument/parameter relationship
@@ -67,24 +67,19 @@ void lazy_call_impl(ExecutionFrame *frame) {
 
 	FuncParam *parameters = func->vt->get_parameters(func);
 	uint8_t param_count = func->vt->get_parameter_count(func);
-	if (arg_count != param_count) {
-		SepString *message = sepstr_sprintf("Expected %d arguments, called with %d.", param_count, arg_count);
-		frame_raise(frame, sepv_exception(builtin_exception("EWrongArguments"), message));
-		return;
-	}
 
 	// put arguments into the execution scope
 	SepObj *execution_scope = obj_create();
-	uint8_t arg_index;
-	for (arg_index = 0; arg_index < arg_count; arg_index++) {
+	uint8_t arg_index = 0, param_index = 0;
+	for (; arg_index < arg_count; arg_index++) {
 		CodeUnit argument_code = frame_read(frame);
-		FuncParam *param = &parameters[arg_index];
+		FuncParam *param = &parameters[param_index];
 
 		// did we get a constant or a block?
+		SepV argument;
 		if (argument_code > 0) {
 			// constant, that's easy!
-			SepV const_value = frame_constant(frame, argument_code);
-			props_accept_prop(execution_scope, param->name, field_create(const_value));
+			argument = frame_constant(frame, argument_code);
 		} else {
 			// block - that's a lazy evaluated argument
 			CodeBlock *block = frame_block(frame, -argument_code);
@@ -96,18 +91,37 @@ void lazy_call_impl(ExecutionFrame *frame) {
 
 			if (param->flags.lazy) {
 				// the parameter is also lazy - we'll pass the function for later evaluation
-				props_accept_prop(execution_scope, param->name, field_create(func_to_sepv(lazy)));
+				argument = func_to_sepv(lazy);
 			} else {
 				// the argument is eager - evaluate right now (in current scope)
 				// and we'll pass the return value to the parameter
-				SepV resolved_value = vm_resolve(frame->vm, func_to_sepv(lazy));
-				if (sepv_is_exception(resolved_value)) {
-					frame_raise(frame, resolved_value);
-					return;
-				}
-				props_accept_prop(execution_scope, param->name, field_create(resolved_value));
+				argument = vm_resolve(frame->vm, func_to_sepv(lazy));
+			}
+
+			// exception?
+			if (sepv_is_exception(argument)) {
+				frame_raise(frame, argument);
+				return;
 			}
 		}
+
+		// set the argument in scope
+		funcparam_set_in_scope(param, execution_scope, argument);
+
+		// next parameter (unless this is the sink)
+		if (!param->flags.sink)
+			param_index++;
+	}
+
+	// finalize and validate parameters
+	for (param_index = 0; param_index < param_count; param_index++) {
+		FuncParam *param = &parameters[param_index];
+		funcparam_finalize_value(param, execution_scope, &err);
+			or_handle(EAny) {
+				frame_raise(frame, sepv_exception(
+						builtin_exception("EWrongArguments"),
+						sepstr_create(err.message)));
+			};
 	}
 
 	// add a 'return' function

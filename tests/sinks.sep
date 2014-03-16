@@ -1,0 +1,48 @@
+# We have to define a 'for'-like loop ourselves for now
+for := |sequence,body| {
+	iterator := sequence.iterator()
+	element := Nothing
+	while(True) {
+		try {
+			element = iterator.next()
+			body(element)
+		} catch (ENoMoreElements) {
+			break()
+		}
+	}
+}
+
+# Sink argument as the only argument
+print_all := |...things| {
+	for(things, |thing| { print(thing); })
+}
+
+# Sink argument preceded by normal ones
+print_multiplied := |multiplier, ...things| {
+	for(things, |thing| { print(multiplier * thing) })
+}
+
+# Lazy sink argument
+do_in_order := |...?actions| {
+	for(actions, |action| {
+		action.resolve()
+	})
+}
+
+# Test various call variants
+print("This should print nothing safely.")
+print_all()
+
+print("This should print 1,2,3.")
+print_all(1, 2, 3)
+
+print("This should print nothing safely.")
+print_multiplied(2)
+
+print("This should print 3,6.")
+print_multiplied(3, 1, 2)
+
+x := 12;
+print("This should print 42.")
+do_in_order(x = x + 9, x = x * 2)
+print(x)

@@ -20,11 +20,57 @@
 #include <stdarg.h>
 
 #include "mem.h"
+#include "arrays.h"
 #include "functions.h"
 #include "exceptions.h"
 #include "vm.h"
 
+#include "../common/errors.h"
 #include "../runtime/support.h"
+
+// ===============================================================
+//  Function parameters
+// ===============================================================
+
+// Sets the value of the parameter in a given execution scope object.
+void funcparam_set_in_scope(FuncParam *this, SepObj *scope, SepV value) {
+	if (this->flags.sink) {
+		// a '...' sink parameter - always an array
+		SepArray *sink_array;
+		if (props_find_prop(scope, this->name)) {
+			// the array is present already
+			sink_array = sepv_to_array(props_get_prop(scope, this->name));
+		} else {
+			// new array
+			sink_array = array_create(1);
+			props_accept_prop(scope, this->name, field_create(obj_to_sepv(sink_array)));
+		}
+		// push the value into the array representing the parameter
+		array_push(sink_array, value);
+	} else {
+		// standard parameter, just set the value
+		props_accept_prop(scope, this->name, field_create(value));
+	}
+}
+
+// Finalizes the value of the parameter - this is where default parameter
+// values are set and parameters are validated.
+void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err) {
+	if (!props_find_prop(scope, this->name)) {
+		// parameter missing
+
+		// sink parameters always have at least an empty array inside
+		if (this->flags.sink) {
+			SepV sink_array_v = obj_to_sepv(array_create(0));
+			props_accept_prop(scope, this->name, field_create(sink_array_v));
+			return;
+		}
+
+		// no default value to be found, that's an error
+		fail(error_create(EWrongArguments, "Required parameter '%s' is missing.",
+				sepstr_to_cstr(this->name)));
+	}
+}
 
 // ===============================================================
 //  Built-in function v-table

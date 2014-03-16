@@ -57,6 +57,8 @@ typedef enum SepErrorType {
 	ERuntime = 0xFF000200,
 		// a type mismatch occured
 		ETypeMismatch = 0xFFFF0201,
+		// some problem with arguments of a function call
+		EWrongArguments = 0xFFFF0202,
 
 	// fatal runtime errors
 	EFatal = 0xFF000200,
@@ -91,6 +93,8 @@ typedef struct SepError {
 // Functions for working with errors
 // ===============================================================
 
+// Generic function for creating any type of error with any message.
+SepError error_create(SepErrorType type, const char *message_fmt, ...);
 // Checks whether 'error' matches the given 'type' - if 'type' is a concrete
 // error like EFileNotFound, it will only match this error. If 'type' is a
 // a category (like EFile) or EAny, it will match the specified group of
@@ -119,6 +123,7 @@ SepError e_out_of_memory();
 SepError e_not_implemented_yet(const char *what);
 
 SepError e_type_mismatch(const char *what, const char *expected_type);
+SepError e_wrong_arguments(const char *message);
 
 // ===============================================================
 // Macros for easier error handling
