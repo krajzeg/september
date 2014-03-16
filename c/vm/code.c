@@ -84,25 +84,26 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			// block - that's a lazy evaluated argument
 			CodeBlock *block = frame_block(frame, -argument_code);
 			if (!block) {
-				frame_raise(frame, sepv_exception(builtin_exception("EInternalError"), sepstr_sprintf("Code block %d out of bounds.", -argument_code)));
+				frame_raise(frame, sepv_exception(builtin_exception("EInternalError"),
+						sepstr_sprintf("Code block %d out of bounds.", -argument_code)));
 				return;
 			}
-			SepFunc *lazy = (SepFunc*)ifunc_create(block, frame->locals);
+			SepFunc *argument_l = (SepFunc*)ifunc_create(block, frame->locals);
 
 			if (param->flags.lazy) {
 				// the parameter is also lazy - we'll pass the function for later evaluation
-				argument = func_to_sepv(lazy);
+				argument = func_to_sepv(argument_l);
 			} else {
 				// the argument is eager - evaluate right now (in current scope)
 				// and we'll pass the return value to the parameter
-				argument = vm_resolve(frame->vm, func_to_sepv(lazy));
+				argument = vm_resolve(frame->vm, func_to_sepv(argument_l));
+				// propagate exception, if any
+				if (sepv_is_exception(argument)) {
+					frame_raise(frame, argument);
+					return;
+				}
 			}
 
-			// exception?
-			if (sepv_is_exception(argument)) {
-				frame_raise(frame, argument);
-				return;
-			}
 		}
 
 		// set the argument in scope
