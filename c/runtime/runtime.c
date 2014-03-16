@@ -18,7 +18,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-aorist"
+#define SEPTEMBER_VERSION "0.1-apples"
 
 // ===============================================================
 //  Prototype objects
