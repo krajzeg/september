@@ -1,32 +1,18 @@
-# We have to define a 'for'-like loop ourselves for now
-for := |sequence,body| {
-	iterator := sequence.iterator()
-	element := Nothing
-	while(True) {
-		try {
-			element = iterator.next()
-			body(element)
-		} catch (ENoMoreElements) {
-			break()
-		}
-	}
-}
-
 # Sink argument as the only argument
 print_all := |...things| {
-	for(things, |thing| { print(thing); })
+	for (thing) in (things) { print(thing) }
 }
 
 # Sink argument preceded by normal ones
 print_multiplied := |multiplier, ...things| {
-	for(things, |thing| { print(multiplier * thing) })
+	for (thing) in (things) { print(multiplier * thing) }
 }
 
 # Lazy sink argument
 do_in_order := |...?actions| {
-	for(actions, |action| {
+	for (action) in (actions) {
 		action.resolve()
-	})
+	}
 }
 
 # Test various call variants

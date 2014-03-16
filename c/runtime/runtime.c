@@ -236,7 +236,101 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // ===============================================================
-//  New try..catch..finally
+//  For..in loop
+// ===============================================================
+
+SepObj *proto_ForStatement;
+
+// Creates the for-statement object.
+SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
+	SepObj *for_s = obj_create_with_proto(obj_to_sepv(proto_ForStatement));
+
+	SepV variable_name = vm_resolve_as_literal(frame->vm, param(scope, "variable_name"));
+	obj_add_field(for_s, "variable_name", variable_name);
+
+	return si_obj(for_s);
+}
+
+// The "in" part of the for..in statement.
+SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepObj *for_s = target_as_obj(scope, &err);
+		or_raise(builtin_exception("EWrongType"));
+
+	obj_add_field(for_s, "collection", param(scope, "collection"));
+	obj_add_field(for_s, "body", param(scope, "body"));
+
+	return si_obj(for_s);
+}
+
+// The actual implementation of the for..in loop.
+SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+
+	// get everything out of the statement
+	SepV for_s = target(scope);
+	SepString *variable_name = prop_as_str(for_s, "variable_name", &err);
+		or_raise(builtin_exception("EWrongType"));
+	SepV collection = property(for_s, "collection");
+	SepFunc *iterator_f = prop_as_func(collection, "iterator", &err);
+		or_raise(builtin_exception("EWrongType"));
+	SepV iterator = vm_subcall(frame->vm, iterator_f, 0).value;
+		or_propagate(iterator);
+	SepFunc *iterator_next_f = prop_as_func(iterator, "next", &err);
+		or_raise(builtin_exception("EWrongType"));
+	SepV body_l = property(for_s, "body");
+
+	// prepare the scope
+	SepObj *for_body_scope = obj_create_with_proto(frame->prev_frame->locals);
+	obj_add_escape(for_body_scope, "break", frame, SEPV_BREAK);
+	obj_add_escape(for_body_scope, "continue", frame, SEPV_NOTHING);
+	props_accept_prop(for_body_scope, variable_name, field_create(SEPV_NOTHING));
+	SepV for_body_scope_v = obj_to_sepv(for_body_scope);
+
+	// actually start the loop
+	while(true) {
+		// get the next element in the collection
+		SepV element = vm_subcall(frame->vm, iterator_next_f, 0).value;
+		if (sepv_is_exception(element)) {
+			// check if its ENoMoreElements - if so, break out of the loop
+			SepV enomoreelements_v = obj_to_sepv(builtin_exception("ENoMoreElements"));
+			SepFunc *is_f = cast_as_func(property(element, "is"), &err);
+				or_raise(builtin_exception("EWrongType"));
+			SepV is_no_more_elements_v = vm_subcall(frame->vm, is_f, 1, enomoreelements_v).value;
+			if (is_no_more_elements_v == SEPV_TRUE) {
+				break;
+			}
+
+			// not an iteration related exception - just propagate
+			return item_rvalue(element);
+		}
+
+		// execute the body of the loop
+		props_set_prop(for_body_scope, variable_name, element);
+		SepV result = vm_resolve_in(frame->vm, body_l, for_body_scope_v);
+			or_propagate(result);
+
+		// breaking
+		if (result == SEPV_BREAK) {
+			break;
+		}
+	}
+
+	// for doesn't return anything normally
+	return si_nothing();
+}
+
+SepObj *create_for_statement_prototype() {
+	SepObj *ForStatement = make_class("ForStatement", NULL);
+
+	obj_add_builtin_method(ForStatement, "in..", substatement_in, 2, "collection", "body");
+	obj_add_builtin_method(ForStatement, "..!", statement_for_impl, 0);
+
+	return ForStatement;
+}
+
+// ===============================================================
+//  Try..catch..finally
 // ===============================================================
 
 SepObj *proto_TryStatement;
@@ -385,10 +479,13 @@ void initialize_runtime() {
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
 
+	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
+
+	proto_ForStatement = create_for_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "for..", &statement_for, 1, "?variable_name");
+
 	proto_TryStatement = create_try_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
-
-	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "what");
