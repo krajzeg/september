@@ -12,6 +12,7 @@
 //  Includes
 // ===============================================================
 
+#include <string.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -84,6 +85,18 @@ SepFuncVTable built_in_func_vtable = {
 //  Built-in functions
 // ===============================================================
 
+// Checks if a parameter name starts with a given flag, and if it does,
+// moves the parameter_name pointer past it.
+bool parameter_extract_flag(char **parameter_name, const char *flag) {
+	bool flag_set = strncmp(flag, *parameter_name, strlen(flag)) == 0;
+	if (flag_set) {
+		(*parameter_name) += strlen(flag); // move past the flag
+		return true;
+	} else {
+		return false;
+	}
+}
+
 // creates a new built-in based on a C function and September parameter names
 BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameters, va_list args) {
 	// allocate and setup basic properties
@@ -98,18 +111,15 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	char *param_name;
 	for (i = 0; i < parameters; i++) {
 		FuncParam *parameter = &built_in->parameters[i];
-		parameter->flags.lazy = 0;
 
 		// get name from va_list
 		param_name = va_arg(args, char*);
 
-		// lazy parameter?
-		if (param_name[0] == '?') {
-			param_name++; // move past the '?' marker
-			parameter->flags.lazy = 1;
-		}
+		// extract flag
+		parameter->flags.sink = parameter_extract_flag(&param_name, "...");
+		parameter->flags.lazy = parameter_extract_flag(&param_name, "?");
 
-		// set the name (undecorated, the decoration got translated into flags)
+		// set the name (undecorated by now, the decoration got translated into flags)
 		parameter->name = sepstr_create(param_name);
 	}
 	

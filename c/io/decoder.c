@@ -35,7 +35,8 @@ enum OpcodeFlags {
 };
 
 enum ParamFlags {
-	MFILE_P_LAZY_EVALUATED = 0x01
+	MFILE_P_LAZY_EVALUATED = 0x01,
+	MFILE_P_SINK = 0x10
 };
 
 // ===============================================================
@@ -225,6 +226,7 @@ void decoder_read_block_params(Decoder *this, BlockPool *pool, int param_count, 
 		FuncParam parameter;
 		parameter.name = sepstr_create(param_name);
 		parameter.flags.lazy = (param_flags & MFILE_P_LAZY_EVALUATED) != 0;
+		parameter.flags.sink = (param_flags & MFILE_P_SINK) != 0;
 		block->parameters[index] = parameter;
 	}
 }

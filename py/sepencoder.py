@@ -34,7 +34,7 @@ FLAG_ENCODING = {
 ### Bitmask for parameter type flags
 PARAM_FLAG_ENCODING = {
     P_LAZY_EVALUATED: 0x1,
-    P_SINK: 0x2
+    P_SINK: 0x10
 }
 
 ### Constant types writable to the file

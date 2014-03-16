@@ -39,6 +39,7 @@ typedef struct FuncParam {
 	// style
 	struct {
 		int lazy:1;
+		int sink:1;
 	} flags;
 } FuncParam;
 
