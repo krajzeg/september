@@ -397,7 +397,7 @@ class ParameterListParser(ContextlessParser):
         parser.advance("|")
 
         while not parser.token.is_a("|"):
-            # parameter flags will be visible as an operator token
+            # parameter flags will be recognized e as an operator token
             # preceding the parameter name
             flags = set()
             if parser.token.is_a(lexer.Operator):
@@ -406,6 +406,10 @@ class ParameterListParser(ContextlessParser):
                 if "?" in flag_string:
                     flag_string = flag_string.replace("?", "")
                     flags.add(P_LAZY_EVALUATED)
+                # sink?
+                if "..." in flag_string:
+                    flag_string = flag_string.replace("...", "")
+                    flags.add(P_SINK)
                 # did we miss anything?
                 if flag_string != "":
                     parser.error("Unrecognized parameter flags: %s" %

@@ -31,6 +31,12 @@ FLAG_ENCODING = {
     F_POP_RESULT:     0x08,
 }
 
+### Bitmask for parameter type flags
+PARAM_FLAG_ENCODING = {
+    P_LAZY_EVALUATED: 0x1,
+    P_SINK: 0x2
+}
+
 ### Constant types writable to the file
 # Note: float is not yet supported
 CONSTANT_TYPE = {
@@ -135,7 +141,7 @@ class ModuleFileOutput:
             param_name = parameter.value
             flag_byte = 0
             for flag in parameter.flags:
-                flag_byte |= flag
+                flag_byte |= PARAM_FLAG_ENCODING[flag]
             # write it down flags first
             self._write_byte(flag_byte)
             self._write_str(param_name)

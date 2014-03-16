@@ -131,6 +131,7 @@ ASI_DISABLING_TOKENS = [Operator.kind]
 # The lexer code
 ##############################################
 
+
 class Lexer:
     """Implements the actual lexing of an input string."""
 

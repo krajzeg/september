@@ -408,6 +408,8 @@ class StringOutput:
         param_names = []
         for param in params:
             name = param.value
+            if P_SINK in param.flags:
+                name = "..." + name
             if P_LAZY_EVALUATED in param.flags:
                 name = "?" + name
             param_names.append(name)

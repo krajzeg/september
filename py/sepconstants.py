@@ -20,4 +20,5 @@ F_STORE_VALUE = "s"
 F_POP_RESULT = "v"
 
 ### Parameter flags
-P_LAZY_EVALUATED = 1
+P_LAZY_EVALUATED = "lazy"
+P_SINK = "sink"
