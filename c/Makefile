@@ -19,13 +19,11 @@ DEPS = $(OBJECTS:.o=.d)
 
 ifneq (,$(findstring Windows,$(OS)))
 	ifneq (,$(MINGDIR))
-$(info == Using the MinGW version of the Makefile.)
 		include Makefile.mingw
 	else
 $(error Under Windows, only MinGW is supported, and MINGDIR was not set.)
 	endif
 else
-$(info == Using the Linux/Unix version of the Makefile.)
 	include Makefile.unix
 endif
 
@@ -40,13 +38,16 @@ $(OUT): $(OBJECTS)
 # Phony targets
 # ==========================
 
-.PHONY: clean deps all
+.PHONY: clean veryclean deps all
 
 all: $(DEPS) $(OUT)	
 	
 deps: $(DEPS)
 	
 clean:
+	$(RM) $(OUT) $(OBJECT_FILES)
+
+veryclean:
 	$(RM) $(OUT) $(OBJECT_FILES) $(DEP_FILES)
 
 # ==========================
@@ -54,7 +55,7 @@ clean:
 # ==========================
 
 # clean does not need dependencies
-ifneq ($(MAKECMDGOALS),clean)
+ifeq (,$(findstring clean,$(MAKECMDGOALS)))
     -include $(DEPS)
 endif
 
