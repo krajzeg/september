@@ -3,7 +3,7 @@
 ifneq (,$(findstring Windows,$(OS)))
   PYTHON=python
 else
-  PYTHON=`usr/bin/env python3`
+  PYTHON=python3
 endif
 
 all: interpreter tests
