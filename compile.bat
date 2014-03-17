@@ -1,0 +1,1 @@
+@python py\sepcompiler.py %*
