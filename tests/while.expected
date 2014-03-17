@@ -1,8 +1,4 @@
-Iterating over numbers, starting at:
-9
-And ending at:
-3
-======
+Iterating over numbers, starting at 9 and ending at 3
 9
 8
 7
@@ -10,5 +6,4 @@ And ending at:
 5
 4
 3
-======
 While loop exited cleanly.

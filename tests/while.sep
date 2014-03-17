@@ -1,10 +1,6 @@
 from := 9; to := 3
 
-print("Iterating over numbers, starting at:")
-print(from)
-print("And ending at:")
-print(to)
-print("======")
+print("Iterating over numbers, starting at", from, "and ending at", to)
 
 dir := if (from > to) {-1} else {1}
 while (from != to) {
@@ -13,5 +9,4 @@ while (from != to) {
 }
 print(from)
 
-print("======")
 print("While loop exited cleanly.")

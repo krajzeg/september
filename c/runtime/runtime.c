@@ -60,27 +60,31 @@ SepObj *create_builtin_exceptions();
 
 SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
-	SepV to_print = param(scope, "what");
-	SepString *string;
+	SepArray *things = sepv_to_array(param(scope, "what"));
 
-	if (!sepv_is_str(to_print)) {
-		// maybe we have a toString() method?
-		SepFunc *to_string = prop_as_func(to_print, "toString", &err);
-			or_raise_with_msg(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
+	SepArrayIterator it = array_iterate_over(things);
+	bool first = true;
+	while (!arrayit_end(&it)) {
+		SepV thing = arrayit_next(&it);
+		SepString *string;
 
-		// invoke it!
-		SepItem string_i = vm_subcall(frame->vm, to_string, 0);
-			or_propagate(string_i.value);
+		if (!sepv_is_str(thing)) {
+			// maybe we have a toString() method?
+			SepFunc *to_string = prop_as_func(thing, "toString", &err);
+				or_raise_with_msg(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
+			SepItem string_i = vm_subcall(frame->vm, to_string, 0);
+				or_propagate(string_i.value);
+			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
+				or_raise(builtin_exception("EWrongType"));
+		} else {
+			string = sepv_to_str(thing);
+		}
 
-		// we have a string now
-		string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-			or_raise(builtin_exception("EWrongType"));
-	} else {
-		string = sepv_to_str(to_print);
+		// print it!
+		printf(first ? "%s" : " %s", sepstr_to_cstr(string));
+		first = false;
 	}
-
-	// print it!
-	printf("%s\n", sepstr_to_cstr(string));
+	puts("");
 
 	// return value
 	return si_nothing();
@@ -488,5 +492,5 @@ void initialize_runtime() {
 	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
 
 	// built-in functions are initialized
-	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "what");
+	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
 }

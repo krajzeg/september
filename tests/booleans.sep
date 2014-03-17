@@ -1,9 +1,5 @@
 print("Should print true, false, true, false.")
-print(True && True)
-print(True && False)
-print(False || True)
-print(False || False)
+print(True && True, True && False, False || True, False || False)
 
 print("Should avoid exception via operator short-circuiting.")
-print(False && non_existent_property)
-print(True || non_existent_property)
+print(False && its_a_trap, True || its_a_trap)
