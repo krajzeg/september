@@ -18,7 +18,7 @@
 
 #include "../common/debugging.h"
 #include "../common/errors.h"
-#include "../vm/code.h"
+#include "../vm/opcodes.h"
 #include "../vm/functions.h"
 #include "decoder.h"
 

@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include "types.h"
 #include "objects.h"
-#include "code.h"
 
 // ===============================================================
 //  Pre-declaring structs
@@ -99,6 +98,37 @@ BuiltInFunc *builtin_create(BuiltInImplFunc implementation, uint8_t parameters, 
 // This version receives parameters as a pre-started va_list to allow use from
 // other var-arg functions.
 BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameters, va_list args);
+
+// ===============================================================
+//  Code blocks
+// ===============================================================
+
+/**
+ * Instruction streams inside code blocks consist of code units.
+ * Each code unit is either an ID of an instruction to execute,
+ * or an argument of such an instruction.
+ */
+typedef int16_t CodeUnit;
+
+/**
+ * Represents a single code block from a module file. Those are just
+ * the instructions - to get something callable, the block is wrapped
+ * in an InterpretedFunc. Many function instances can point to the same
+ * block, allowing for function instances with the same logic, but
+ * different scopes/properties (which is how closures work).
+ */
+typedef struct CodeBlock {
+	// pointer to the module this code comes from
+	struct SepModule *module;
+	// parameter count
+	uint8_t parameter_count;
+	// parameter array
+	struct FuncParam *parameters;
+	// block of memory containing instructions, packed tightly
+	CodeUnit *instructions;
+	// pointer to the space right after the last instruction in this block
+	CodeUnit *instructions_end;
+} CodeBlock;
 
 // ===============================================================
 //  Interpreted (September) functions

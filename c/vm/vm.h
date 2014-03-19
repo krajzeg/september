@@ -16,7 +16,6 @@
 // ===============================================================
 
 #include "types.h"
-#include "code.h"
 #include "functions.h"
 #include "objects.h"
 #include "stack.h"

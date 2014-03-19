@@ -21,6 +21,7 @@
 
 #include "mem.h"
 #include "arrays.h"
+#include "opcodes.h"
 #include "functions.h"
 #include "exceptions.h"
 #include "vm.h"

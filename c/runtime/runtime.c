@@ -381,8 +381,6 @@ SepItem statement_try(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-
 	// execute the body
 	SepV try_s = target(scope);
 	SepV try_body_l = property(try_s, "body");

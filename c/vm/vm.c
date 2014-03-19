@@ -8,7 +8,7 @@
 #include "objects.h"
 #include "exceptions.h"
 #include "arrays.h"
-#include "code.h"
+#include "opcodes.h"
 #include "vm.h"
 
 #include "../common/debugging.h"

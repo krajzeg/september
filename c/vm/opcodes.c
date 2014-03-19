@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "code.h"
+#include "opcodes.h"
 #include "types.h"
 #include "objects.h"
 #include "arrays.h"
