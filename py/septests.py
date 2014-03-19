@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 ##########################################################################
 #
@@ -184,7 +184,12 @@ class Ansi:
 
     @classmethod
     def in_color(cls, text, fg = 7, bg = 0):
-        return cls.reset() + cls.fg(fg) + cls.bg(bg) + text + cls.reset()
+        sequence = cls.reset()
+        if fg != 7:
+            sequence += cls.fg(fg)
+        if bg != 0:
+            sequence += cls.bg(bg)
+        return sequence + text + cls.reset()
 
 ##############################################
 # Phases of execution

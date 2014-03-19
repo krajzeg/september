@@ -1,5 +1,11 @@
 .PHONY: all clean veryclean
 
+ifneq (,$(findstring Windows,$(OS)))
+  PYTHON=python
+else
+  PYTHON=python3
+endif
+
 all: interpreter tests
 
 interpreter:
@@ -8,7 +14,7 @@ interpreter:
 
 tests: interpreter
 	@echo === Running tests...
-	@python py/septests.py tests
+	@$(PYTHON) py/septests.py tests
 
 clean:
 	@echo === Cleaning interpreter directory...
@@ -17,3 +23,4 @@ clean:
 veryclean:
 	@echo === Cleaning interpreter directory...
 	@$(MAKE) -C c/ veryclean
+
