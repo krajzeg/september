@@ -276,9 +276,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepString *variable_name = prop_as_str(for_s, "variable_name", &err);
 		or_raise(builtin_exception("EWrongType"));
 	SepV collection = property(for_s, "collection");
-	SepFunc *iterator_f = prop_as_func(collection, "iterator", &err);
-		or_raise(builtin_exception("EWrongType"));
-	SepV iterator = vm_subcall(frame->vm, iterator_f, 0).value;
+	SepV iterator = call_method(frame->vm, collection, "iterator", 0);
 		or_propagate(iterator);
 	SepFunc *iterator_next_f = prop_as_func(iterator, "next", &err);
 		or_raise(builtin_exception("EWrongType"));
@@ -298,9 +296,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 		if (sepv_is_exception(element)) {
 			// check if its ENoMoreElements - if so, break out of the loop
 			SepV enomoreelements_v = obj_to_sepv(builtin_exception("ENoMoreElements"));
-			SepFunc *is_f = cast_as_func(property(element, "is"), &err);
-				or_raise(builtin_exception("EWrongType"));
-			SepV is_no_more_elements_v = vm_subcall(frame->vm, is_f, 1, enomoreelements_v).value;
+			SepV is_no_more_elements_v = call_method(frame->vm, element, "is", 1, enomoreelements_v);
 			if (is_no_more_elements_v == SEPV_TRUE) {
 				break;
 			}
@@ -403,9 +399,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 
 			// check the exception type using Exception.is().
 			SepV catcher_type = property(catcher_obj, "type");
-			SepFunc *is_f = prop_as_func(try_result, "is", &err);
-				or_raise(builtin_exception("EWrongType"));
-			SepV type_matches_v = vm_subcall(frame->vm, is_f, 1, catcher_type).value;
+			SepV type_matches_v = call_method(frame->vm, try_result, "is", 1, catcher_type);
 			if (type_matches_v != SEPV_TRUE) {
 				// type doesn't match - try another catcher
 				continue;

@@ -243,6 +243,16 @@ void vm_free(SepVM *this) {
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // Any number of parameters can be passed in, and they should be passed as SepVs.
 SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
+	va_list args;
+	va_start(args, argument_count);
+	SepItem result = vm_subcall_v(this, func, argument_count, args);
+	va_end(args);
+	return result;
+}
+
+// Makes a subcall from within a built-in function. The result of the subcall is then returned.
+// A started va_list of SepVs should be passed in by another vararg function.
+SepItem vm_subcall_v(SepVM *this, SepFunc *func, uint8_t argument_count, va_list args) {
 	// verify parameter count
 	uint8_t index;
 	uint8_t param_count = func->vt->get_parameter_count(func);
@@ -252,14 +262,11 @@ SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
 
 	// put parameters in
 	SepObj *scope = obj_create();
-	va_list args;
-	va_start(args, argument_count);
 	for (index = 0; index < argument_count; index++) {
 		SepV arg = va_arg(args, SepV);
 		FuncParam *param = &parameters[index];
 		props_accept_prop(scope, param->name, field_create(arg));
 	}
-	va_end(args);
 
 	// initialize an execution frame
 	this->frame_depth++;

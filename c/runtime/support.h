@@ -27,9 +27,11 @@
 #define raise(exc_type, ...) return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
 
 #define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_create(err.message)); }
+#define or_raise_sepv(exc_type) if (err.type && (!err.handled)) { return sepv_exception(exc_type, sepstr_create(err.message)); }
 #define or_raise_with_msg(exc_type, ...) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__)); }
 
 #define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
+#define or_propagate_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
 
 // ===============================================================
 //  Accessing this and parameters
@@ -79,7 +81,7 @@ SepObj *make_class(char *name, SepObj *parent);
 SepObj *builtin_exception(char *name);
 
 // ===============================================================
-//  Retrieving properties quickly
+//  Accessing properties quickly
 // ===============================================================
 
 // Retrieves a property from a SepV using proper lookup.
@@ -94,6 +96,11 @@ SepV property(SepV host, char *name);
 #define prop_as_int(host, name, err) (cast_as_named_int("Property '" name "'", property(host, name), err))
 // Retrieves a property and casts it to a string.
 #define prop_as_str(host, name, err) (cast_as_named_str("Property '" name "'", property(host, name), err))
+
+// Calls a method from a SepV and returns the return value. Any problems
+// (the method not being there, the property not being callable) are
+// reported as an exception. Arguments have to be passed in as SepVs.
+SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...);
 
 // ===============================================================
 //  Adding properties

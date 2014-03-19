@@ -118,8 +118,11 @@ void vm_free(SepVM *this);
 // ===============================================================
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
-// Any number of parameters can be passed in, and they should be passed as SepVs.
-SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t parameter_count, ...);
+// Any number of arguments can be passed in, and they should be passed as SepVs.
+SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...);
+// Makes a subcall from within a built-in function. The result of the subcall is then returned.
+// A started va_list of SepVs should be passed in by another vararg function.
+SepItem vm_subcall_v(SepVM *this, SepFunc *func, uint8_t parameter_count, va_list args);
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value);
