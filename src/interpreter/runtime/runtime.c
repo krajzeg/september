@@ -427,7 +427,7 @@ SepObj *create_try_statement_prototype() {
 //  Runtime initialization
 // ===============================================================
 
-SepV create_runtime() {
+SepV create_runtime_objects() {
 	// "Object" is special and has to be initialized first, as its the prototype to all other objects
 	rt.Object = create_object_prototype();
 
@@ -484,7 +484,7 @@ BuiltinExceptions exc;
 void initialize_runtime() {
 	SepError err = NO_ERROR;
 
-	SepV rt_v = create_runtime(); // TODO: this will be a call to runtime.dll at some point
+	SepV rt_v = create_runtime_objects(); // TODO: this will be a call to runtime.dll at some point
 
 	// - store references to various often-used objects to allow for easy access
 
@@ -511,10 +511,5 @@ void initialize_runtime() {
 	store(exc, ENoMoreElements);
 	store(exc, ENumericOverflow);
 	store(exc, EInternal);
-
-	or_handle(EAny) {
-		fprintf(stderr, "Problem initializing runtime: %s", err.message);
-		exit(1);
-	}
 }
 #undef store

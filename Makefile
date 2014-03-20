@@ -1,26 +1,53 @@
-.PHONY: all clean veryclean
+# ==========================
+# Global definitions
+# ==========================
+
+DIST_DIR := target
+MODULE_DIR := src
+
+MODULES := interpreter
+
+# ==========================
+# Choose platform
+# ==========================
 
 ifneq (,$(findstring Windows,$(OS)))
-  PYTHON=python
+	ifneq (,$(MINGDIR))
+		include mingw.mk
+	else
+$(error Under Windows, only MinGW is supported, and MINGDIR is not set.)
+	endif
 else
-  PYTHON=python3
+	include unix.mk
 endif
 
-all: interpreter tests
+# ==========================
+# Targets
+# ==========================
 
-interpreter:
-	@echo === Building interpreter...
-	@$(MAKE) -C c/ all
+.PHONY: tests all clean distclean
 
-tests: interpreter
-	@echo === Running tests...
+tests: all
+	@echo ===============================
 	@$(PYTHON) py/septests.py tests
 
-clean:
-	@echo === Cleaning interpreter directory...
-	@$(MAKE) -C c/ clean
+all: $(foreach module,$(MODULES),$(module))
 
-veryclean:
-	@echo === Cleaning interpreter directory...
-	@$(MAKE) -C c/ veryclean
+clean: $(foreach module,$(MODULES),$(module)-clean)
 
+distclean: $(foreach module,$(MODULES),$(module)-distclean)
+
+# ==========================
+# Global rules
+# ==========================
+
+# how to make a .d file
+%.d: %.c
+	$(CC) -MM $< -MT $(<:.c=.o) >$@
+
+# ==========================
+# Include module makefiles
+# ==========================
+
+MODULE_FILES = $(foreach module,$(MODULES),$(MODULE_DIR)/$(module)/module.mk)
+include $(MODULE_FILES)
