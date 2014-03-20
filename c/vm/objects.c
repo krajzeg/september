@@ -300,8 +300,8 @@ SepObj *obj_create() {
 	props_init((PropertyMap*) obj, 2);
 	// set up traits
 	obj->traits = DEFAULT_TRAITS;
-	// default prototype is proto_Object - Object class
-	obj->prototypes = obj_to_sepv(proto_Object);
+	// default prototype is runtime.Object - Object class
+	obj->prototypes = obj_to_sepv(rt.Object);
 
 	return obj;
 }
@@ -329,22 +329,22 @@ SepV sepv_prototypes(SepV sepv) {
 
 		// primitive?
 	case SEPV_TYPE_INT:
-		return obj_to_sepv(proto_Integer);
+		return obj_to_sepv(rt.Integer);
 
 	case SEPV_TYPE_STRING:
-		return obj_to_sepv(proto_String);
+		return obj_to_sepv(rt.String);
 
 	case SEPV_TYPE_FUNC:
 		// TODO: functions will get their own prototype later,
 		// they use Object now to have access to .resolve()
-		return obj_to_sepv(proto_Object);
+		return obj_to_sepv(rt.Object);
 
 		// special?
 	case SEPV_TYPE_SPECIAL:
 		if ((sepv == SEPV_TRUE) || (sepv == SEPV_FALSE))
-			return obj_to_sepv(proto_Bool);
+			return obj_to_sepv(rt.Bool);
 		if (sepv == SEPV_NOTHING)
-			return obj_to_sepv(proto_Nothing);
+			return obj_to_sepv(rt.NothingType);
 		return SEPV_NOTHING;
 
 		// we don't handle this yet, so no prototypes for you
@@ -424,7 +424,7 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				sepstr_to_cstr(property));
-		return si_exception(builtin_exception("EMissingProperty"), message);
+		return si_exception(exc.EMissingProperty, message);
 	}
 }
 
@@ -437,6 +437,6 @@ SepV sepv_get(SepV sepv, SepString *property) {
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				sepstr_to_cstr(property));
-		return sepv_exception(builtin_exception("EMissingProperty"), message);
+		return sepv_exception(exc.EMissingProperty, message);
 	}
 }

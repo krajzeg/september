@@ -18,7 +18,7 @@
 #include "stack.h"
 
 #include "../common/debugging.h"
-#include "../runtime/support.h"
+#include "../runtime/runtime.h"
 
 // ===============================================================
 //  Stack implementation
@@ -53,7 +53,7 @@ void stack_push_item(SepStack *this, SepItem item) {
 SepItem stack_pop_item(SepStack *this) {
 	SepItem *ptr = ga_pop(&this->array);
 	if (!ptr) {
-		SepV exception = sepv_exception(builtin_exception("EInternalError"), sepstr_create("Internal error: stack underflow."));
+		SepV exception = sepv_exception(exc.EInternal, sepstr_create("Internal error: stack underflow."));
 		return item_rvalue(exception);
 	}
 	log0("stack", "Popped.");
@@ -64,7 +64,7 @@ SepItem stack_pop_item(SepStack *this) {
 SepItem stack_top_item(SepStack *this) {
 	uint32_t length = ga_length(&this->array);
 	if (!length) {
-		SepV exception = sepv_exception(builtin_exception("EInternalError"), sepstr_create("Internal error: stack underflow."));
+		SepV exception = sepv_exception(exc.EInternal, sepstr_create("Internal error: stack underflow."));
 		return item_rvalue(exception);
 	}
 	return *(SepItem*)ga_get(&this->array, length-1);

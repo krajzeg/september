@@ -32,7 +32,7 @@ SepObj *create_builtin_exceptions() {
 	SepObj *Exception = obj_add_exception(exceptions, "Exception", NULL);
 
 	// internal error type (does not belong to the 'Exception' hierarchy)
-	obj_add_exception(exceptions, "EInternalError", NULL);
+	obj_add_exception(exceptions, "EInternal", NULL);
 
 	// built-in exception types
 	obj_add_exception(exceptions, "EWrongType", Exception);

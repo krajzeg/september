@@ -11,19 +11,39 @@
 // Built-in classes (prototype objects)
 // ===============================================================
 
-extern SepObj *obj_Globals;
-extern SepObj *obj_Syntax;
+typedef struct RuntimeObjects {
+  SepObj *globals;
+  SepObj *syntax;
 
-extern SepObj *proto_Object;
-extern SepObj *proto_Array;
+  SepObj *Object;
+  SepObj *Array;
+  SepObj *Integer;
+  SepObj *String;
+  SepObj *Bool;
+  SepObj *NothingType;
 
-extern SepObj *proto_Integer;
-extern SepObj *proto_String;
-extern SepObj *proto_Bool;
+} RuntimeObjects;
 
-extern SepObj *proto_Nothing;
+typedef struct BuiltinExceptions {
+  SepObj *Exception;
 
-extern SepObj *proto_Exceptions;
+  SepObj *EWrongType;
+  SepObj *EWrongIndex;
+  SepObj *EWrongArguments;
+
+  SepObj *EMissingProperty;
+  SepObj *EPropertyAlreadyExists;
+  SepObj *ECannotAssign;
+
+  SepObj *ENoMoreElements;
+
+  SepObj *ENumericOverflow;
+
+  SepObj *EInternal;
+} BuiltinExceptions;
+
+extern RuntimeObjects rt;
+extern BuiltinExceptions exc;
 
 // ===============================================================
 //  Method to actually initialize the thing

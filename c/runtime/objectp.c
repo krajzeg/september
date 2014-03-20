@@ -16,6 +16,7 @@
 #include "../vm/objects.h"
 #include "../vm/exceptions.h"
 #include "../vm/vm.h"
+#include "runtime.h"
 #include "support.h"
 
 // ===============================================================
@@ -29,7 +30,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	SepV property_name_lv = param(scope, "property_name");
 	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
-		or_raise_with_msg(builtin_exception("EWrongType"), "Incorrect expression used as property name for the '.' operator.");
+		or_raise_with_msg(exc.EWrongType, "Incorrect expression used as property name for the '.' operator.");
 
 	SepItem property_value = sepv_get_item(host_v, property_name);
 	return property_value;
@@ -39,16 +40,16 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepObj *host = target_as_obj(scope, &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 	SepV property_name_lv = param(scope, "property_name");
 
 	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
-		or_raise_with_msg(builtin_exception("EWrongType"), "Incorrect expression used as property name for the ':' operator.");
+		or_raise_with_msg(exc.EWrongType, "Incorrect expression used as property name for the ':' operator.");
 
 	// check if it already exists
 	if (props_find_prop(host, property_name))
-		raise(builtin_exception("EPropertyAlreadyExists"), "Property '%s' cannot be created because it already exists.", sepstr_to_cstr(property_name));
+		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", sepstr_to_cstr(property_name));
 
 	// create the field
 	props_accept_prop(host, property_name, field_create(SEPV_NOTHING));
@@ -110,7 +111,7 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 SepItem object_debug_string(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepString *debug_str = sepv_debug_string(target(scope), &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 	return item_rvalue(str_to_sepv(debug_str));
 }
 
@@ -125,7 +126,6 @@ SepObj *create_object_prototype() {
 	Object->prototypes = SEPV_NOTHING;
 
 	// add operators common to all objects
-	// -- property access
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
 	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
 

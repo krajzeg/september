@@ -11,7 +11,7 @@
 #include "../vm/exceptions.h"
 #include "../vm/arrays.h"
 #include "../vm/vm.h"
-
+#include "runtime.h"
 #include "support.h"
 
 // ===============================================================
@@ -19,22 +19,6 @@
 // ===============================================================
 
 #define SEPTEMBER_VERSION "0.1-apples"
-
-// ===============================================================
-//  Prototype objects
-// ===============================================================
-
-SepObj *obj_Globals;
-SepObj *obj_Syntax;
-
-SepObj *proto_Exceptions;
-
-SepObj *proto_Object;
-SepObj *proto_Array;
-SepObj *proto_String;
-SepObj *proto_Integer;
-SepObj *proto_Bool;
-SepObj *proto_Nothing;
 
 // ===============================================================
 //  Prototype creation methods
@@ -71,11 +55,11 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
 			SepFunc *to_string = prop_as_func(thing, "toString", &err);
-				or_raise_with_msg(builtin_exception("EWrongType"), "Value provided to print() is not a string and has no toString() method.");
+				or_raise_with_msg(exc.EWrongType, "Value provided to print() is not a string and has no toString() method.");
 			SepItem string_i = vm_subcall(frame->vm, to_string, 0);
 				or_propagate(string_i.value);
 			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-				or_raise(builtin_exception("EWrongType"));
+				or_raise(exc.EWrongType);
 		} else {
 			string = sepv_to_str(thing);
 		}
@@ -149,7 +133,7 @@ SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepV statement = statement_if(scope, frame).value;
 	SepFunc *executor = prop_as_func(statement, "..!", &err);
-		or_raise_with_msg(builtin_exception("InternalError"), "Malformed if statement object.");
+		or_raise_with_msg(exc.EInternal, "Malformed if statement object.");
 	return vm_subcall(frame->vm, executor, 0);
 }
 
@@ -158,7 +142,7 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 
 	SepV ifs = target(scope);
 	SepArray *branches = (SepArray*)prop_as_obj(ifs, "branches", &err);
-		or_raise(builtin_exception("InternalError"));
+		or_raise(exc.EInternal);
 
 	// iterate over all the branches guarded with conditions
 	SepArrayIterator it = array_iterate_over(branches);
@@ -259,7 +243,7 @@ SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
 SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepObj *for_s = target_as_obj(scope, &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 
 	obj_add_field(for_s, "collection", param(scope, "collection"));
 	obj_add_field(for_s, "body", param(scope, "body"));
@@ -274,12 +258,12 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	// get everything out of the statement
 	SepV for_s = target(scope);
 	SepString *variable_name = prop_as_str(for_s, "variable_name", &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 	SepV collection = property(for_s, "collection");
 	SepV iterator = call_method(frame->vm, collection, "iterator", 0);
 		or_propagate(iterator);
 	SepFunc *iterator_next_f = prop_as_func(iterator, "next", &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 	SepV body_l = property(for_s, "body");
 
 	// prepare the scope
@@ -295,8 +279,9 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 		SepV element = vm_subcall(frame->vm, iterator_next_f, 0).value;
 		if (sepv_is_exception(element)) {
 			// check if its ENoMoreElements - if so, break out of the loop
-			SepV enomoreelements_v = obj_to_sepv(builtin_exception("ENoMoreElements"));
+			SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
 			SepV is_no_more_elements_v = call_method(frame->vm, element, "is", 1, enomoreelements_v);
+				or_propagate(is_no_more_elements_v);
 			if (is_no_more_elements_v == SEPV_TRUE) {
 				break;
 			}
@@ -442,27 +427,26 @@ SepObj *create_try_statement_prototype() {
 //  Runtime initialization
 // ===============================================================
 
-void initialize_runtime() {
-	// "Object" has to be initialized first, as its the prototype to all other prototypes
-	proto_Object = create_object_prototype();
+SepV create_runtime() {
+	// "Object" is special and has to be initialized first, as its the prototype to all other objects
+	rt.Object = create_object_prototype();
 
 	// create holder objects and establish their relationship
-	obj_Globals = obj_create();
-	obj_Syntax  = obj_create();
-	obj_add_field(obj_Globals, "Globals", obj_to_sepv(obj_Globals));
-	obj_add_field(obj_Globals, "Syntax", obj_to_sepv(obj_Syntax));
+	SepObj *obj_Globals = obj_create();
+	SepObj *obj_Syntax  = obj_create();
+	obj_add_field(obj_Globals, "globals", obj_to_sepv(obj_Globals));
+	obj_add_field(obj_Globals, "syntax", obj_to_sepv(obj_Syntax));
 
 	// initialize built-in exceptions
-	proto_Exceptions = create_builtin_exceptions();
-	obj_add_prototype(obj_Globals, obj_to_sepv(proto_Exceptions));
+	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
 
 	// primitive types' prototypes are initialized here
-	proto_Nothing = create_nothing_prototype();
-	obj_add_field(obj_Globals, "Object", obj_to_sepv(proto_Object));
-	obj_add_field(obj_Globals, "Array", obj_to_sepv((proto_Array = create_array_prototype())));
-	obj_add_field(obj_Globals, "Bool", obj_to_sepv((proto_Bool = create_bool_prototype())));
-	obj_add_field(obj_Globals, "Integer", obj_to_sepv((proto_Integer = create_integer_prototype())));
-	obj_add_field(obj_Globals, "String", obj_to_sepv((proto_String = create_string_prototype())));
+	obj_add_field(obj_Globals, "Object", obj_to_sepv(rt.Object));
+	obj_add_field(obj_Globals, "Array", obj_to_sepv(create_array_prototype()));
+	obj_add_field(obj_Globals, "Bool", obj_to_sepv(create_bool_prototype()));
+	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));
+	obj_add_field(obj_Globals, "String", obj_to_sepv(create_string_prototype()));
+	obj_add_field(obj_Globals, "NothingType", obj_to_sepv(create_nothing_prototype()));
 
 	// built-in variables are initialized
 	obj_add_field(obj_Globals, "version", sepv_string(SEPTEMBER_VERSION));
@@ -485,4 +469,52 @@ void initialize_runtime() {
 
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
+
+	return obj_to_sepv(obj_Globals);
 }
+
+// ===============================================================
+//  Storing runtime objects
+// ===============================================================
+
+RuntimeObjects rt;
+BuiltinExceptions exc;
+
+#define store(into, property_name) into.property_name = prop_as_obj(rt_v, #property_name, &err);
+void initialize_runtime() {
+	SepError err = NO_ERROR;
+
+	SepV rt_v = create_runtime(); // TODO: this will be a call to runtime.dll at some point
+
+	// - store references to various often-used objects to allow for easy access
+
+	// globals and syntax
+	store(rt, globals);
+	store(rt, syntax);
+
+	// runtime classes
+	store(rt, Array);
+	store(rt, Bool);
+	store(rt, Integer);
+	store(rt, NothingType);
+	store(rt, Object);
+	store(rt, String);
+
+	// built-in exception types
+	store(exc, Exception);
+	store(exc, EWrongType);
+	store(exc, EWrongIndex);
+	store(exc, EWrongArguments);
+	store(exc, EMissingProperty);
+	store(exc, EPropertyAlreadyExists);
+	store(exc, ECannotAssign);
+	store(exc, ENoMoreElements);
+	store(exc, ENumericOverflow);
+	store(exc, EInternal);
+
+	or_handle(EAny) {
+		fprintf(stderr, "Problem initializing runtime: %s", err.message);
+		exit(1);
+	}
+}
+#undef store

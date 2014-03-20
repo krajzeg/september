@@ -40,7 +40,7 @@ SepArray *array_create(uint32_t initial_size) {
 	props_init((PropertyMap*)array, 1);
 
 	// prototypes and traits
-	array->base.prototypes = obj_to_sepv(proto_Array);
+	array->base.prototypes = obj_to_sepv(rt.Array);
 	array->base.traits = ARRAY_TRAITS;
 
 	// allocate the underlying dynamic array
@@ -62,7 +62,7 @@ SepV array_pop(SepArray *this) {
 
 	// underflow exception?
 	if (value_ptr == NULL) {
-		return sepv_exception(builtin_exception("EWrongIndex"),
+		return sepv_exception(exc.EWrongIndex,
 			sepstr_create("Attempted to pop a value from an empty array."));
 	}
 
@@ -75,7 +75,7 @@ SepV array_get(SepArray *this, uint32_t index) {
 	SepV *pointer = ga_get(&this->array, index);
 	if (!pointer) {
 		// out of bounds!
-		return sepv_exception(builtin_exception("EWrongIndex"),
+		return sepv_exception(exc.EWrongIndex,
 				sepstr_sprintf("Out of bounds access to array, index = %d", index));
 	}
 
@@ -88,7 +88,7 @@ SepV array_set(SepArray *this, uint32_t index, SepV value) {
 	SepV *pointer = ga_set(&this->array, index, &value);
 	if (!pointer) {
 		// out of bounds!
-		return sepv_exception(builtin_exception("EWrongIndex"),
+		return sepv_exception(exc.EWrongIndex,
 				sepstr_sprintf("Out of bounds access to array, index = %d", index));
 	}
 

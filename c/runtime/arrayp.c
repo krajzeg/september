@@ -42,12 +42,12 @@ SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 
 	// extract the iterator from the object
 	SepObj *target = target_as_obj(scope, &err);
-		or_raise(builtin_exception("EWrongType"));
+		or_raise(exc.EWrongType);
 	SepArrayIterator *iterator = target->data;
 
 	// end of iteration?
 	if (arrayit_end(iterator))
-		return si_exception(builtin_exception("ENoMoreElements"), sepstr_create("No more elements."));
+		return si_exception(exc.ENoMoreElements, sepstr_create("No more elements."));
 
 	// nope, return element
 	SepV element = arrayit_next(iterator);

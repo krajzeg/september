@@ -20,6 +20,7 @@
 
 #include "../common/debugging.h"
 #include "../common/errors.h"
+#include "../runtime/runtime.h"
 #include "../runtime/support.h"
 #include "mem.h"
 #include "objects.h"
@@ -177,7 +178,7 @@ SepV cpool_add_int(ConstantPool *this, SepInt integer) {
 // Indices start from 1, since this is the format used in bytecode.
 SepV cpool_constant(ConstantPool *this, uint32_t index) {
 	if ((index < 1) || (index > this->max_constants))
-		return sepv_exception(builtin_exception("EInternalError"), sepstr_sprintf("Constant index %d out of bounds.", index));
+		return sepv_exception(exc.EInternal, sepstr_sprintf("Constant index %d out of bounds.", index));
 	return ((SepV*)this->data)[index-1];
 }
 

@@ -27,7 +27,7 @@
 #include "vm.h"
 
 #include "../common/errors.h"
-#include "../runtime/support.h"
+#include "../runtime/runtime.h"
 
 // ===============================================================
 //  Function parameters
@@ -85,7 +85,7 @@ int _built_in_execute_instructions(SepFunc *this, ExecutionFrame *frame, int lim
 	// extract what to execute on what
 	BuiltInImplFunc implementation = ((BuiltInFunc*)this)->implementation;
 	if (!sepv_is_obj(frame->locals)) {
-		frame_raise(frame, sepv_exception(builtin_exception("EInternalError"),
+		frame_raise(frame, sepv_exception(exc.EInternal,
 				sepstr_create("Built-ins cannot be called in custom scopes.")));
 		return 1;
 	}

@@ -74,13 +74,6 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err);
 SepObj *make_class(char *name, SepObj *parent);
 
 // ===============================================================
-//  Exception access
-// ===============================================================
-
-// Returns a built-in exception type.
-SepObj *builtin_exception(char *name);
-
-// ===============================================================
 //  Accessing properties quickly
 // ===============================================================
 

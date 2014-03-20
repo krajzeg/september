@@ -55,7 +55,7 @@ SepModule *read_module_from_file(const char *filename, SepError *out_err) {
 
 	// decode the contents
 	Decoder *decoder = decoder_create((DecoderSource*) source);
-	SepModule *module = module_create(obj_Globals, obj_Syntax);
+	SepModule *module = module_create(rt.globals, rt.syntax);
 	decoder_read_module(decoder, module, &err);
 		or_go(cleanup_after_error);
 
@@ -76,7 +76,7 @@ cleanup_after_error:
 
 int run_program(SepModule *module) {
 	// create the VM
-	SepVM *vm = vm_create(module, obj_Syntax);
+	SepVM *vm = vm_create(module, rt.syntax);
 
 	// run the code
 	SepV result = vm_run(vm);

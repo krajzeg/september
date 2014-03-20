@@ -15,7 +15,7 @@
 #include "types.h"
 #include "objects.h"
 #include "exceptions.h"
-#include "../runtime/support.h"
+#include "../runtime/runtime.h"
 
 // ===============================================================
 //  Working with exceptions
@@ -25,7 +25,7 @@
 SepV sepv_exception(SepObj *prototype, SepString *message) {
 	// create a simple exception object
 	if (prototype == NULL)
-		prototype = builtin_exception("Exception");
+		prototype = exc.Exception;
 	SepObj *exception_obj = obj_create_with_proto(obj_to_sepv(prototype));
 
 	// set the message

@@ -151,7 +151,7 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 	SepV method_v = property(host, name);
 		or_propagate_sepv(method_v);
 	SepFunc *method_f = cast_as_named_func(name, method_v, &err);
-		or_raise_sepv(builtin_exception("EWrongType"));
+		or_raise_sepv(exc.EWrongType);
 
 	va_list args;
 	va_start(args, argument_count);
@@ -171,7 +171,7 @@ SepObj *make_class(char *name, SepObj *parent) {
 	if (parent)
 		parent_v = obj_to_sepv(parent);
 	else
-		parent_v = strcmp(name, "Object") ? obj_to_sepv(proto_Object) : SEPV_NOTHING;
+		parent_v = strcmp(name, "Object") ? obj_to_sepv(rt.Object) : SEPV_NOTHING;
 
 	SepObj *cls = obj_create_with_proto(parent_v);
 
@@ -182,19 +182,6 @@ SepObj *make_class(char *name, SepObj *parent) {
 
 	// return the class
 	return cls;
-}
-
-// ===============================================================
-//  Exceptions
-// ===============================================================
-
-// Returns a built-in exception type.
-SepObj *builtin_exception(char *name) {
-	SepV value = props_get_prop(proto_Exceptions, sepstr_create(name));
-	if (value == SEPV_NOTHING)
-		return NULL;
-	else
-		return sepv_to_obj(value);
 }
 
 // ===============================================================

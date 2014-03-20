@@ -23,6 +23,7 @@
 #include "exceptions.h"
 #include "vm.h"
 
+#include "../runtime/runtime.h"
 #include "../runtime/support.h"
 #include "../common/debugging.h"
 
@@ -42,7 +43,7 @@ void push_const_impl(ExecutionFrame *frame) {
 		// oh goody, an anonymous function!
 		CodeBlock *block = frame_block(frame, -index);
 		if (block == NULL) {
-			value = sepv_exception(builtin_exception("EInternalError"), sepstr_sprintf("Code block %d is out of bounds.", -index));
+			value = sepv_exception(exc.EInternal, sepstr_sprintf("Code block %d is out of bounds.", -index));
 		} else {
 			SepFunc *func = (SepFunc*)ifunc_create(block, frame->locals);
 			value = func_to_sepv(func);
@@ -84,7 +85,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			// block - that's a lazy evaluated argument
 			CodeBlock *block = frame_block(frame, -argument_code);
 			if (!block) {
-				frame_raise(frame, sepv_exception(builtin_exception("EInternalError"),
+				frame_raise(frame, sepv_exception(exc.EInternal,
 						sepstr_sprintf("Code block %d out of bounds.", -argument_code)));
 				return;
 			}
@@ -120,7 +121,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 		funcparam_finalize_value(param, execution_scope, &err);
 			or_handle(EAny) {
 				frame_raise(frame, sepv_exception(
-						builtin_exception("EWrongArguments"),
+						exc.EWrongArguments,
 						sepstr_create(err.message)));
 			};
 	}
@@ -171,7 +172,7 @@ void store_impl(ExecutionFrame *frame) {
 	Slot *slot = stack_pop_item(frame->data).origin;
 	if (!slot) {
 		frame_raise(frame,
-				sepv_exception(builtin_exception("ECannotAssign"), sepstr_create("Attempted assignment to an r-value.")));
+				sepv_exception(exc.ECannotAssign, sepstr_create("Attempted assignment to an r-value.")));
 		return;
 	}
 
@@ -193,7 +194,7 @@ void create_field_impl(ExecutionFrame *frame) {
 
 	// ensure the host is an object
 	if (!sepv_is_obj(host_v)) {
-		frame_raise(frame, sepv_exception(builtin_exception("EWrongType"),
+		frame_raise(frame, sepv_exception(exc.EWrongType,
 				sepstr_create("New properties can only be created on objects, not primitives.")));
 		return;
 	}
@@ -203,7 +204,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	if (props_find_prop(host, property)) {
 		SepString *message = sepstr_sprintf("Property '%s' already exists and cannot be created.",
 				sepstr_to_cstr(property));
-		frame_raise(frame, sepv_exception(builtin_exception("EPropertyExists"), message));
+		frame_raise(frame, sepv_exception(exc.EPropertyAlreadyExists, message));
 		return;
 	}
 

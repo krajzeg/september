@@ -194,7 +194,7 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope) {
 		array_push(prototypes, this_ptr_v);
 	if ((decl_scope_v != SEPV_NOTHING) && (decl_scope_v != exec_scope_v))
 		array_push(prototypes, decl_scope_v);
-	array_push(prototypes, obj_to_sepv(proto_Object));
+	array_push(prototypes, obj_to_sepv(rt.Object));
 
 	// set the prototypes property on the local scope
 	exec_scope->prototypes = obj_to_sepv(prototypes);
@@ -258,7 +258,7 @@ SepItem vm_subcall_v(SepVM *this, SepFunc *func, uint8_t argument_count, va_list
 	uint8_t param_count = func->vt->get_parameter_count(func);
 	FuncParam *parameters = func->vt->get_parameters(func);
 	if (param_count != argument_count)
-		return si_exception(builtin_exception("EInternalError"), sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
+		return si_exception(exc.EInternal, sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
 
 	// put parameters in
 	SepObj *scope = obj_create();
