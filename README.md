@@ -15,7 +15,7 @@ This is a **very early version** of the language, and the 0.1 version number doe
 To try it out, build the interpreter, then compile one of the examples, and run it!
 
     make
-    ./run ../tests/<oneoftheexamples>.sep   # or just 'run' on Windows
+    ./run tests/<oneoftheexamples>.sep   # or just 'run' on Windows
 
 If you're building under Linux/Unix, you need to have **Python 3.x** installed, and it has to be available under the name `python3` on your path.
 
