@@ -8,20 +8,18 @@ The September way is to make everything a method call, even things like `if`, `w
 
 ## Current status
 
-This is a **very early version** of the language, and the 0.1 version number does not lie. The parser/compiler is a separate piece of code written in Python and compiles down to a simple bytecode format. The interpreter for this bytecode is written in C. Many basic capabilities of the language (such as defining functions that take parameters) are not yet in place, and the runtime support is minimal. **Everything is experimental** at this point, and there are some parts of the codebase (such as the Python parser) that are intended to be completely thrown out at one point. So, I guess what I want to say is: *caveat emptor*.
+This is a **very early version** of the language, and the 0.1 version number does not lie. The parser/compiler is a separate piece of code written in Python and compiles down to a simple bytecode format. The interpreter for this bytecode is written in C. Many basic capabilities of the language are not yet in place, and the runtime support is minimal. **Everything is experimental** at this point, and there are some parts of the codebase (such as the Python parser) that are intended to be removed at some point. So, I guess what I want to say is: *caveat emptor*.
 
 ## Still want to try it?
 
 To try it out, build the interpreter, then compile one of the examples, and run it!
 
-    cd c
     make
-	cd ../py
-    python sepcompiler.py ../tests/<oneoftheexamples>.sep
-	cd ../c
-    ./09 ../tests/<oneoftheexamples>.09
+    ./run ../tests/<oneoftheexamples>.sep   # or just 'run' on Windows
 
-Your `python` should be Python 3.x. If you want to build under Windows, you will need MinGW to compile the interpreter.
+If you're building under Linux/Unix, you need to have **Python 3.x** installed, and it has to be available under the name `python3` on your path.
+
+If you want to build under Windows, you will need both **Python 3.x** (as the default `python` executable) and **MinGW** to compile the interpreter.
 
 ## Read more
 
