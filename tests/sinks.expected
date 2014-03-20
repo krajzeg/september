@@ -7,5 +7,5 @@ This should print nothing safely.
 This should print 3,6.
 3
 6
-This should print 42.
-42
+This should print 12,42.
+12 42
