@@ -1,23 +1,16 @@
+PLATFORM := Unix
+
 # ==========================
 # Toolchain
 # ==========================
 
-CC = gcc
-RM = rm -f
-CFLAGS = -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
-LDFLAGS = 
-PYTHON = python3
+CFLAGS := -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
+PYTHON := python3
 
 # ==========================
-# Adapt file paths (no change on Unix)
+# Working with paths
 # ==========================
 
-OBJECT_FILES = $(OBJECTS)
-DEP_FILES = $(DEPS)
-
-# ==========================
-# Executable
-# ==========================
-
-OUT = 09
+# Under Windows, we have to use backslashes in paths passed to $(CP)/$(RM)
+fix_paths = $1
 
