@@ -20,6 +20,7 @@
 #include "../common/errors.h"
 #include "../vm/opcodes.h"
 #include "../vm/functions.h"
+#include "loader.h"
 #include "decoder.h"
 
 // ===============================================================
@@ -50,50 +51,14 @@ enum ConstantType {
 };
 
 // ===============================================================
-//  File sources
-// ===============================================================
-
-uint8_t filesource_get_byte(FileSource *this, SepError *out_err) {
-	int byte = fgetc(this->file);
-	if (byte == EOF)
-		fail(0, e_unexpected_eof());
-	return byte;
-}
-
-FileSource *filesource_open(const char *filename, SepError *out_err) {
-	// try opening the file
-	FILE *file = fopen(filename, "rb");
-	if (file == NULL)
-		fail(NULL, e_file_not_found(filename));
-
-	// allocate and set up the data structure
-	FileSource *source = malloc(sizeof(FileSource));
-	source->base.get_next_byte = (GetNextByteFunc)&filesource_get_byte;
-	source->base.free = (FreeDSFunc)&filesource_close;
-	source->file = file;
-	return source;
-}
-
-void filesource_close(FileSource *this) {
-	if (!this) return;
-
-	// close the file
-	if (this->file)
-		fclose(this->file);
-
-	// free memory
-	free(this);
-}
-
-// ===============================================================
 //  Decoding
 // ===============================================================
 
-uint8_t decoder_read_byte(Decoder *this, SepError *out_err) {
-	return this->source->get_next_byte(this->source, out_err);
+uint8_t decoder_read_byte(BytecodeDecoder *this, SepError *out_err) {
+	return this->source->vt->get_next_byte(this->source, out_err);
 }
 
-int32_t decoder_read_int(Decoder *this, SepError *out_err) {
+int32_t decoder_read_int(BytecodeDecoder *this, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	uint8_t first_byte = decoder_read_byte(this, &err) or_quit_with(0);
@@ -121,7 +86,7 @@ int32_t decoder_read_int(Decoder *this, SepError *out_err) {
 	return negative ? -magnitude : magnitude;
 }
 
-char *decoder_read_string(Decoder *this, SepError *out_err) {
+char *decoder_read_string(BytecodeDecoder *this, SepError *out_err) {
 	SepError err = NO_ERROR;
 	int32_t length = decoder_read_int(this, &err)
 		or_quit_with(NULL);
@@ -143,13 +108,13 @@ clean_up:
 	fail(NULL, err);
 }
 
-Decoder *decoder_create(DecoderSource *source) {
-	Decoder *decoder = malloc(sizeof(Decoder));
+BytecodeDecoder *decoder_create(ByteSource *source) {
+	BytecodeDecoder *decoder = malloc(sizeof(BytecodeDecoder));
 	decoder->source = source;
 	return decoder;
 }
 
-void decoder_verify_header(Decoder *this, SepError *out_err) {
+void decoder_verify_header(BytecodeDecoder *this, SepError *out_err) {
 	static char EXPECTED_HEADER[] = "SEPT";
 
 	SepError err = NO_ERROR;
@@ -168,7 +133,7 @@ void decoder_verify_header(Decoder *this, SepError *out_err) {
 	}
 }
 
-ConstantPool *decoder_read_cpool(Decoder *this, SepError *out_err) {
+ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	// read the number of constants and create a pool
@@ -209,7 +174,7 @@ ConstantPool *decoder_read_cpool(Decoder *this, SepError *out_err) {
 	return pool;
 }
 
-void decoder_read_block_params(Decoder *this, BlockPool *pool, int param_count, SepError *out_err) {
+void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param_count, SepError *out_err) {
 	SepError err = NO_ERROR;
 	// initialize the block with the right amount of space
 	CodeBlock *block = bpool_start_block(pool, param_count);
@@ -231,7 +196,7 @@ void decoder_read_block_params(Decoder *this, BlockPool *pool, int param_count, 
 	}
 }
 
-void decoder_read_block_code(Decoder *this, BlockPool *pool, SepError *out_err) {
+void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepError *out_err) {
 	SepError err = NO_ERROR;
 	
 	uint8_t opcode = decoder_read_byte(this, &err);
@@ -297,7 +262,7 @@ void decoder_read_block_code(Decoder *this, BlockPool *pool, SepError *out_err) 
 	bpool_end_block(pool);
 }
 
-BlockPool *decoder_read_bpool(Decoder *this, SepModule *module, SepError *out_err) {
+BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepError *out_err) {
 	SepError err = NO_ERROR;
 	
 	BlockPool *blocks = bpool_create(module, 2048);
@@ -328,7 +293,7 @@ BlockPool *decoder_read_bpool(Decoder *this, SepModule *module, SepError *out_er
 	return blocks;
 }
 
-void decoder_read_module(Decoder *this, SepModule *module, SepError *out_err) {
+void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	decoder_verify_header(this, &err);
@@ -340,10 +305,10 @@ void decoder_read_module(Decoder *this, SepModule *module, SepError *out_err) {
 		or_quit();
 }
 
-void decoder_free(Decoder *this) {
+void decoder_free(BytecodeDecoder *this) {
 	if (!this) return;
 
 	if (this->source)
-		this->source->free(this->source);
+		this->source->vt->close_and_free(this->source);
 	free(this);
 }

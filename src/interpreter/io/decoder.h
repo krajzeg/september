@@ -20,50 +20,21 @@
 #include "../vm/module.h"
 
 // ===============================================================
-//  Source interface
-// ===============================================================
-
-/**
- * Decoder sources represent place from which we can load modules.
- * A file is one such source, but we can load from any stream able
- * to give us consecutive bytes.
- */
-struct DecoderSource;
-typedef uint8_t (*GetNextByteFunc)(struct DecoderSource *, SepError*);
-typedef void (*FreeDSFunc)(struct DecoderSource *);
-typedef struct DecoderSource {
-	// pointer to the correct implementation of get_next_byte
-	// for this type of decoder source
-	GetNextByteFunc get_next_byte;
-	FreeDSFunc free;
-} DecoderSource;
-
-// ===============================================================
 //  Decoder object
 // ===============================================================
 
-typedef struct Decoder {
+struct ByteSource;
+typedef struct BytecodeDecoder {
 	// the source from which we are loading the module
-	DecoderSource *source;
-} Decoder;
+	struct ByteSource *source;
+} BytecodeDecoder;
 
-Decoder *decoder_create(DecoderSource *source);
-void decoder_read_module(Decoder *this, SepModule *module, SepError *out_err);
-void decoder_free(Decoder *this);
-
-// ===============================================================
-//  File-based decoder source
-// ===============================================================
-
-typedef struct FileSource {
-	// base contents that all DecoderSources share
-	struct DecoderSource base;
-	// the file we are reading from
-	FILE *file;
-} FileSource;
-
-FileSource *filesource_open(const char *filename, SepError *err);
-void filesource_close(FileSource *this);
+// Creates a new decoder pulling bytecode from a provided source.
+BytecodeDecoder *decoder_create(struct ByteSource *source);
+// Reads the constant pool and codeblock pool from the bytecode.
+void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepError *out_err);
+// Destroys the decoder instance.
+void decoder_free(BytecodeDecoder *this);
 
 /*****************************************************************/
 

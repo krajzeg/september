@@ -27,6 +27,7 @@
 #include "vm/types.h"
 #include "vm/exceptions.h"
 #include "vm/vm.h"
+#include "io/loader.h"
 #include "io/decoder.h"
 #include "runtime/runtime.h"
 #include "runtime/support.h"
@@ -50,13 +51,13 @@ SepModule *read_module_from_file(const char *filename, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	// open file
-	FileSource *source = filesource_open(filename, &err);
+	ByteSource *source = file_bytesource_create(filename, &err);
 	or_quit_with(NULL);
 
 	// decode the contents
-	Decoder *decoder = decoder_create((DecoderSource*) source);
+	BytecodeDecoder *decoder = decoder_create(source);
 	SepModule *module = module_create(rt.globals, rt.syntax);
-	decoder_read_module(decoder, module, &err);
+	decoder_read_pools(decoder, module, &err);
 		or_go(cleanup_after_error);
 
 	// cleanup and return
