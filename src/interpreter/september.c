@@ -38,50 +38,29 @@
 
 enum ExitCodes {
 	EXIT_OK = 0,
-	EXIT_EXECUTION_FAILED = 1,
-	EXIT_EXCEPTION_RAISED = 2,
-	EXIT_NO_EXECUTION = 3
+	EXIT_EXCEPTION_RAISED = 1,
+	EXIT_NO_EXECUTION = 2
 };
 
 // ===============================================================
-//  Reading a module
+//  Running a module
 // ===============================================================
 
-SepModule *read_module_from_file(const char *filename, SepError *out_err) {
+int run_program(const char *filename) {
 	SepError err = NO_ERROR;
 
-	// open file
-	ByteSource *source = file_bytesource_create(filename, &err);
-	or_quit_with(NULL);
+	// create the file source
+	ByteSource *bytecode = file_bytesource_create(filename, &err);
+	or_handle(EAny) {
+		error_report(err);
+		return EXIT_NO_EXECUTION;
+	};
+	ModuleDefinition *definition = moduledef_create(bytecode, NULL);
 
-	// decode the contents
-	BytecodeDecoder *decoder = decoder_create(source);
-	SepModule *module = module_create(rt.globals, rt.syntax);
-	decoder_read_pools(decoder, module, &err);
-		or_go(cleanup_after_error);
+	// load and run the module (run is implicit)
+	SepV result = load_module(definition);
 
-	// cleanup and return
-	decoder_free(decoder);
-	return module;
-
-cleanup_after_error:
-	// cleanup and fail
-	module_free(module);
-	decoder_free(decoder);
-	fail(NULL, err);
-}
-
-// ===============================================================
-//  Main function
-// ===============================================================
-
-int run_program(SepModule *module) {
-	// create the VM
-	SepVM *vm = vm_create(module, rt.syntax);
-
-	// run the code
-	SepV result = vm_run(vm);
-
+	// check for uncaught exceptions
 	if (sepv_is_exception(result)) {
 		// wound up with an exception, extract it
 		SepV exception_object = exception_to_obj_sepv(result);
@@ -105,21 +84,17 @@ int run_program(SepModule *module) {
 		fprintf(stderr, "  %s: %s\n", class_name, message);
 
 		// and clean up
-		vm_free(vm);
 		return EXIT_EXCEPTION_RAISED;
 	}
 
 	// everything OK
-	vm_free(vm);
 	return EXIT_OK;
 }
 
 int main(int argc, char **argv) {
-	SepError err = NO_ERROR;
-
 	// == 'verify' and parse arguments
 	if (argc != 2) {
-		fprintf(stderr, "Usage: september <module file>\n");
+		fprintf(stderr, "Usage: 09 <module file>\n");
 		exit(EXIT_NO_EXECUTION);
 	}
 	const char *module_file_name = argv[1];
@@ -128,18 +103,5 @@ int main(int argc, char **argv) {
 	initialize_runtime();
 
 	// == load the module
-	SepModule *module = read_module_from_file(module_file_name, &err);
-	or_handle(EAny) {
-		goto handle_errors;
-	}
-
-	// == run tests
-	int exit_code = run_program(module);
-
-	// == clean up and complete execution
-	module_free(module);
-	return exit_code;
-
-	handle_errors: error_report(err);
-	return EXIT_NO_EXECUTION;
+	return run_program(module_file_name);
 }

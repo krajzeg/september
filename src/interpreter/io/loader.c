@@ -13,7 +13,107 @@
 //  Includes
 // ===============================================================
 
+#include <stdlib.h>
+
+#include "../runtime/runtime.h"
+
+#include "../vm/vm.h"
+#include "../vm/types.h"
+#include "../vm/exceptions.h"
+
+#include "decoder.h"
 #include "loader.h"
+
+// ===============================================================
+//  Module loading
+// ===============================================================
+
+ModuleFinderFunc find_module;
+
+// Must be executed by the interpreter to let the loader library know how to find
+// modules.
+void initialize_module_loader(ModuleFinderFunc find_module_func) {
+	find_module = find_module_func;
+}
+
+// Loads the module from a given definition and returns its root object.
+SepV load_module(ModuleDefinition *definition) {
+	SepError err = NO_ERROR;
+
+	// create the empty module
+	SepModule *module = module_create(rt.globals, rt.syntax);
+
+	// if there is any bytecode, load it in
+	if (definition->bytecode) {
+		BytecodeDecoder *decoder = decoder_create(definition->bytecode);
+		decoder_read_pools(decoder, module, &err);
+			or_handle(EAny) { goto cleanup; }
+	}
+
+	// TODO: execute early native initializer
+
+	if (definition->bytecode) {
+		// execute the root function
+		SepVM *vm = vm_create(module, rt.syntax);
+		vm_initialize_root_frame(vm, module);
+		SepV result = vm_run(vm);
+		vm_free(vm);
+
+		// exception?
+		if (sepv_is_exception(result))
+			return result;
+	}
+
+	// TODO: execute late native initializer
+
+	// return the ready module
+	return obj_to_sepv(module->root);
+
+cleanup:
+	if (module)
+		module_free(module);
+	return sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s.", err.message));
+}
+
+// Loads a module by its string name. Uses functionality delivered by the interpreter
+// to find the module.
+SepV load_module_by_name(SepString *module_name) {
+	SepError err = NO_ERROR;
+	// find the module
+	ModuleDefinition *definition = find_module(module_name, &err);
+		or_handle(EAny) {
+			return sepv_exception(exc.EInternal,
+				sepstr_sprintf("Unable to load module '%s': %s", sepstr_to_cstr(module_name), err.message));
+		}
+
+	// load from the definition
+	SepV result = load_module(definition);
+
+	// clean up
+	moduledef_free(definition);
+	return result;
+}
+
+// ===============================================================
+//  Module definitions
+// ===============================================================
+
+// Creates a new module definition from its components.
+ModuleDefinition *moduledef_create(ByteSource *bytecode, ModuleNativeCode *native) {
+	ModuleDefinition *def = malloc(sizeof(ModuleDefinition));
+	def->bytecode = bytecode;
+	def->native = native;
+	return def;
+}
+
+// Destroys a module definition and frees its components.
+void moduledef_free(ModuleDefinition *this) {
+	if (this->bytecode)
+		this->bytecode->vt->close_and_free(this->bytecode);
+	if (this->native)
+		free(this->native);
+	free(this);
+}
 
 // ===============================================================
 //  File sources
@@ -60,5 +160,5 @@ ByteSource *file_bytesource_create(const char *filename, SepError *out_err) {
 	source->vt = &filesource_vt;
 	source->file = file;
 
-	return source;
+	return (ByteSource*)source;
 }

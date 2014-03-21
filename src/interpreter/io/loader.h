@@ -91,11 +91,12 @@ typedef ModuleDefinition *(*ModuleFinderFunc)(SepString *name, SepError *out_err
 // Must be executed by the interpreter to let the loader library know how to find
 // modules.
 void initialize_module_loader(ModuleFinderFunc find_module);
-// Loads the module from a given definition.
-SepModule *load_module(ModuleDefinition *definition, SepError *out_err);
+// Loads the module from a given definition and returns the module root object.
+// If anything goes wrong, returns an exception instead.
+SepV load_module(ModuleDefinition *definition);
 // Loads a module by its string name. Uses functionality delivered by the interpreter
-// to find the module.
-SepModule *load_module_by_name(SepString *module_name, SepError *out_err);
+// to find the module. If anything goes wrong, returns an exception instead.
+SepV load_module_by_name(SepString *module_name);
 
 /*****************************************************************/
 
