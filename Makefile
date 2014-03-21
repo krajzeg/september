@@ -2,10 +2,11 @@
 # Global definitions
 # ==========================
 
-DIST_DIR := target
+BIN_DIR := bin
+LIB_DIR := lib
 MODULE_DIR := src
 
-MODULES := interpreter
+PARTS := libseptvm interpreter
 
 # ==========================
 # Choose platform
@@ -31,11 +32,23 @@ tests: all
 	@echo ===============================
 	@$(PYTHON) py/septests.py tests
 
-all: $(foreach module,$(MODULES),$(module))
+all: $(foreach part,$(PARTS),$(part))
 
-clean: $(foreach module,$(MODULES),$(module)-clean)
+clean: $(foreach part,$(PARTS),$(part)-clean)
+	$(RMDIR) $(LIB_DIR) $(BIN_DIR)
+	
+distclean: $(foreach part,$(PARTS),$(part)-distclean)
+	$(RMDIR) $(LIB_DIR) $(BIN_DIR)
 
-distclean: $(foreach module,$(MODULES),$(module)-distclean)
+# ==========================
+# Build dirs
+# ==========================
+
+$(LIB_DIR):
+	$(MKDIR) $(LIB_DIR)
+
+$(BIN_DIR):
+	$(MKDIR) $(BIN_DIR)
 
 # ==========================
 # Global rules
@@ -46,8 +59,8 @@ distclean: $(foreach module,$(MODULES),$(module)-distclean)
 	$(CC) -MM $< -MT $(<:.c=.o) >$@
 
 # ==========================
-# Include module makefiles
+# Include part makefiles
 # ==========================
 
-MODULE_FILES = $(foreach module,$(MODULES),$(MODULE_DIR)/$(module)/module.mk)
+MODULE_FILES = $(foreach part,$(PARTS),$(MODULE_DIR)/$(part)/part.mk)
 include $(MODULE_FILES)

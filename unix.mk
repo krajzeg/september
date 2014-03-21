@@ -6,6 +6,8 @@ PLATFORM := Unix
 
 CFLAGS := -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
 PYTHON := python3
+MKDIR := mkdir
+RMDIR := rmdir
 
 # ==========================
 # Working with paths

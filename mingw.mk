@@ -7,6 +7,8 @@ PLATFORM := MinGW
 CC := gcc
 RM := del /q
 CP := copy
+MKDIR := mkdir
+RMDIR := rmdir /q
 CFLAGS := -g -Wall -Wfatal-errors -DSEP_LOGGING_ENABLED
 PYTHON := python
 

@@ -4,16 +4,16 @@
 
 INTP_DIR := src/interpreter
 
-INTP_SOURCE_DIRS := src/interpreter/common \
-  src/interpreter/io \
-  src/interpreter/runtime \
-  src/interpreter/vm \
-  src/interpreter
+INTP_SOURCE_DIRS := src/interpreter
 
 INTP_SOURCE_FILES := $(foreach dir,$(INTP_SOURCE_DIRS),$(wildcard $(dir)/*.c))
 
 INTP_OBJECTS = $(INTP_SOURCE_FILES:.c=.o)
 INTP_DEPENDENCIES = $(INTP_SOURCE_FILES:.c=.d)
+
+INTP_LDFLAGS = -L$(LIB_DIR) -lseptvm
+
+CFLAGS := -Isrc/libseptvm
 
 # ==========================
 # System dependent parts
@@ -24,7 +24,7 @@ ifeq ($(PLATFORM),MinGW)
 else
   INTP_EXEC_NAME = 09
 endif
-INTP_EXECUTABLE := $(DIST_DIR)/$(INTP_EXEC_NAME)
+INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 
 # ==========================
 # Executable
@@ -32,10 +32,10 @@ INTP_EXECUTABLE := $(DIST_DIR)/$(INTP_EXEC_NAME)
 
 .PHONY: interpreter interpreter-clean interpreter-distclean
 
-interpreter: $(INTP_EXECUTABLE)
+interpreter: $(LSVM_TARGET_LIB) $(INTP_EXECUTABLE)
 
-$(INTP_EXECUTABLE): $(INTP_OBJECTS)
-	$(CC) $(INTP_OBJECTS) $(LDFLAGS) -o$(INTP_EXECUTABLE)
+$(INTP_EXECUTABLE): $(BIN_DIR) $(INTP_OBJECTS)
+	$(CC) $(INTP_OBJECTS) $(INTP_LDFLAGS) -o$(INTP_EXECUTABLE)
 
 # ==========================
 # Cleaning

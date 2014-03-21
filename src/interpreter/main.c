@@ -1,11 +1,11 @@
 /*****************************************************************
  **
- ** september.c
+ ** main.c
  **
  ** The main entry point to the interpreter. Contains code for
  ** parsing the command line parameters, loading the main module
  ** specified, and then executing it using functionalities from
- ** other files.
+ ** libseptvm.
  **
  ***************
  ** September **
@@ -19,18 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common/errors.h"
-#include "common/debugging.h"
-#include "vm/module.h"
-#include "vm/objects.h"
-#include "vm/arrays.h"
-#include "vm/types.h"
-#include "vm/exceptions.h"
-#include "vm/vm.h"
-#include "io/loader.h"
-#include "io/decoder.h"
-#include "runtime/runtime.h"
-#include "runtime/support.h"
+#include <septvm.h>
 
 // ===============================================================
 //  Exit codes

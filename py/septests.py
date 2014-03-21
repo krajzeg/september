@@ -81,9 +81,9 @@ class TestFile:
 
         # execute the script
         try:
-            interpreter = path.join(distribution_root, "target/09.exe")
+            interpreter = path.join(distribution_root, "bin/09.exe")
             if not path.exists(interpreter):
-                interpreter = path.join(distribution_root, "target/09")
+                interpreter = path.join(distribution_root, "bin/09")
             if not path.exists(interpreter):
                 sys.stderr.write("Interpreter not found.\n")
                 sys.exit(2)
