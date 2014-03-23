@@ -19,8 +19,10 @@ INTP_LDFLAGS = -L$(LIB_DIR) -lseptvm
 
 ifeq ($(PLATFORM),MinGW)
   INTP_EXEC_NAME = 09.exe
+  INTP_SOURCE_FILES += src/interpreter/platform/platform-win.c
 else
   INTP_EXEC_NAME = 09
+  INTP_SOURCE_FILES += src/interpreter/platform/platform-unix.c
 endif
 INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 

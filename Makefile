@@ -7,7 +7,7 @@ MODULES_DIR := bin/modules
 LIB_DIR := lib
 MODULE_DIR := src
 
-PARTS := libseptvm interpreter runtime
+PARTS := libseptvm runtime interpreter
 
 # ==========================
 # Choose platform
