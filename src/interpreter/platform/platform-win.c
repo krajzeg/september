@@ -14,7 +14,21 @@
 
 #include <stdlib.h>
 #include <windows.h>
+#undef NO_ERROR
 #include "platform.h"
+
+// ===============================================================
+//  Paths
+// ===============================================================
+
+// Returns the path to the directory where the interpreter resides.
+// The returned string has to be freed by the caller.
+SepString *get_executable_path() {
+	char *buffer = malloc(MAX_PATH + 1);
+	memset(buffer, 0, MAX_PATH + 1);
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	return sepstr_create(buffer);
+}
 
 // ===============================================================
 //  Shared objects

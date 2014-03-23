@@ -4,7 +4,8 @@
 
 INTP_DIR := src/interpreter
 
-INTP_SOURCE_DIRS := src/interpreter
+INTP_SOURCE_DIRS := src/interpreter \
+  src/interpreter/modules
 
 INTP_SOURCE_FILES := $(foreach dir,$(INTP_SOURCE_DIRS),$(wildcard $(dir)/*.c))
 

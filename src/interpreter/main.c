@@ -21,6 +21,9 @@
 
 #include <septvm.h>
 
+#include "platform/platform.h"
+#include "modules/modules.h"
+
 // ===============================================================
 //  Exit codes
 // ===============================================================
@@ -30,6 +33,30 @@ enum ExitCodes {
 	EXIT_EXCEPTION_RAISED = 1,
 	EXIT_NO_EXECUTION = 2
 };
+
+// ===============================================================
+//  Loading the runtime
+// ===============================================================
+
+SepV load_runtime() {
+	char *runtime_path = "D:\\drop\\proj\\crumb\\september\\bin\\modules\\sept-runtime.dll";
+
+	SharedObject *runtime_so = NULL;
+	ModuleNativeCode *native_code = NULL;
+	ModuleDefinition *module_def = NULL;
+
+	runtime_so = shared_open(runtime_path);
+	native_code = load_native_code(runtime_so);
+	module_def = moduledef_create(NULL, native_code);
+
+	SepV runtime_module = load_module(module_def);
+
+	if (module_def) moduledef_free(module_def);
+	if (native_code) free(native_code);
+	if (runtime_so) shared_close(runtime_so);
+
+	return runtime_module;
+}
 
 // ===============================================================
 //  Running a module
@@ -89,7 +116,7 @@ int main(int argc, char **argv) {
 	const char *module_file_name = argv[1];
 
 	// == initialize the runtime
-	SepV globals_v = SEPV_NOTHING;
+	SepV globals_v = load_runtime();
 	initialize_runtime_references(globals_v);
 
 	// == load the module
