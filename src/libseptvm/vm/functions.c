@@ -27,7 +27,7 @@
 #include "vm.h"
 
 #include "../common/errors.h"
-#include "../runtime/runtime.h"
+#include "../vm/runtime.h"
 
 // ===============================================================
 //  Function parameters

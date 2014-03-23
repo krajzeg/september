@@ -20,8 +20,8 @@
 #include "../vm/types.h"
 #include "../vm/functions.h"
 #include "../vm/arrays.h"
-#include "runtime.h"
-#include "support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Safe parameter access

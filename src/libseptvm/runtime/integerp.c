@@ -12,8 +12,8 @@
 //  Includes
 // ===============================================================
 
-#include "runtime.h"
-#include "support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Helpful defines

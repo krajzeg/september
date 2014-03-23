@@ -3,7 +3,7 @@
 
 /*****************************************************************
  **
- ** runtime/support.h
+ ** vm/support.h
  **
  ** Various functions and macros helpful when writing September
  ** built-in methods and prototypes.

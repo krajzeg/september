@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
 	const char *module_file_name = argv[1];
 
 	// == initialize the runtime
-	initialize_runtime();
+	SepV globals_v = create_globals();
+	initialize_runtime_references(globals_v);
 
 	// == load the module
 	return run_program(module_file_name);

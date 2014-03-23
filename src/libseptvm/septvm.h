@@ -20,8 +20,8 @@
 #include "common/errors.h"
 #include "common/garray.h"
 #include "io/loader.h"
-#include "runtime/runtime.h"
-#include "runtime/support.h"
+#include "vm/runtime.h"
+#include "vm/support.h"
 #include "vm/arrays.h"
 #include "vm/exceptions.h"
 #include "vm/functions.h"
@@ -30,6 +30,8 @@
 #include "vm/objects.h"
 #include "vm/types.h"
 #include "vm/vm.h"
+
+#include "runtime/globals.h" // temporary, remove once runtime moves to DLL
 
 /*****************************************************************/
 

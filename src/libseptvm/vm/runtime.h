@@ -1,8 +1,19 @@
 #ifndef _SEP_RUNTIME_H
 #define _SEP_RUNTIME_H
 
+/*****************************************************************
+ **
+ ** vm/runtime.h
+ **
+ ** VM globals that store references to commonly used objects, like
+ ** the Object class itself or built-in exception types.
+ **
+ ***************
+ ** September **
+ *****************************************************************/
+
 // ===============================================================
-//  Includes
+//  Includes and forward definitions
 // ===============================================================
 
 #include "../vm/objects.h"
@@ -21,7 +32,6 @@ typedef struct RuntimeObjects {
   SepObj *String;
   SepObj *Bool;
   SepObj *NothingType;
-
 } RuntimeObjects;
 
 typedef struct BuiltinExceptions {
@@ -49,6 +59,7 @@ extern BuiltinExceptions exc;
 //  Method to actually initialize the thing
 // ===============================================================
 
-void initialize_runtime();
+// Extracts references to commonly used objects from the provided "globals" variable.
+void initialize_runtime_references(SepV globals_v);
 
 #endif

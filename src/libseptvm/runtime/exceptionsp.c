@@ -13,7 +13,7 @@
 // ===============================================================
 
 #include "../vm/objects.h"
-#include "support.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Creating built-in exception types

@@ -21,8 +21,8 @@
 #include "arrays.h"
 
 #include "../common/garray.h"
-#include "../runtime/runtime.h"
-#include "../runtime/support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Array implementation - public

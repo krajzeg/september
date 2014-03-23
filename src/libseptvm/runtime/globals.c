@@ -1,3 +1,16 @@
+/*****************************************************************
+ **
+ ** runtime/globals.c
+ **
+ ** The main entry point for initializing the 'globals' runtime
+ ** object that stores constants like 'True', classes like 'Integer'
+ ** or 'EWrongType', and in general everything that should be
+ ** accessible in a September program since its first statement.
+ **
+ ***************
+ ** September **
+ *****************************************************************/
+
 // ===============================================================
 //  Includes
 // ===============================================================
@@ -11,8 +24,8 @@
 #include "../vm/exceptions.h"
 #include "../vm/arrays.h"
 #include "../vm/vm.h"
-#include "runtime.h"
-#include "support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Version
@@ -427,7 +440,7 @@ SepObj *create_try_statement_prototype() {
 //  Runtime initialization
 // ===============================================================
 
-SepV create_runtime_objects() {
+SepV create_globals() {
 	// "Object" is special and has to be initialized first, as its the prototype to all other objects
 	rt.Object = create_object_prototype();
 
@@ -473,43 +486,4 @@ SepV create_runtime_objects() {
 	return obj_to_sepv(obj_Globals);
 }
 
-// ===============================================================
-//  Storing runtime objects
-// ===============================================================
 
-RuntimeObjects rt;
-BuiltinExceptions exc;
-
-#define store(into, property_name) into.property_name = prop_as_obj(rt_v, #property_name, &err);
-void initialize_runtime() {
-	SepError err = NO_ERROR;
-
-	SepV rt_v = create_runtime_objects(); // TODO: this will be a call to runtime.dll at some point
-
-	// - store references to various often-used objects to allow for easy access
-
-	// globals and syntax
-	store(rt, globals);
-	store(rt, syntax);
-
-	// runtime classes
-	store(rt, Array);
-	store(rt, Bool);
-	store(rt, Integer);
-	store(rt, NothingType);
-	store(rt, Object);
-	store(rt, String);
-
-	// built-in exception types
-	store(exc, Exception);
-	store(exc, EWrongType);
-	store(exc, EWrongIndex);
-	store(exc, EWrongArguments);
-	store(exc, EMissingProperty);
-	store(exc, EPropertyAlreadyExists);
-	store(exc, ECannotAssign);
-	store(exc, ENoMoreElements);
-	store(exc, ENumericOverflow);
-	store(exc, EInternal);
-}
-#undef store

@@ -15,7 +15,7 @@
 
 #include <stdlib.h>
 
-#include "../runtime/runtime.h"
+#include "../vm/runtime.h"
 
 #include "../vm/vm.h"
 #include "../vm/types.h"

@@ -16,8 +16,8 @@
 #include "../vm/objects.h"
 #include "../vm/exceptions.h"
 #include "../vm/vm.h"
-#include "runtime.h"
-#include "support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Common operators

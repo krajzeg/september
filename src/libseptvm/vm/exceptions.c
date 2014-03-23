@@ -15,7 +15,7 @@
 #include "types.h"
 #include "objects.h"
 #include "exceptions.h"
-#include "../runtime/runtime.h"
+#include "../vm/runtime.h"
 
 // ===============================================================
 //  Working with exceptions

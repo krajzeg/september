@@ -18,7 +18,7 @@
 #include "stack.h"
 
 #include "../common/debugging.h"
-#include "../runtime/runtime.h"
+#include "../vm/runtime.h"
 
 // ===============================================================
 //  Stack implementation

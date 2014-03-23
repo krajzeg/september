@@ -13,8 +13,8 @@
 //  Includes
 // ===============================================================
 
-#include "runtime.h"
-#include "support.h"
+#include "globals.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Booleans - methods

@@ -13,8 +13,6 @@ INTP_DEPENDENCIES = $(INTP_SOURCE_FILES:.c=.d)
 
 INTP_LDFLAGS = -L$(LIB_DIR) -lseptvm
 
-CFLAGS := -Isrc/libseptvm
-
 # ==========================
 # System dependent parts
 # ==========================

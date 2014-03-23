@@ -12,8 +12,8 @@
 #include "vm.h"
 
 #include "../common/debugging.h"
-#include "../runtime/runtime.h"
-#include "../runtime/support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 
 // ===============================================================
 //  Execution frame

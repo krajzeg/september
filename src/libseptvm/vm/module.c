@@ -20,8 +20,8 @@
 
 #include "../common/debugging.h"
 #include "../common/errors.h"
-#include "../runtime/runtime.h"
-#include "../runtime/support.h"
+#include "../vm/runtime.h"
+#include "../vm/support.h"
 #include "mem.h"
 #include "objects.h"
 #include "functions.h"
