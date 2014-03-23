@@ -31,8 +31,6 @@
 #include "vm/types.h"
 #include "vm/vm.h"
 
-#include "runtime/globals.h" // temporary, remove once runtime moves to DLL
-
 /*****************************************************************/
 
 #endif

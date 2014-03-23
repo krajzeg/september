@@ -30,9 +30,9 @@ INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 
 .PHONY: interpreter interpreter-clean interpreter-distclean
 
-interpreter: $(LSVM_TARGET_LIB) $(INTP_EXECUTABLE)
+interpreter: $(INTP_EXECUTABLE)
 
-$(INTP_EXECUTABLE): $(BIN_DIR) $(INTP_OBJECTS)
+$(INTP_EXECUTABLE): $(BIN_DIR) $(LIBSVM_TARGET_LIB) $(INTP_OBJECTS)
 	$(CC) $(INTP_OBJECTS) $(INTP_LDFLAGS) -o$(INTP_EXECUTABLE)
 
 # ==========================

@@ -3,10 +3,10 @@
 .PHONY: all clean distclean
 
 all:
-	@$(MAKE) -C ../../ libseptvm
+	@$(MAKE) -C ../../ runtime
 
 clean:
-	@$(MAKE) -C ../../ libseptvm-clean
+	@$(MAKE) -C ../../ runtime-clean
 
 distclean:
-	@$(MAKE) -C ../../ libseptvm-distclean
+	@$(MAKE) -C ../../ runtime-distclean

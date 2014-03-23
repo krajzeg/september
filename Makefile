@@ -3,10 +3,11 @@
 # ==========================
 
 BIN_DIR := bin
+MODULES_DIR := bin/modules
 LIB_DIR := lib
 MODULE_DIR := src
 
-PARTS := libseptvm interpreter
+PARTS := libseptvm interpreter runtime
 
 # ==========================
 # Choose platform
@@ -55,6 +56,9 @@ $(LIB_DIR):
 
 $(BIN_DIR):
 	$(MKDIR) $(BIN_DIR)
+	
+$(MODULES_DIR): $(BIN_DIR)
+	$(MKDIR) $(call fix_paths,$(MODULES_DIR))
 
 # ==========================
 # Global rules

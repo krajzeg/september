@@ -17,15 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../common/errors.h"
-#include "../vm/functions.h"
-#include "../vm/types.h"
-#include "../vm/objects.h"
-#include "../vm/exceptions.h"
-#include "../vm/arrays.h"
-#include "../vm/vm.h"
-#include "../vm/runtime.h"
-#include "../vm/support.h"
+#include <septvm.h>
 
 // ===============================================================
 //  Version

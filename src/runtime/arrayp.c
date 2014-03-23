@@ -13,10 +13,7 @@
 //  Includes
 // ===============================================================
 
-#include "../vm/runtime.h"
-#include "../vm/support.h"
-#include "../vm/types.h"
-#include "../vm/arrays.h"
+#include <septvm.h>
 
 // ===============================================================
 //  Iteration

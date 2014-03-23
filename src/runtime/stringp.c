@@ -12,13 +12,7 @@
 //  Includes
 // ===============================================================
 
-#include "../vm/stack.h"
-#include "../vm/types.h"
-#include "../vm/objects.h"
-#include "../vm/functions.h"
-#include "../vm/vm.h"
-#include "../vm/runtime.h"
-#include "../vm/support.h"
+#include <septvm.h>
 
 // ===============================================================
 // Methods
