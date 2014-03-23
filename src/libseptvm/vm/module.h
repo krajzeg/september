@@ -54,10 +54,12 @@ typedef struct SepModule {
     struct BlockPool *blocks;
     // the root object of this module
     struct SepObj *root;
+    // the runtime used by this module
+    struct RuntimeObjects *runtime;
 } SepModule;
 
-// Creates a new empty module.
-SepModule *module_create(struct SepObj *globals, struct SepObj *syntax);
+// Creates a new, empty module.
+SepModule *module_create();
 // Deinitializes and frees the memory taken by this module.
 void module_free(SepModule *this);
 

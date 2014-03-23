@@ -41,7 +41,7 @@ SepV load_module(ModuleDefinition *definition) {
 	SepError err = NO_ERROR;
 
 	// create the empty module
-	SepModule *module = module_create(rt.globals, rt.syntax);
+	SepModule *module = module_create(&rt);
 
 	// if there is any bytecode, load it in
 	if (definition->bytecode) {

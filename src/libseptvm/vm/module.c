@@ -34,9 +34,10 @@
 // ===============================================================
 
 // Creates a new module.
-SepModule *module_create(SepObj *globals, SepObj *syntax){
+SepModule *module_create(){
 	// allocate and initialize
 	SepModule *module = malloc(sizeof(SepModule));
+	module->runtime = &rt;
 	module->name = NULL;
 	module->blocks = NULL;
 	module->constants = NULL;
@@ -45,8 +46,8 @@ SepModule *module_create(SepObj *globals, SepObj *syntax){
 	SepObj *root_obj = obj_create();
 
 	SepArray *prototypes = array_create(2);
-	array_push(prototypes, obj_to_sepv(syntax));
-	array_push(prototypes, obj_to_sepv(globals));
+	array_push(prototypes, obj_to_sepv(rt.syntax));
+	array_push(prototypes, obj_to_sepv(rt.globals));
 	root_obj->prototypes = obj_to_sepv(prototypes);
 
 	obj_add_field(root_obj, "module", obj_to_sepv(root_obj));
