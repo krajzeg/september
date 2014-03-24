@@ -1,0 +1,9 @@
+# Implement a new Array.<call> on our own.
+
+Array:"<call>" = |...elements| { elements }
+
+print("This should list 1,2,3 in order.")
+for (number) in (Array(1,2,3)) {
+	print(number)
+}
+
