@@ -10,6 +10,7 @@ SepError e_file_not_found(const char *filename) { return error_create(EFileNotFo
 SepError e_not_september_file() { return error_create(ENotSeptemberFile, "This file does not seem to be a September module file."); }
 SepError e_unexpected_eof() { return error_create(EUnexpectedEOF, "Encountered end of file where more data was expected."); }
 SepError e_malformed_module_file(const char *detail) { return error_create(EMalformedModuleFile, "The module file seems to be incorrect: %s.", detail); }
+SepError e_module_not_found(const char *module_name) { return error_create(EFileNotFound, "Module '%s' does not exist - no files could be found for it.", module_name); }
 
 SepError e_out_of_memory() { return error_create(EOutOfMemory, "Out of memory."); }
 SepError e_not_implemented_yet(const char *what) { return error_create(ENotImplementedYet, "Missing implementation for: %s.", what); }

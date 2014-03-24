@@ -31,7 +31,15 @@
 #include "vm/types.h"
 #include "vm/vm.h"
 
-#include "runtime/globals.h" // temporary, remove once runtime moves to DLL
+// ===============================================================
+//  Macros for modules
+// ===============================================================
+
+#ifdef _WIN32
+  #define MODULE_EXPORT __declspec(dllexport)
+#else
+  #define MODULE_EXPORT
+#endif
 
 /*****************************************************************/
 

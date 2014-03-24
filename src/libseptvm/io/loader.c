@@ -28,12 +28,12 @@
 //  Module loading
 // ===============================================================
 
-ModuleFinderFunc find_module;
+ModuleFinderFunc _find_module;
 
 // Must be executed by the interpreter to let the loader library know how to find
 // modules.
 void initialize_module_loader(ModuleFinderFunc find_module_func) {
-	find_module = find_module_func;
+	_find_module = find_module_func;
 }
 
 // Loads the module from a given definition and returns its root object.
@@ -41,7 +41,7 @@ SepV load_module(ModuleDefinition *definition) {
 	SepError err = NO_ERROR;
 
 	// create the empty module
-	SepModule *module = module_create(rt.globals, rt.syntax);
+	SepModule *module = module_create(&rt);
 
 	// if there is any bytecode, load it in
 	if (definition->bytecode) {
@@ -50,8 +50,14 @@ SepV load_module(ModuleDefinition *definition) {
 			or_handle(EAny) { goto cleanup; }
 	}
 
-	// TODO: execute early native initializer
+	// execute early initialization, if any
+	if (definition->native && definition->native->early_initializer) {
+		ModuleInitFunc early_initialization = definition->native->early_initializer;
+		early_initialization(module, &err);
+			or_handle(EAny) { goto cleanup; }
+	}
 
+	// execute bytecode, if any
 	if (definition->bytecode) {
 		// execute the root function
 		SepVM *vm = vm_create(module, rt.syntax);
@@ -64,7 +70,12 @@ SepV load_module(ModuleDefinition *definition) {
 			return result;
 	}
 
-	// TODO: execute late native initializer
+	// execute early initialization, if any
+	if (definition->native && definition->native->late_initializer) {
+		ModuleInitFunc late_initialization = definition->native->late_initializer;
+		late_initialization(module, &err);
+			or_handle(EAny) { goto cleanup; }
+	}
 
 	// return the ready module
 	return obj_to_sepv(module->root);
@@ -80,7 +91,7 @@ cleanup:
 SepV load_module_by_name(SepString *module_name) {
 	SepError err = NO_ERROR;
 	// find the module
-	ModuleDefinition *definition = find_module(module_name, &err);
+	ModuleDefinition *definition = _find_module(module_name, &err);
 		or_handle(EAny) {
 			return sepv_exception(exc.EInternal,
 				sepstr_sprintf("Unable to load module '%s': %s", sepstr_to_cstr(module_name), err.message));

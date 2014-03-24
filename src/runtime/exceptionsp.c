@@ -12,8 +12,7 @@
 //  Includes
 // ===============================================================
 
-#include "../vm/objects.h"
-#include "../vm/support.h"
+#include <septvm.h>
 
 // ===============================================================
 //  Creating built-in exception types

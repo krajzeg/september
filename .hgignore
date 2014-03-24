@@ -11,3 +11,5 @@ scribbles
 .*\.iml
 ^bin
 ^lib
+.*\.kdev4
+

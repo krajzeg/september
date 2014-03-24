@@ -30,7 +30,8 @@ LIBSVM_TARGET_LIB := $(LIB_DIR)/libseptvm.a
 
 libseptvm: $(LIBSVM_TARGET_LIB)
 
-$(LIBSVM_TARGET_LIB): $(LIB_DIR) $(LIBSVM_OBJECTS)
+$(LIBSVM_TARGET_LIB): $(LIBSVM_OBJECTS) | $(LIB_DIR)
+	-$(RM) $(call fix_paths,$@)
 	$(AR) rcs $@ $(LIBSVM_OBJECTS)
 
 # ==========================

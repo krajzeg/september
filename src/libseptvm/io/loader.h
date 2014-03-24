@@ -53,8 +53,8 @@ typedef void (*VMInitFunc)(SepObj *globals, SepError *out_err);
 typedef void (*ModuleInitFunc)(SepModule *module, SepError *out_err);
 typedef struct ModuleNativeCode {
 	VMInitFunc initialize_vm_library;
-	ModuleInitFunc before_bytecode;
-	ModuleInitFunc after_bytecode;
+	ModuleInitFunc early_initializer;
+	ModuleInitFunc late_initializer;
 } ModuleNativeCode;
 
 

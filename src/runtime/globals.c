@@ -17,15 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "../common/errors.h"
-#include "../vm/functions.h"
-#include "../vm/types.h"
-#include "../vm/objects.h"
-#include "../vm/exceptions.h"
-#include "../vm/arrays.h"
-#include "../vm/vm.h"
-#include "../vm/runtime.h"
-#include "../vm/support.h"
+#include <septvm.h>
 
 // ===============================================================
 //  Version
@@ -440,7 +432,7 @@ SepObj *create_try_statement_prototype() {
 //  Runtime initialization
 // ===============================================================
 
-SepV create_globals() {
+SepObj *create_globals() {
 	// "Object" is special and has to be initialized first, as its the prototype to all other objects
 	rt.Object = create_object_prototype();
 
@@ -483,7 +475,18 @@ SepV create_globals() {
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
 
-	return obj_to_sepv(obj_Globals);
+	return obj_Globals;
 }
 
+// ===============================================================
+//  Module interface
+// ===============================================================
 
+void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err) {
+	// create the runtime
+	SepObj *globals = create_globals();
+	// initialize our local copy of libseptvm with the right globals
+	initialize_runtime_references(obj_to_sepv(globals));
+	// the globals are our root object
+	module->root = globals;
+}

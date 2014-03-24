@@ -4,7 +4,8 @@
 
 INTP_DIR := src/interpreter
 
-INTP_SOURCE_DIRS := src/interpreter
+INTP_SOURCE_DIRS := src/interpreter \
+  src/interpreter/modules
 
 INTP_SOURCE_FILES := $(foreach dir,$(INTP_SOURCE_DIRS),$(wildcard $(dir)/*.c))
 
@@ -19,8 +20,11 @@ INTP_LDFLAGS = -L$(LIB_DIR) -lseptvm
 
 ifeq ($(PLATFORM),MinGW)
   INTP_EXEC_NAME = 09.exe
+  INTP_SOURCE_FILES += src/interpreter/platform/platform-win.c
 else
   INTP_EXEC_NAME = 09
+  INTP_SOURCE_FILES += src/interpreter/platform/platform-unix.c
+  INTP_LDFLAGS += -ldl
 endif
 INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 
@@ -30,9 +34,9 @@ INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 
 .PHONY: interpreter interpreter-clean interpreter-distclean
 
-interpreter: $(LSVM_TARGET_LIB) $(INTP_EXECUTABLE)
+interpreter: $(INTP_EXECUTABLE)
 
-$(INTP_EXECUTABLE): $(BIN_DIR) $(INTP_OBJECTS)
+$(INTP_EXECUTABLE): $(LIBSVM_TARGET_LIB) $(INTP_OBJECTS) | $(BIN_DIR)
 	$(CC) $(INTP_OBJECTS) $(INTP_LDFLAGS) -o$(INTP_EXECUTABLE)
 
 # ==========================

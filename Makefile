@@ -1,14 +1,4 @@
 # ==========================
-# Global definitions
-# ==========================
-
-BIN_DIR := bin
-LIB_DIR := lib
-MODULE_DIR := src
-
-PARTS := libseptvm interpreter
-
-# ==========================
 # Choose platform
 # ==========================
 
@@ -21,6 +11,17 @@ $(error Under Windows, only MinGW is supported, and MINGDIR is not set.)
 else
 	include unix.mk
 endif
+
+# ==========================
+# Global definitions
+# ==========================
+
+BIN_DIR := bin
+MODULES_DIR := bin/modules
+LIB_DIR := lib
+
+PARTS_DIR := src
+PARTS := libseptvm runtime interpreter
 
 # ==========================
 # Flags
@@ -41,10 +42,10 @@ tests: all
 all: $(foreach part,$(PARTS),$(part))
 
 clean: $(foreach part,$(PARTS),$(part)-clean)
-	$(RMDIR) $(LIB_DIR) $(BIN_DIR)
+	$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
 	
 distclean: $(foreach part,$(PARTS),$(part)-distclean)
-	$(RMDIR) $(LIB_DIR) $(BIN_DIR)
+	$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
 
 # ==========================
 # Build dirs
@@ -55,6 +56,9 @@ $(LIB_DIR):
 
 $(BIN_DIR):
 	$(MKDIR) $(BIN_DIR)
+	
+$(MODULES_DIR): | $(BIN_DIR)
+	$(MKDIR) $(call fix_paths,$(MODULES_DIR))
 
 # ==========================
 # Global rules
@@ -68,5 +72,5 @@ $(BIN_DIR):
 # Include part makefiles
 # ==========================
 
-MODULE_FILES = $(foreach part,$(PARTS),$(MODULE_DIR)/$(part)/part.mk)
-include $(MODULE_FILES)
+PART_FILES = $(foreach part,$(PARTS),$(PARTS_DIR)/$(part)/part.mk)
+include $(PART_FILES)
