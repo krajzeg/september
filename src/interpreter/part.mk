@@ -24,6 +24,7 @@ ifeq ($(PLATFORM),MinGW)
 else
   INTP_EXEC_NAME = 09
   INTP_SOURCE_FILES += src/interpreter/platform/platform-unix.c
+  INTP_LDFLAGS += -ldl
 endif
 INTP_EXECUTABLE := $(BIN_DIR)/$(INTP_EXEC_NAME)
 

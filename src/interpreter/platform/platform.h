@@ -19,8 +19,6 @@
 //  Paths
 // ===============================================================
 
-// Returns the path to the directory where the interpreter resides.
-SepString *get_executable_path();
 // Tests for existence of a file (wrapper for stat()).
 bool file_exists(const char *path);
 // Creates an array of paths which will be searched for .dll, .so,
