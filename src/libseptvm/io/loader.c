@@ -50,8 +50,14 @@ SepV load_module(ModuleDefinition *definition) {
 			or_handle(EAny) { goto cleanup; }
 	}
 
-	// TODO: execute early native initializer
+	// execute early initialization, if any
+	if (definition->native && definition->native->before_bytecode) {
+		ModuleInitFunc early_initialization = definition->native->before_bytecode;
+		early_initialization(module, &err);
+			or_handle(EAny) { goto cleanup; }
+	}
 
+	// execute bytecode, if any
 	if (definition->bytecode) {
 		// execute the root function
 		SepVM *vm = vm_create(module, rt.syntax);
@@ -64,7 +70,12 @@ SepV load_module(ModuleDefinition *definition) {
 			return result;
 	}
 
-	// TODO: execute late native initializer
+	// execute early initialization, if any
+	if (definition->native && definition->native->after_bytecode) {
+		ModuleInitFunc late_initialization = definition->native->after_bytecode;
+		late_initialization(module, &err);
+			or_handle(EAny) { goto cleanup; }
+	}
 
 	// return the ready module
 	return obj_to_sepv(module->root);

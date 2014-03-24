@@ -39,7 +39,7 @@ enum ExitCodes {
 // ===============================================================
 
 SepV load_runtime() {
-	char *runtime_path = "D:\\drop\\proj\\crumb\\september\\bin\\modules\\sept-runtime.dll";
+	char *runtime_path = "bin/modules/sept-runtime.dll";
 
 	SharedObject *runtime_so = NULL;
 	ModuleNativeCode *native_code = NULL;
@@ -53,7 +53,6 @@ SepV load_runtime() {
 
 	if (module_def) moduledef_free(module_def);
 	if (native_code) free(native_code);
-	if (runtime_so) shared_close(runtime_so);
 
 	return runtime_module;
 }

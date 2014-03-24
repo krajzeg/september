@@ -24,8 +24,8 @@
 ModuleNativeCode *load_native_code(SharedObject *object) {
 	ModuleNativeCode *mnc = malloc(sizeof(ModuleNativeCode));
 
-	mnc->before_bytecode = shared_get_function(object, "early_initialization");
-	mnc->after_bytecode = shared_get_function(object, "late_initialization");
+	mnc->before_bytecode = shared_get_function(object, "module_initialize_early");
+	mnc->after_bytecode = shared_get_function(object, "module_initialize_late");
 
 	return mnc;
 }
