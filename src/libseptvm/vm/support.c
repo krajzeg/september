@@ -146,16 +146,12 @@ SepV property(SepV host, char *name) {
 // (the method not being there, the property not being callable) are
 // reported as an exception. Arguments have to be passed in as SepVs.
 SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
-	SepError err = NO_ERROR;
-
 	SepV method_v = property(host, name);
 		or_propagate_sepv(method_v);
-	SepFunc *method_f = cast_as_named_func(name, method_v, &err);
-		or_raise_sepv(exc.EWrongType);
 
 	va_list args;
 	va_start(args, argument_count);
-	SepV result = vm_subcall_v(vm, method_f, argument_count, args).value;
+	SepV result = vm_subcall_v(vm, method_v, argument_count, args).value;
 	va_end(args);
 
 	return result;

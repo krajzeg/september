@@ -59,8 +59,8 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
-			SepFunc *to_string = prop_as_func(thing, "toString", &err);
-				or_raise_with_msg(exc.EWrongType, "Value provided to print() is not a string and has no toString() method.");
+			SepV to_string = property(thing, "toString");
+				or_propagate(to_string);
 			SepItem string_i = vm_subcall(frame->vm, to_string, 0);
 				or_propagate(string_i.value);
 			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
@@ -135,10 +135,8 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	// delegate to statement if
-	SepError err = NO_ERROR;
 	SepV statement = statement_if(scope, frame).value;
-	SepFunc *executor = prop_as_func(statement, "..!", &err);
-		or_raise_with_msg(exc.EInternal, "Malformed if statement object.");
+	SepV executor = property(statement, "..!");
 	return vm_subcall(frame->vm, executor, 0);
 }
 
@@ -267,8 +265,8 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV collection = property(for_s, "collection");
 	SepV iterator = call_method(frame->vm, collection, "iterator", 0);
 		or_propagate(iterator);
-	SepFunc *iterator_next_f = prop_as_func(iterator, "next", &err);
-		or_raise(exc.EWrongType);
+	SepV iterator_next = property(iterator, "next");
+		or_propagate(iterator_next);
 	SepV body_l = property(for_s, "body");
 
 	// prepare the scope
@@ -281,7 +279,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	// actually start the loop
 	while(true) {
 		// get the next element in the collection
-		SepV element = vm_subcall(frame->vm, iterator_next_f, 0).value;
+		SepV element = vm_subcall(frame->vm, iterator_next, 0).value;
 		if (sepv_is_exception(element)) {
 			// check if its ENoMoreElements - if so, break out of the loop
 			SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);

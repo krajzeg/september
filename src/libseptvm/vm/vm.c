@@ -242,17 +242,24 @@ void vm_free(SepVM *this) {
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // Any number of parameters can be passed in, and they should be passed as SepVs.
-SepItem vm_subcall(SepVM *this, SepFunc *func, uint8_t argument_count, ...) {
+SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...) {
 	va_list args;
 	va_start(args, argument_count);
-	SepItem result = vm_subcall_v(this, func, argument_count, args);
+	SepItem result = vm_subcall_v(this, callable, argument_count, args);
 	va_end(args);
 	return result;
 }
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // A started va_list of SepVs should be passed in by another vararg function.
-SepItem vm_subcall_v(SepVM *this, SepFunc *func, uint8_t argument_count, va_list args) {
+SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list args) {
+	// get a call target
+	SepFunc *func = sepv_call_target(callable);
+	if (!func) {
+		return si_exception(exc.EWrongType,
+			sepstr_create("Attempted to call an object which is not callable."));
+	}
+
 	// verify parameter count
 	uint8_t index;
 	uint8_t param_count = func->vt->get_parameter_count(func);
