@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-apples"
+#define SEPTEMBER_VERSION "0.1-artichoke"
 
 // ===============================================================
 //  Prototype creation methods
