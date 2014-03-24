@@ -21,6 +21,8 @@
 
 // Returns the path to the directory where the interpreter resides.
 SepString *get_executable_path();
+// Tests for existence of a file (wrapper for stat()).
+bool file_exists(const char *path);
 
 // ===============================================================
 //  Shared objects
@@ -34,7 +36,7 @@ typedef struct SharedObject {
 } SharedObject;
 
 // Opens a new shared object store under the path provided.
-SharedObject *shared_open(const char *path);
+SharedObject *shared_open(const char *path, SepError *out_err);
 // Retrieves a function from an open shared object.
 void *shared_get_function(SharedObject *object, const char *name);
 // Closes a previously opened shared object.

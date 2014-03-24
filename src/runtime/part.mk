@@ -18,9 +18,9 @@ RTM_LIBS = $(LIBSVM_TARGET_LIB)
 # ==========================
 
 ifeq ($(PLATFORM),MinGW)
-  RTM_LIB_NAME := sept-runtime.dll
+  RTM_LIB_NAME := runtime.sept.dll
 else
-  RTM_LIB_NAME := sept-runtime.so
+  RTM_LIB_NAME := runtime.sept.so
 endif
 RTM_TARGET_LIB := $(MODULES_DIR)/$(RTM_LIB_NAME)
 

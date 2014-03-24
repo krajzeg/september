@@ -23,8 +23,9 @@
 //  Shared object loading
 // ===============================================================
 
-// Extracts the native functions used in module initialization
-// from an open shared object.
-ModuleNativeCode *load_native_code(SharedObject *object);
+// Takes a fully qualified module name, finds all the files that
+// could make up part of it (.sep, .09, .so, .dll) and makes a
+// module definition ready to be loaded based on those files.
+ModuleDefinition *find_module(SepString *module_name, SepError *out_err);
 
 #endif

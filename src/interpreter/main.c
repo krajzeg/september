@@ -38,21 +38,13 @@ enum ExitCodes {
 //  Loading the runtime
 // ===============================================================
 
-SepV load_runtime() {
-	char *runtime_path = "bin/modules/sept-runtime.dll";
+SepV load_runtime(SepError *out_err) {
+	SepError err = NO_ERROR;
 
-	SharedObject *runtime_so = NULL;
-	ModuleNativeCode *native_code = NULL;
-	ModuleDefinition *module_def = NULL;
-
-	runtime_so = shared_open(runtime_path);
-	native_code = load_native_code(runtime_so);
-	module_def = moduledef_create(NULL, native_code);
-
-	SepV runtime_module = load_module(module_def);
-
-	if (module_def) moduledef_free(module_def);
-	if (native_code) free(native_code);
+	ModuleDefinition *runtime_def = find_module(sepstr_create("runtime"), &err);
+		or_quit_with(SEPV_NOTHING);
+	SepV runtime_module = load_module(runtime_def);
+	moduledef_free(runtime_def);
 
 	return runtime_module;
 }
@@ -107,6 +99,7 @@ int run_program(const char *filename) {
 }
 
 int main(int argc, char **argv) {
+	SepError err = NO_ERROR;
 	// == 'verify' and parse arguments
 	if (argc != 2) {
 		fprintf(stderr, "Usage: 09 <module file>\n");
@@ -115,7 +108,11 @@ int main(int argc, char **argv) {
 	const char *module_file_name = argv[1];
 
 	// == initialize the runtime
-	SepV globals_v = load_runtime();
+	SepV globals_v = load_runtime(&err);
+		or_handle(EAny) {
+			error_report(err);
+			exit(EXIT_NO_EXECUTION);
+		}
 	initialize_runtime_references(globals_v);
 
 	// == load the module

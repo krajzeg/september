@@ -52,6 +52,8 @@ typedef enum SepErrorType {
 		EUnexpectedEOF = 0xFFFF0103,
 		// a catch-all error for any corruption of the module file being read
 		EMalformedModuleFile = 0xFFFF0104,
+		// no files found for module
+		EModuleNotFound = 0xFFFF0105,
 
 	// runtime errors
 	ERuntime = 0xFF000200,
@@ -115,6 +117,7 @@ void error_report(SepError error);
   a given type.
 **/
 SepError e_file_not_found(const char *filename); 
+SepError e_module_not_found(const char *module_name);
 SepError e_not_september_file();
 SepError e_unexpected_eof(); 
 SepError e_malformed_module_file(const char *detail);
