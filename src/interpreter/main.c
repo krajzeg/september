@@ -40,6 +40,8 @@ enum ExitCodes {
 
 void report_exception(SepV exception_v) {
 	// wound up with an exception, extract it
+	exception_v = exception_to_obj_sepv(exception_v);
+
 	const char *class_name, *message;
 	SepV class_v = property(exception_v, "<class>");
 	SepV class_name_v = property(class_v, "<name>");
