@@ -28,12 +28,12 @@
 //  Module loading
 // ===============================================================
 
-ModuleFinderFunc find_module;
+ModuleFinderFunc _find_module;
 
 // Must be executed by the interpreter to let the loader library know how to find
 // modules.
 void initialize_module_loader(ModuleFinderFunc find_module_func) {
-	find_module = find_module_func;
+	_find_module = find_module_func;
 }
 
 // Loads the module from a given definition and returns its root object.
@@ -91,7 +91,7 @@ cleanup:
 SepV load_module_by_name(SepString *module_name) {
 	SepError err = NO_ERROR;
 	// find the module
-	ModuleDefinition *definition = find_module(module_name, &err);
+	ModuleDefinition *definition = _find_module(module_name, &err);
 		or_handle(EAny) {
 			return sepv_exception(exc.EInternal,
 				sepstr_sprintf("Unable to load module '%s': %s", sepstr_to_cstr(module_name), err.message));

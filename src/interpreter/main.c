@@ -39,14 +39,7 @@ enum ExitCodes {
 // ===============================================================
 
 SepV load_runtime(SepError *out_err) {
-	SepError err = NO_ERROR;
-
-	ModuleDefinition *runtime_def = find_module(sepstr_create("runtime"), &err);
-		or_quit_with(SEPV_NOTHING);
-	SepV runtime_module = load_module(runtime_def);
-	moduledef_free(runtime_def);
-
-	return runtime_module;
+	return load_module_by_name(sepstr_create("runtime"));
 }
 
 // ===============================================================
@@ -108,6 +101,7 @@ int main(int argc, char **argv) {
 	const char *module_file_name = argv[1];
 
 	// == initialize the runtime
+	initialize_module_loader(find_module_files);
 	SepV globals_v = load_runtime(&err);
 		or_handle(EAny) {
 			error_report(err);
