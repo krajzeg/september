@@ -482,7 +482,7 @@ SepObj *create_globals() {
 //  Module interface
 // ===============================================================
 
-void __declspec(dllexport) module_initialize_early(SepModule *module, SepError *out_err) {
+void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err) {
 	// create the runtime
 	SepObj *globals = create_globals();
 	// initialize our local copy of libseptvm with the right globals

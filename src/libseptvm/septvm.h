@@ -31,6 +31,16 @@
 #include "vm/types.h"
 #include "vm/vm.h"
 
+// ===============================================================
+//  Macros for modules
+// ===============================================================
+
+#ifdef _WIN32
+  #define MODULE_EXPORT __declspec(dllexport)
+#else
+  #define MODULE_EXPORT
+#endif
+
 /*****************************************************************/
 
 #endif
