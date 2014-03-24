@@ -92,7 +92,7 @@ SepString *sepstr_sprintf(const char *format, ...) {
 			buffer[chars_written] = '\0';
 		} else {
 			buffer_size *= 2;
-			realloc(buffer, buffer_size);
+			buffer = realloc(buffer, buffer_size);
 		}
 		va_end(args);
 	} while (!fit);
