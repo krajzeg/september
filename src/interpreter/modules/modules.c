@@ -19,23 +19,15 @@
 #include "../platform/platform.h"
 
 // ===============================================================
-//  Loading a SharedObject
+//  Constants
 // ===============================================================
 
-// Creates an array of paths which will be searched for .dll, .so,
-// .09 and .sep files that represent September modules.
-SepArray *module_search_paths() {
-	SepArray *paths = array_create(3);
-	array_push(paths, sepv_string("."));
-	array_push(paths, sepv_string("./modules"));
+char EARLY_INIT_NAME[] = "module_initialize_early";
+char LATE_INIT_NAME[]  = "module_initialize_late";
 
-	SepString *interpreter_dir = get_executable_path();
-	SepString *intp_modules_dir = sepstr_sprintf("%s/modules",
-			sepstr_to_cstr(interpreter_dir));
-	array_push(paths, str_to_sepv(intp_modules_dir));
-
-	return paths;
-}
+// ===============================================================
+//  Loading a SharedObject
+// ===============================================================
 
 // Finds a named file looking in all the module search paths.
 SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_err) {
@@ -60,8 +52,8 @@ SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_
 ModuleNativeCode *load_native_code(SharedObject *object) {
 	ModuleNativeCode *mnc = malloc(sizeof(ModuleNativeCode));
 
-	mnc->before_bytecode = shared_get_function(object, "module_initialize_early");
-	mnc->after_bytecode = shared_get_function(object, "module_initialize_late");
+	mnc->early_initializer = shared_get_function(object, EARLY_INIT_NAME);
+	mnc->late_initializer = shared_get_function(object, LATE_INIT_NAME);
 
 	return mnc;
 }
@@ -75,8 +67,8 @@ ModuleDefinition *find_module(SepString *module_name, SepError *out_err) {
 
 	// any shared objects?
 	ModuleNativeCode *native_code = NULL;
-	SepString *shared_object_name = sepstr_sprintf("%s.sept.dll", sepstr_to_cstr(module_name));
-	SepString *shared_object_path = find_file(search_paths, shared_object_name, &err);
+	SepString *shared_object_filename = shared_filename(module_name);
+	SepString *shared_object_path = find_file(search_paths, shared_object_filename, &err);
 		or_handle(EAny) { shared_object_path = NULL; }
 	if (shared_object_path) {
 		SharedObject *object = shared_open(sepstr_to_cstr(shared_object_path), &err);
@@ -93,5 +85,3 @@ ModuleDefinition *find_module(SepString *module_name, SepError *out_err) {
 
 	return moduledef_create(NULL, native_code);
 }
-
-

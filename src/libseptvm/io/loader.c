@@ -51,8 +51,8 @@ SepV load_module(ModuleDefinition *definition) {
 	}
 
 	// execute early initialization, if any
-	if (definition->native && definition->native->before_bytecode) {
-		ModuleInitFunc early_initialization = definition->native->before_bytecode;
+	if (definition->native && definition->native->early_initializer) {
+		ModuleInitFunc early_initialization = definition->native->early_initializer;
 		early_initialization(module, &err);
 			or_handle(EAny) { goto cleanup; }
 	}
@@ -71,8 +71,8 @@ SepV load_module(ModuleDefinition *definition) {
 	}
 
 	// execute early initialization, if any
-	if (definition->native && definition->native->after_bytecode) {
-		ModuleInitFunc late_initialization = definition->native->after_bytecode;
+	if (definition->native && definition->native->late_initializer) {
+		ModuleInitFunc late_initialization = definition->native->late_initializer;
 		late_initialization(module, &err);
 			or_handle(EAny) { goto cleanup; }
 	}

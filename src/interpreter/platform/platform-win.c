@@ -47,6 +47,27 @@ bool file_exists(const char *path) {
 	return stat_result == 0;
 }
 
+// Creates an array of paths which will be searched for .dll, .so,
+// .09 and .sep files that represent September modules.
+SepArray *module_search_paths() {
+	static SepArray *paths = NULL;
+
+	// already initialized?
+	if (paths) return paths;
+
+	// initialize array
+	paths = array_create(3);
+	array_push(paths, sepv_string("."));
+	array_push(paths, sepv_string("./modules"));
+
+	SepString *interpreter_dir = get_executable_path();
+	SepString *intp_modules_dir = sepstr_sprintf("%s/modules",
+			sepstr_to_cstr(interpreter_dir));
+	array_push(paths, str_to_sepv(intp_modules_dir));
+
+	return paths;
+}
+
 // ===============================================================
 //  Shared objects
 // ===============================================================
@@ -64,6 +85,12 @@ SharedObject *shared_open(const char *path, SepError *out_err) {
 	WindowsSharedObject *so = malloc(sizeof(WindowsSharedObject));
 	so->handle = handle;
 	return (SharedObject*)so;
+}
+
+// Returns the name of the expected shared object file corresponding to
+// the module name.
+SepString *shared_filename(SepString *module_name) {
+	return sepstr_sprintf("%s.sept.dll", sepstr_to_cstr(module_name));
 }
 
 // Retrieves a function from an open shared object.

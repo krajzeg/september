@@ -23,6 +23,9 @@
 SepString *get_executable_path();
 // Tests for existence of a file (wrapper for stat()).
 bool file_exists(const char *path);
+// Creates an array of paths which will be searched for .dll, .so,
+// .09 and .sep files that represent September modules.
+SepArray *module_search_paths();
 
 // ===============================================================
 //  Shared objects
@@ -34,6 +37,10 @@ bool file_exists(const char *path);
  */
 typedef struct SharedObject {
 } SharedObject;
+
+// Returns the name of the expected shared object file corresponding to
+// the module name.
+SepString *shared_filename(SepString *module_name);
 
 // Opens a new shared object store under the path provided.
 SharedObject *shared_open(const char *path, SepError *out_err);
