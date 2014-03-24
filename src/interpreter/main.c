@@ -35,10 +35,35 @@ enum ExitCodes {
 };
 
 // ===============================================================
+//  Exception reporting
+// ===============================================================
+
+void report_exception(SepV exception_v) {
+	// wound up with an exception, extract it
+	const char *class_name, *message;
+	SepV class_v = property(exception_v, "<class>");
+	SepV class_name_v = property(class_v, "<name>");
+	if (sepv_is_str(class_name_v))
+		class_name = sepstr_to_cstr(sepv_to_str(class_name_v));
+	else
+		class_name = "<unknown type>";
+
+	SepV message_sepv = property(exception_v, "message");
+	if (sepv_is_str(message_sepv))
+		message = sepstr_to_cstr(sepv_to_str(message_sepv));
+	else
+		message = "<message missing>";
+
+	// report it
+	fprintf(stderr, "Exception encountered during execution:\n");
+	fprintf(stderr, "  %s: %s\n", class_name, message);
+}
+
+// ===============================================================
 //  Loading the runtime
 // ===============================================================
 
-SepV load_runtime(SepError *out_err) {
+SepV load_runtime() {
 	return load_module_by_name(sepstr_create("runtime"));
 }
 
@@ -63,27 +88,7 @@ int run_program(const char *filename) {
 	// check for uncaught exceptions
 	if (sepv_is_exception(result)) {
 		// wound up with an exception, extract it
-		SepV exception_object = exception_to_obj_sepv(result);
-
-		const char *class_name, *message;
-		SepV class_v = property(exception_object, "<class>");
-		SepV class_name_v = property(class_v, "<name>");
-		if (sepv_is_str(class_name_v))
-			class_name = sepstr_to_cstr(sepv_to_str(class_name_v));
-		else
-			class_name = "<unknown type>";
-
-		SepV message_sepv = property(exception_object, "message");
-		if (sepv_is_str(message_sepv))
-			message = sepstr_to_cstr(sepv_to_str(message_sepv));
-		else
-			message = "<message missing>";
-
-		// report it
-		fprintf(stderr, "Exception encountered during execution:\n");
-		fprintf(stderr, "  %s: %s\n", class_name, message);
-
-		// and clean up
+		report_exception(result);
 		return EXIT_EXCEPTION_RAISED;
 	}
 
@@ -92,21 +97,20 @@ int run_program(const char *filename) {
 }
 
 int main(int argc, char **argv) {
-	SepError err = NO_ERROR;
 	// == 'verify' and parse arguments
 	if (argc != 2) {
 		fprintf(stderr, "Usage: 09 <module file>\n");
-		exit(EXIT_NO_EXECUTION);
+		return EXIT_NO_EXECUTION;
 	}
 	const char *module_file_name = argv[1];
 
 	// == initialize the runtime
 	initialize_module_loader(find_module_files);
-	SepV globals_v = load_runtime(&err);
-		or_handle(EAny) {
-			error_report(err);
-			exit(EXIT_NO_EXECUTION);
-		}
+	SepV globals_v = load_runtime();
+	if (sepv_is_exception(globals_v)) {
+		report_exception(globals_v);
+		return EXIT_NO_EXECUTION;
+	}
 	initialize_runtime_references(globals_v);
 
 	// == load the module
