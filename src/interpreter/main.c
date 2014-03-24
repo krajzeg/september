@@ -106,6 +106,9 @@ int main(int argc, char **argv) {
 	}
 	const char *module_file_name = argv[1];
 
+	// == platform-specific initialization
+	platform_initialize(argc, argv);
+	
 	// == initialize the runtime
 	initialize_module_loader(find_module_files);
 	SepV globals_v = load_runtime();

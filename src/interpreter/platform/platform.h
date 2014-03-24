@@ -16,6 +16,14 @@
 #include <septvm.h>
 
 // ===============================================================
+//  Initialization
+// ===============================================================
+
+// Some platforms need access to argc and argv, and this function
+// is used to grant them that.
+void platform_initialize(int argc, char **argv);
+
+// ===============================================================
 //  Paths
 // ===============================================================
 

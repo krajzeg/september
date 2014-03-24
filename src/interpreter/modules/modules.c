@@ -37,7 +37,7 @@ SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_
 		SepString *search_path = sepv_to_str(arrayit_next(&iterator));
 		SepString *file_path = sepstr_sprintf("%s/%s",
 				sepstr_to_cstr(search_path), sepstr_to_cstr(filename));
-
+		
 		// return the file if it exists at all
 		if (file_exists(sepstr_to_cstr(file_path)))
 			return file_path;

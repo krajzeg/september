@@ -13,13 +13,43 @@
 // ===============================================================
 
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <dlfcn.h>
 #include "platform.h"
 
 // ===============================================================
+//  Initialization
+// ===============================================================
+
+char **_stored_argv;
+
+// Some platforms need access to argc and argv, and this function
+// is used to grant them that.
+void platform_initialize(int argc, char **argv) {
+	_stored_argv = argv;
+}
+
+// ===============================================================
 //  Paths
 // ===============================================================
+
+// Tries to figure out the executable path, returns NULL if it cannot.
+// argv[0] is used as the only portable way on *xes.
+SepString *get_executable_path() {
+	char *exec_arg = _stored_argv[0];
+	char *last_slash = strrchr(exec_arg, '/');
+	if (last_slash == NULL)
+		return NULL; // not recognized as a path
+	
+	// create the SepString
+	char *buffer = calloc(strlen(exec_arg) + 1, 1);
+	strncpy(buffer, exec_arg, last_slash - exec_arg);
+	SepString *exec_path = sepstr_create(buffer);
+	free(buffer);
+	
+	return exec_path;
+}
 
 // Tests for existence of a file (wrapper for stat()).
 bool file_exists(const char *path) {
@@ -42,7 +72,14 @@ SepArray *module_search_paths() {
 	paths = array_create(3);
 	array_push(paths, sepv_string("."));
 	array_push(paths, sepv_string("./modules"));
-
+	
+	// try the executable path
+	SepString *exec_path = get_executable_path();
+	if (exec_path) {
+		SepString *modules_dir = sepstr_sprintf("%s/modules", sepstr_to_cstr(exec_path));
+		array_push(paths, str_to_sepv(modules_dir));
+	}
+	
 	return paths;
 }
 
