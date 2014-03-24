@@ -440,3 +440,22 @@ SepV sepv_get(SepV sepv, SepString *property) {
 		return sepv_exception(exc.EMissingProperty, message);
 	}
 }
+
+// Takes a SepV that will be called, and returns the proper SepFunc*
+// that will implement that call. For SepVs that are functions, this
+// will be the function itself. For objects, the special "<call>"
+// property will be used. If the SepV is not callable, NULL will be
+// returned.
+SepFunc *sepv_call_target(SepV value) {
+	// do we have a function yet?
+	if (sepv_is_func(value))
+		return sepv_to_func(value);
+
+	Slot *call_slot = sepv_lookup(value, sepstr_create("<call>"));
+	if (!call_slot)
+		return NULL;
+
+	// recurse into the <call> property
+	SepV call_property = call_slot->vt->retrieve(call_slot, value);
+	return sepv_call_target(call_property);
+}

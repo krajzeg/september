@@ -60,7 +60,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 
 	// quick references
 	SepStack *stack = frame->data;
-	SepFunc *func = sepv_to_func(stack_pop_value(stack));
+	SepFunc *func = sepv_call_target(stack_pop_value(stack));
 
 	// verify argument/parameter relationship
 	uint8_t arg_count = (uint8_t)frame_read(frame);

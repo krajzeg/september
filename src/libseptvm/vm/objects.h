@@ -17,9 +17,9 @@
 // ===============================================================
 
 #include <stdint.h>
-#include "types.h" // for SepV
-#include "mem.h"   // for MemoryManager
-#include "stack.h" // for SepItem
+#include "types.h"     // for SepV
+#include "mem.h"       // for MemoryManager
+#include "stack.h"     // for SepItem
 
 // ===============================================================
 //  Pre-declaring structs
@@ -30,6 +30,7 @@ struct Slot;
 struct SlotVTable;
 struct PropertyEntry;
 struct PropertyMap;
+struct SepFunc;
 
 // ===============================================================
 //  Slots
@@ -227,6 +228,12 @@ SepItem sepv_get_item(SepV object, SepString *property);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV object, SepString *property);
+// Takes a SepV that will be called, and returns the proper SepFunc*
+// that will implement that call. For SepVs that are functions, this
+// will be the function itself. For objects, the special "<call>"
+// property will be used. If the SepV is not callable, NULL will be
+// returned.
+struct SepFunc *sepv_call_target(SepV object);
 
 // ===============================================================
 //  Macros for working with objects
