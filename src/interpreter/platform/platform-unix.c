@@ -76,7 +76,7 @@ SepArray *module_search_paths() {
 	// try the executable path
 	SepString *exec_path = get_executable_path();
 	if (exec_path) {
-		SepString *modules_dir = sepstr_sprintf("%s/modules", sepstr_to_cstr(exec_path));
+		SepString *modules_dir = sepstr_sprintf("%s/modules", exec_path->cstr);
 		array_push(paths, str_to_sepv(modules_dir));
 	}
 	
@@ -105,7 +105,7 @@ SharedObject *shared_open(const char *path, SepError *out_err) {
 // Returns the name of the expected shared object file corresponding to
 // the module name.
 SepString *shared_filename(SepString *module_name) {
-	return sepstr_sprintf("%s.sept.so", sepstr_to_cstr(module_name));
+	return sepstr_sprintf("%s.sept.so", module_name->cstr);
 }
 
 // Retrieves a function from an open shared object.

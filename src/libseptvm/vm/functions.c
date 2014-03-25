@@ -69,7 +69,7 @@ void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err)
 
 		// no default value to be found, that's an error
 		fail(error_create(EWrongArguments, "Required parameter '%s' is missing.",
-				sepstr_to_cstr(this->name)));
+				this->name->cstr));
 	}
 }
 

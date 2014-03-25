@@ -94,7 +94,7 @@ SepV load_module_by_name(SepString *module_name) {
 	ModuleDefinition *definition = _find_module(module_name, &err);
 		or_handle(EAny) {
 			return sepv_exception(exc.EInternal,
-				sepstr_sprintf("Unable to load module '%s': %s", sepstr_to_cstr(module_name), err.message));
+				sepstr_sprintf("Unable to load module '%s': %s", module_name->cstr, err.message));
 		}
 
 	// load from the definition

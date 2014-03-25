@@ -423,7 +423,7 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 		return item_lvalue(slot, slot->vt->retrieve(slot, sepv));
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
-				sepstr_to_cstr(property));
+				property->cstr);
 		return si_exception(exc.EMissingProperty, message);
 	}
 }
@@ -436,7 +436,7 @@ SepV sepv_get(SepV sepv, SepString *property) {
 		return slot->vt->retrieve(slot, sepv);
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
-				sepstr_to_cstr(property));
+				property->cstr);
 		return sepv_exception(exc.EMissingProperty, message);
 	}
 }

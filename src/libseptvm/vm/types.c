@@ -114,15 +114,11 @@ SepItem si_string(char *c_string) {
 void sepstr_init(SepString *this, const char *c_string) {
 	this->length = strlen(c_string);
 	this->hash = 0x0;
-	strcpy(this->content, c_string);
+	strcpy(this->cstr, c_string);
 }
 
 size_t sepstr_allocation_size(const char *c_string) {
 	return sizeof(SepString) + strlen(c_string) + 1;
-}
-
-const char *sepstr_to_cstr(SepString *this) {
-	return this->content;
 }
 
 uint32_t sepstr_hash(SepString *this) {
@@ -133,7 +129,7 @@ uint32_t sepstr_hash(SepString *this) {
 	// calculate hash - the current logic is Bernstein's
 	// DJB2 hashing function
 	uint32_t hash = 5381;
-	uint8_t *str = (uint8_t*)this->content;
+	uint8_t *str = (uint8_t*)this->cstr;
 	uint8_t c;
 	while ((c = *str++))
 		hash = ((hash << 5) + hash) ^ c;
@@ -147,7 +143,7 @@ int sepstr_cmp(SepString *this, SepString *other) {
 	if (this == other)
 		return 0;
 	else
-		return strcmp(this->content, other->content);
+		return strcmp(this->cstr, other->cstr);
 }
 
 // ===============================================================

@@ -44,7 +44,7 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 
 	// check if it already exists
 	if (props_find_prop(host, property_name))
-		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", sepstr_to_cstr(property_name));
+		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", property_name->cstr);
 
 	// create the field
 	props_accept_prop(host, property_name, field_create(SEPV_NOTHING));

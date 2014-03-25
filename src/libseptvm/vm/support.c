@@ -269,9 +269,9 @@ SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
 			or_quit_with(NULL);
 
 		if (sepv_is_obj(sepv))
-			return sepstr_sprintf("<%s at %llx>", sepstr_to_cstr(class_name), (uint64_t)(intptr_t)sepv_to_obj(sepv));
+			return sepstr_sprintf("<%s at %llx>", class_name->cstr, (uint64_t)(intptr_t)sepv_to_obj(sepv));
 		else
-			return sepstr_sprintf("<%s object>", sepstr_to_cstr(class_name));
+			return sepstr_sprintf("<%s object>", class_name->cstr);
 	} else {
 		// this must be an object, primitives all have <class>
 		return sepstr_sprintf("<classless object at %llx>", (uint64_t)(intptr_t)sepv_to_obj(sepv));

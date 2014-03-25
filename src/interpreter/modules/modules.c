@@ -36,10 +36,10 @@ SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_
 		// build path
 		SepString *search_path = sepv_to_str(arrayit_next(&iterator));
 		SepString *file_path = sepstr_sprintf("%s/%s",
-				sepstr_to_cstr(search_path), sepstr_to_cstr(filename));
+				search_path->cstr, filename->cstr);
 		
 		// return the file if it exists at all
-		if (file_exists(sepstr_to_cstr(file_path)))
+		if (file_exists(file_path->cstr))
 			return file_path;
 	}
 
@@ -71,7 +71,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepError *out_err) {
 	SepString *shared_object_path = find_file(search_paths, shared_object_filename, &err);
 		or_handle(EAny) { shared_object_path = NULL; }
 	if (shared_object_path) {
-		SharedObject *object = shared_open(sepstr_to_cstr(shared_object_path), &err);
+		SharedObject *object = shared_open(shared_object_path->cstr, &err);
 			or_quit_with(NULL);
 		native_code = load_native_code(object);
 	}
@@ -80,7 +80,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepError *out_err) {
 
 	// create module definition
 	if (!native_code) {
-		fail(NULL, e_module_not_found(sepstr_to_cstr(module_name)));
+		fail(NULL, e_module_not_found(module_name->cstr));
 	}
 
 	return moduledef_create(NULL, native_code);

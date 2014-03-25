@@ -150,7 +150,7 @@ void fetch_prop_impl(ExecutionFrame *frame) {
 	// get the property name
 	int16_t index = frame_read(frame);
 	SepString *property = sepv_to_str(frame_constant(frame, index));
-	log("opcodes", "fetchprop %d(%s)", index, sepstr_to_cstr(property));
+	log("opcodes", "fetchprop %d(%s)", index, property->cstr);
 
 	// retrieve the value
 	SepItem property_value = sepv_get_item(host, property);
@@ -190,7 +190,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	// get the property name
 	int16_t index = frame_read(frame);
 	SepString *property = sepv_to_str(frame_constant(frame, index));
-	log("opcodes", "createprop %d(%s)", index, sepstr_to_cstr(property));
+	log("opcodes", "createprop %d(%s)", index, property->cstr);
 
 	// ensure the host is an object
 	if (!sepv_is_obj(host_v)) {
@@ -203,7 +203,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	// check if the field exists
 	if (props_find_prop(host, property)) {
 		SepString *message = sepstr_sprintf("Property '%s' already exists and cannot be created.",
-				sepstr_to_cstr(property));
+				property->cstr);
 		frame_raise(frame, sepv_exception(exc.EPropertyAlreadyExists, message));
 		return;
 	}

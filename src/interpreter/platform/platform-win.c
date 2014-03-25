@@ -69,7 +69,7 @@ SepArray *module_search_paths() {
 
 	SepString *interpreter_dir = get_executable_path();
 	SepString *intp_modules_dir = sepstr_sprintf("%s/modules",
-			sepstr_to_cstr(interpreter_dir));
+			interpreter_dir->cstr);
 	array_push(paths, str_to_sepv(intp_modules_dir));
 
 	return paths;
@@ -97,7 +97,7 @@ SharedObject *shared_open(const char *path, SepError *out_err) {
 // Returns the name of the expected shared object file corresponding to
 // the module name.
 SepString *shared_filename(SepString *module_name) {
-	return sepstr_sprintf("%s.sept.dll", sepstr_to_cstr(module_name));
+	return sepstr_sprintf("%s.sept.dll", module_name->cstr);
 }
 
 // Retrieves a function from an open shared object.

@@ -135,7 +135,7 @@ SepItem si_int(SepInt integer);
 typedef struct SepString {
 	uint32_t length;
 	uint32_t hash;
-	char content[0];
+	char cstr[0];
 } SepString;
 
 SepString *sepv_to_str(SepV value);
@@ -152,7 +152,6 @@ void sepstr_init(SepString *this, const char *c_string);
 
 uint32_t sepstr_hash(SepString *this);
 int sepstr_cmp(SepString *this, SepString *other);
-const char *sepstr_to_cstr(SepString *sstring);
 
 // ===============================================================
 //  Objects

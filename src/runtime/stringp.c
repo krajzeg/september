@@ -22,10 +22,10 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
 
-	SepString *upper_str = mem_allocate(sepstr_allocation_size(this->content));
+	SepString *upper_str = mem_allocate(sepstr_allocation_size(this->cstr));
 	upper_str->length = this->length;
-	char *src = this->content;
-	char *dest = upper_str->content;
+	char *src = this->cstr;
+	char *dest = upper_str->cstr;
 	do {
 		if ((*src >= 97) && (*src <= 122))
 			*(dest++) = *src - 32;

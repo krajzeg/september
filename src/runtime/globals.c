@@ -70,7 +70,7 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		}
 
 		// print it!
-		printf(first ? "%s" : " %s", sepstr_to_cstr(string));
+		printf(first ? "%s" : " %s", string->cstr);
 		first = false;
 	}
 	puts("");

@@ -46,13 +46,13 @@ void report_exception(SepV exception_v) {
 	SepV class_v = property(exception_v, "<class>");
 	SepV class_name_v = property(class_v, "<name>");
 	if (sepv_is_str(class_name_v))
-		class_name = sepstr_to_cstr(sepv_to_str(class_name_v));
+		class_name = sepv_to_str(class_name_v)->cstr;
 	else
 		class_name = "<unknown type>";
 
 	SepV message_sepv = property(exception_v, "message");
 	if (sepv_is_str(message_sepv))
-		message = sepstr_to_cstr(sepv_to_str(message_sepv));
+		message = sepv_to_str(message_sepv)->cstr;
 	else
 		message = "<message missing>";
 
