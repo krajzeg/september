@@ -17,9 +17,10 @@
 // ===============================================================
 
 #include <stdint.h>
-#include "types.h"     // for SepV
-#include "mem.h"       // for MemoryManager
-#include "stack.h"     // for SepItem
+#include "types.h"
+#include "strings.h"
+#include "mem.h"
+#include "stack.h"
 
 // ===============================================================
 //  Pre-declaring structs

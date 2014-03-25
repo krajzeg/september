@@ -128,31 +128,6 @@ typedef int64_t SepInt;
 
 SepItem si_int(SepInt integer);
 
-// ===============================================================
-//  Strings
-// ===============================================================
-
-typedef struct SepString {
-	uint32_t length;
-	uint32_t hash;
-	char cstr[0];
-} SepString;
-
-SepString *sepv_to_str(SepV value);
-bool sepv_is_str(SepV value);
-SepV str_to_sepv(SepString *string);
-
-SepV sepv_string(char *c_string);
-SepItem si_string(char *c_string);
-SepString *sepstr_create(const char *c_string);
-SepString *sepstr_sprintf(const char *format, ...);
-
-size_t sepstr_allocation_size(const char *c_string);
-void sepstr_init(SepString *this, const char *c_string);
-
-uint32_t sepstr_hash(SepString *this);
-int sepstr_cmp(SepString *this, SepString *other);
-
 /*******************************************************************/
 
 #endif
