@@ -30,6 +30,8 @@
 // ===============================================================
 
 SepObj *create_object_prototype();
+SepObj *create_class_object();
+
 SepObj *create_array_prototype();
 SepObj *create_integer_prototype();
 SepObj *create_string_prototype();
@@ -431,23 +433,28 @@ SepObj *create_try_statement_prototype() {
 // ===============================================================
 
 SepObj *create_globals() {
-	// "Object" is special and has to be initialized first, as its the prototype to all other objects
-	rt.Object = create_object_prototype();
+	// the class object is initialized first, as all other objects created below are classes
+	rt.Cls = create_class_object();
 
-	// create holder objects and establish their relationship
+	// Object is a superclass for everything, so it gets created next
+	rt.Object = create_object_prototype();
+	rt.Cls->prototypes = obj_to_sepv(rt.Object);
+
+	// create the superglobals and establish their relationship
 	SepObj *obj_Globals = obj_create();
 	SepObj *obj_Syntax  = obj_create();
 	obj_add_field(obj_Globals, "globals", obj_to_sepv(obj_Globals));
 	obj_add_field(obj_Globals, "syntax", obj_to_sepv(obj_Syntax));
 
-	// the interned strings cache
+	// create the interned strings cache
 	obj_add_field(obj_Globals, "<string_cache>", obj_to_sepv(obj_create()));
 
-	// initialize built-in exceptions
+	// initialize built-in exception classes
 	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
 
-	// primitive types' prototypes are initialized here
+	// initialize primitive classes
 	obj_add_field(obj_Globals, "Object", obj_to_sepv(rt.Object));
+	obj_add_field(obj_Globals, "Class", obj_to_sepv(rt.Cls));
 	obj_add_field(obj_Globals, "Array", obj_to_sepv(create_array_prototype()));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv(create_bool_prototype()));
 	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));

@@ -35,6 +35,9 @@ typedef struct RuntimeObjects {
 	SepObj *Bool;
 	SepObj *NothingType;
 
+	// the class object
+	SepObj *Cls;
+
 	// the string cache (interned strings live as keys here)
 	SepObj *string_cache;
 } RuntimeObjects;

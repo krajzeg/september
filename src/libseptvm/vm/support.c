@@ -161,20 +161,24 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 //  Classes
 // ===============================================================
 
-// Creates a new class object with the given name and parent class.
+// Creates a new class with the given name and parent class.
+// The Class object must be already available in the runtime.
 SepObj *make_class(char *name, SepObj *parent) {
 	SepV parent_v;
 	if (parent)
 		parent_v = obj_to_sepv(parent);
 	else
 		parent_v = strcmp(name, "Object") ? obj_to_sepv(rt.Object) : SEPV_NOTHING;
-
 	SepObj *cls = obj_create_with_proto(parent_v);
 
 	// store the name permanently for future reference
 	obj_add_field(cls, "<name>", str_to_sepv(sepstr_for(name)));
 	obj_add_field(cls, "<class>", obj_to_sepv(cls));
 	obj_add_field(cls, "<superclass>", parent_v);
+
+	// copy properties from the Class master object
+	SepV call_v = property(obj_to_sepv(rt.Cls), "<call>");
+	props_accept_prop(cls, sepstr_for("<call>"), method_create(call_v));
 
 	// return the class
 	return cls;

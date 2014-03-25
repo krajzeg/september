@@ -1,0 +1,3 @@
+Person := Class.new("Person")
+john := Person()
+print("John should be a Person, so this should be true:", john.is(Person))

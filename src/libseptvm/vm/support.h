@@ -71,6 +71,7 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err);
 // ===============================================================
 
 // Creates a new class object with the given name and parent class.
+// The Class object must be already available in the runtime.
 SepObj *make_class(char *name, SepObj *parent);
 
 // ===============================================================

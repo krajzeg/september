@@ -32,13 +32,14 @@ void initialize_runtime_references(SepV globals_v) {
 	store(rt, globals);
 	store(rt, syntax);
 
-	// runtime classes
+	// runtime classes and objects
 	store(rt, Array);
 	store(rt, Bool);
 	store(rt, Integer);
 	store(rt, NothingType);
 	store(rt, Object);
 	store(rt, String);
+	rt.Cls = prop_as_obj(globals_v, "Class", &err);
 
 	// string cache
 	rt.string_cache = prop_as_obj(globals_v, "<string_cache>", &err);
