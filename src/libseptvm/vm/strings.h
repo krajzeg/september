@@ -45,7 +45,10 @@ bool sepv_is_str(SepV value);
 SepV str_to_sepv(SepString *string);
 
 // Returns a SepString based on a C string. This will be a new or cached instance.
-SepString *sepstr_create(const char *c_string);
+SepString *sepstr_for(const char *c_string);
+// Returns a new SepString based on a C string. This will always be a new instance,
+// and strings created this way never go into the interned strings cache.
+SepString *sepstr_new(const char *c_string);
 // Returns a new SepString obtained by running sprintf with the arguments provided.
 SepString *sepstr_sprintf(const char *format, ...);
 // Returns a new string, wrapped in a SepV.

@@ -19,8 +19,8 @@
 //  Extracting runtime objects
 // ===============================================================
 
-RuntimeObjects rt;
-BuiltinExceptions exc;
+RuntimeObjects rt = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+BuiltinExceptions exc = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 #define store(into, property_name) into.property_name = prop_as_obj(globals_v, #property_name, &err);
 void initialize_runtime_references(SepV globals_v) {
@@ -39,6 +39,9 @@ void initialize_runtime_references(SepV globals_v) {
 	store(rt, NothingType);
 	store(rt, Object);
 	store(rt, String);
+
+	// string cache
+	rt.string_cache = prop_as_obj(globals_v, "<string_cache>", &err);
 
 	// built-in exception types
 	store(exc, Exception);

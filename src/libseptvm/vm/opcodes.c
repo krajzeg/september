@@ -122,7 +122,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 			or_handle(EAny) {
 				frame_raise(frame, sepv_exception(
 						exc.EWrongArguments,
-						sepstr_create(err.message)));
+						sepstr_for(err.message)));
 			};
 	}
 
@@ -172,7 +172,7 @@ void store_impl(ExecutionFrame *frame) {
 	Slot *slot = stack_pop_item(frame->data).origin;
 	if (!slot) {
 		frame_raise(frame,
-				sepv_exception(exc.ECannotAssign, sepstr_create("Attempted assignment to an r-value.")));
+				sepv_exception(exc.ECannotAssign, sepstr_for("Attempted assignment to an r-value.")));
 		return;
 	}
 
@@ -195,7 +195,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	// ensure the host is an object
 	if (!sepv_is_obj(host_v)) {
 		frame_raise(frame, sepv_exception(exc.EWrongType,
-				sepstr_create("New properties can only be created on objects, not primitives.")));
+				sepstr_for("New properties can only be created on objects, not primitives.")));
 		return;
 	}
 	SepObj *host = sepv_to_obj(host_v);

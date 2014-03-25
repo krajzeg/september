@@ -23,33 +23,38 @@
 // ===============================================================
 
 typedef struct RuntimeObjects {
-  SepObj *globals;
-  SepObj *syntax;
+	// the two super-globals
+	SepObj *globals;
+	SepObj *syntax;
 
-  SepObj *Object;
-  SepObj *Array;
-  SepObj *Integer;
-  SepObj *String;
-  SepObj *Bool;
-  SepObj *NothingType;
+	// the primitive classes
+	SepObj *Object;
+	SepObj *Array;
+	SepObj *Integer;
+	SepObj *String;
+	SepObj *Bool;
+	SepObj *NothingType;
+
+	// the string cache (interned strings live as keys here)
+	SepObj *string_cache;
 } RuntimeObjects;
 
 typedef struct BuiltinExceptions {
-  SepObj *Exception;
+	SepObj *Exception;
 
-  SepObj *EWrongType;
-  SepObj *EWrongIndex;
-  SepObj *EWrongArguments;
+	SepObj *EWrongType;
+	SepObj *EWrongIndex;
+	SepObj *EWrongArguments;
 
-  SepObj *EMissingProperty;
-  SepObj *EPropertyAlreadyExists;
-  SepObj *ECannotAssign;
+	SepObj *EMissingProperty;
+	SepObj *EPropertyAlreadyExists;
+	SepObj *ECannotAssign;
 
-  SepObj *ENoMoreElements;
+	SepObj *ENoMoreElements;
 
-  SepObj *ENumericOverflow;
+	SepObj *ENumericOverflow;
 
-  SepObj *EInternal;
+	SepObj *EInternal;
 } BuiltinExceptions;
 
 extern RuntimeObjects rt;

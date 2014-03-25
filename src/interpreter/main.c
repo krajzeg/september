@@ -66,7 +66,7 @@ void report_exception(SepV exception_v) {
 // ===============================================================
 
 SepV load_runtime() {
-	return load_module_by_name(sepstr_create("runtime"));
+	return load_module_by_name(sepstr_for("runtime"));
 }
 
 // ===============================================================

@@ -44,7 +44,7 @@ SepObj *create_string_prototype() {
 	SepObj *String = make_class("String", NULL);
 
 	BuiltInFunc *upper = builtin_create(&string_upper, 0);
-	props_accept_prop(String, sepstr_create("upper"), method_create(func_to_sepv(upper)));
+	props_accept_prop(String, sepstr_for("upper"), method_create(func_to_sepv(upper)));
 
 	return String;
 }

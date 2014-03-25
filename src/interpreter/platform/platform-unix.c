@@ -45,7 +45,7 @@ SepString *get_executable_path() {
 	// create the SepString
 	char *buffer = calloc(strlen(exec_arg) + 1, 1);
 	strncpy(buffer, exec_arg, last_slash - exec_arg);
-	SepString *exec_path = sepstr_create(buffer);
+	SepString *exec_path = sepstr_for(buffer);
 	free(buffer);
 	
 	return exec_path;

@@ -72,7 +72,7 @@ SepItem object_resolve(SepObj *scope, ExecutionFrame *frame) {
 // Checks whether the object belongs to a class given as parameter.
 SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
-	Slot *cls_slot = sepv_lookup(target, sepstr_create("<class>"));
+	Slot *cls_slot = sepv_lookup(target, sepstr_for("<class>"));
 	if (cls_slot) {
 		// is it the thing we're looking for?
 		SepV desired_class = param(scope, "desired_class");
@@ -85,7 +85,7 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 				return si_bool(true);
 
 			// nope, let's see if we have a further superclass
-			Slot *pc_slot = sepv_lookup(actual_class, sepstr_create("<superclass>"));
+			Slot *pc_slot = sepv_lookup(actual_class, sepstr_for("<superclass>"));
 			if (pc_slot) {
 				// yes, we do - look there
 				actual_class = pc_slot->vt->retrieve(pc_slot, actual_class);

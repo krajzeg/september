@@ -244,10 +244,35 @@ bool props_prop_exists(void *map, SepString *name) {
 
 void props_add_field(void *map, const char *name, SepV value) {
 	PropertyMap *this = (PropertyMap*) map;
-	SepString *s_name = sepstr_create(name);
+	SepString *s_name = sepstr_for(name);
 	Slot *slot = field_create(value);
 	props_accept_prop(this, s_name, slot);
 }
+
+// Finds the hash table entry based on a raw hash and key string. Low-level
+// functionality, mostly useful for the string cache.
+PropertyEntry *props_find_entry_raw(void *map, const char *name, uint32_t hash) {
+	PropertyMap *this = (PropertyMap*)map;
+	// find the correct first entry for the bucket
+	uint32_t index = hash % this->capacity;
+	PropertyEntry *entry = &this->entries[index];
+
+	// is this the right bucket (empty or containing the named prop?)
+	if ((entry->name) && (!strcmp(entry->name->cstr, name))) {
+		return entry;
+	}
+
+	// look through the linked list
+	while (entry->next_entry) {
+		entry = &this->entries[entry->next_entry];
+		if (!strcmp(entry->name->cstr, name))
+			return entry;
+	}
+
+	// nothing found
+	return NULL;
+}
+
 
 // ===============================================================
 //  Property iteration
@@ -456,7 +481,7 @@ SepFunc *sepv_call_target(SepV value) {
 	if (sepv_is_func(value))
 		return sepv_to_func(value);
 
-	Slot *call_slot = sepv_lookup(value, sepstr_create("<call>"));
+	Slot *call_slot = sepv_lookup(value, sepstr_for("<call>"));
 	if (!call_slot)
 		return NULL;
 

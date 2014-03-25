@@ -139,6 +139,10 @@ bool props_prop_exists(void *this, SepString *name);
 void props_add_field(void *this, const char *name,
 		SepV value);
 
+// Finds the hash table entry based on a raw hash and key string. Low-level
+// functionality, mostly useful for the string cache.
+PropertyEntry *props_find_entry_raw(void *this, const char *name, uint32_t hash);
+
 // ===============================================================
 //  Property iteration
 // ===============================================================

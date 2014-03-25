@@ -63,7 +63,7 @@ SepV array_pop(SepArray *this) {
 	// underflow exception?
 	if (value_ptr == NULL) {
 		return sepv_exception(exc.EWrongIndex,
-			sepstr_create("Attempted to pop a value from an empty array."));
+			sepstr_for("Attempted to pop a value from an empty array."));
 	}
 
 	// return

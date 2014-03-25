@@ -44,7 +44,7 @@ SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 
 	// end of iteration?
 	if (arrayit_end(iterator))
-		return si_exception(exc.ENoMoreElements, sepstr_create("No more elements."));
+		return si_exception(exc.ENoMoreElements, sepstr_for("No more elements."));
 
 	// nope, return element
 	SepV element = arrayit_next(iterator);

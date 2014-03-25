@@ -86,7 +86,7 @@ int _built_in_execute_instructions(SepFunc *this, ExecutionFrame *frame, int lim
 	BuiltInImplFunc implementation = ((BuiltInFunc*)this)->implementation;
 	if (!sepv_is_obj(frame->locals)) {
 		frame_raise(frame, sepv_exception(exc.EInternal,
-				sepstr_create("Built-ins cannot be called in custom scopes.")));
+				sepstr_for("Built-ins cannot be called in custom scopes.")));
 		return 1;
 	}
 	SepObj *scope = sepv_to_obj(frame->locals);
@@ -167,7 +167,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		parameter->flags.lazy = parameter_extract_flag(&param_name, "?");
 
 		// set the name (undecorated by now, the decoration got translated into flags)
-		parameter->name = sepstr_create(param_name);
+		parameter->name = sepstr_for(param_name);
 	}
 	
 	// return

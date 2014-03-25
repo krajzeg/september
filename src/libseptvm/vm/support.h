@@ -26,8 +26,8 @@
 
 #define raise(exc_type, ...) return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
 
-#define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_create(err.message)); }
-#define or_raise_sepv(exc_type) if (err.type && (!err.handled)) { return sepv_exception(exc_type, sepstr_create(err.message)); }
+#define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_new(err.message)); }
+#define or_raise_sepv(exc_type) if (err.type && (!err.handled)) { return sepv_exception(exc_type, sepstr_new(err.message)); }
 #define or_raise_with_msg(exc_type, ...) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__)); }
 
 #define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
@@ -44,7 +44,7 @@
 #define target_as_int(scope, err_ptr) _target_as(scope, int, err_ptr)
 #define _target_as(scope, desired_type, err_ptr) cast_as_named_##desired_type("Target object", target(scope), err_ptr)
 
-#define param(scope, param_name) (props_get_prop(scope, sepstr_create(param_name)))
+#define param(scope, param_name) (props_get_prop(scope, sepstr_for(param_name)))
 #define param_as_str(scope, param_name, err_ptr) _param_as(scope, param_name, str, err_ptr)
 #define param_as_obj(scope, param_name, err_ptr) _param_as(scope, param_name, obj, err_ptr)
 #define param_as_func(scope, param_name, err_ptr) _param_as(scope, param_name, func, err_ptr)

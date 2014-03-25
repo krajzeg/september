@@ -42,7 +42,7 @@ SepString *get_executable_path() {
 	*last_slash = '\0';
 
 	// return as SepString*
-	return sepstr_create(buffer);
+	return sepstr_for(buffer);
 }
 
 // Tests for existence of a file (wrapper for stat()).

@@ -257,7 +257,7 @@ SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list
 	SepFunc *func = sepv_call_target(callable);
 	if (!func) {
 		return si_exception(exc.EWrongType,
-			sepstr_create("Attempted to call an object which is not callable."));
+			sepstr_for("Attempted to call an object which is not callable."));
 	}
 
 	// verify parameter count

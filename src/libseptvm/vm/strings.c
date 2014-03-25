@@ -17,15 +17,66 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../common/debugging.h"
 #include "mem.h"
 #include "types.h"
+#include "objects.h"
 #include "strings.h"
+#include "runtime.h"
+
+// ===============================================================
+//  Hashing implementation
+// ===============================================================
+
+// The current string hash implementation, Bernstein's DJB2 hash.
+uint32_t cstring_hash(const char *c_string) {
+	uint32_t hash = 5381;
+	uint8_t *str = (uint8_t*)c_string;
+	uint8_t c;
+	while ((c = *str++))
+		hash = ((hash << 5) + hash) ^ c;
+
+	return hash;
+}
 
 // ===============================================================
 //  Strings
 // ===============================================================
 
-SepString *sepstr_create(const char *c_string) {
+SepString *sepstr_for(const char *c_string) {
+	static Slot *string_cache_slot = NULL;
+
+	// look in the cache and returned interned string if something's there
+	uint32_t hash = cstring_hash(c_string);
+	if (rt.string_cache) {
+		PropertyEntry *entry = props_find_entry_raw(rt.string_cache, c_string, hash);
+		if (entry) {
+			log("strcache", "Returning cached string: '%s'", c_string);
+			return entry->name;
+		}
+	}
+
+	// create and intern a new string
+	SepString *string = mem_allocate(sepstr_allocation_size(c_string));
+	sepstr_init(string, c_string);
+
+	// we know the hash already
+	string->hash = hash;
+
+	// strings might be used before the string_cache is initialized
+	// but if it is, intern the string
+	if (rt.string_cache) {
+		if (!string_cache_slot)
+			string_cache_slot = field_create(SEPV_NOTHING);
+		props_accept_prop(rt.string_cache, string, string_cache_slot);
+	}
+
+	log("strcache", "Returning new string: '%s'", c_string);
+	return string;
+}
+
+SepString *sepstr_new(const char *c_string) {
+	// create new string, without interning
 	SepString *string = mem_allocate(sepstr_allocation_size(c_string));
 	sepstr_init(string, c_string);
 	return string;
@@ -50,17 +101,17 @@ SepString *sepstr_sprintf(const char *format, ...) {
 		va_end(args);
 	} while (!fit);
 
-	SepString *new_sepstr = sepstr_create(buffer);
+	SepString *new_sepstr = sepstr_new(buffer);
 	free(buffer);
 	return new_sepstr;
 }
 
 SepV sepv_string(char *c_string) {
-	return str_to_sepv(sepstr_create(c_string));
+	return str_to_sepv(sepstr_for(c_string));
 }
 
 SepItem si_string(char *c_string) {
-	SepItem si = {NULL, str_to_sepv(sepstr_create(c_string))};
+	SepItem si = {NULL, str_to_sepv(sepstr_for(c_string))};
 	return si;
 }
 
@@ -79,16 +130,8 @@ uint32_t sepstr_hash(SepString *this) {
 	if (this->hash)
 		return this->hash;
 
-	// calculate hash - the current logic is Bernstein's
-	// DJB2 hashing function
-	uint32_t hash = 5381;
-	uint8_t *str = (uint8_t*)this->cstr;
-	uint8_t c;
-	while ((c = *str++))
-		hash = ((hash << 5) + hash) ^ c;
-
-	// remember and return
-	return this->hash = hash;
+	// hash, remember and return
+	return (this->hash = cstring_hash(this->cstr));
 }
 
 int sepstr_cmp(SepString *this, SepString *other) {

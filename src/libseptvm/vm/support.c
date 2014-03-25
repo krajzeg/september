@@ -77,7 +77,7 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err) {
 
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents) {
-	props_accept_prop(obj, sepstr_create(name), field_create(contents));
+	props_accept_prop(obj, sepstr_for(name), field_create(contents));
 }
 
 // Adds a new built-in method to a given object.
@@ -89,7 +89,7 @@ void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_create(name), method_create(func_to_sepv(builtin)));
+	props_accept_prop(obj, sepstr_for(name), method_create(func_to_sepv(builtin)));
 }
 
 // Adds a new built-in free function (as opposed to a method) to a given object.
@@ -101,7 +101,7 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_create(name), field_create(func_to_sepv(builtin)));
+	props_accept_prop(obj, sepstr_for(name), field_create(func_to_sepv(builtin)));
 }
 
 // Adds a new prototype to the object.
@@ -138,7 +138,7 @@ void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, Se
 // Function simplifying property retrieval with constant name,
 // used instead of sepv_get when you don't have a SepStr.
 SepV property(SepV host, char *name) {
-	return sepv_get(host, sepstr_create(name));
+	return sepv_get(host, sepstr_for(name));
 }
 
 
@@ -172,7 +172,7 @@ SepObj *make_class(char *name, SepObj *parent) {
 	SepObj *cls = obj_create_with_proto(parent_v);
 
 	// store the name permanently for future reference
-	obj_add_field(cls, "<name>", str_to_sepv(sepstr_create(name)));
+	obj_add_field(cls, "<name>", str_to_sepv(sepstr_for(name)));
 	obj_add_field(cls, "<class>", obj_to_sepv(cls));
 	obj_add_field(cls, "<superclass>", parent_v);
 
@@ -261,7 +261,7 @@ SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	// look for the class
-	Slot *class_slot = sepv_lookup(sepv, sepstr_create("<class>"));
+	Slot *class_slot = sepv_lookup(sepv, sepstr_for("<class>"));
 	if (class_slot) {
 		// retrieve the name of the class
 		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);
