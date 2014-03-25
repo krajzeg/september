@@ -153,12 +153,6 @@ void sepstr_init(SepString *this, const char *c_string);
 uint32_t sepstr_hash(SepString *this);
 int sepstr_cmp(SepString *this, SepString *other);
 
-// ===============================================================
-//  Objects
-// ===============================================================
-
-SepItem si_obj(void *object);
-
 /*******************************************************************/
 
 #endif

@@ -313,6 +313,11 @@ SepObj *obj_create_with_proto(SepV proto) {
 	return obj;
 }
 
+// Shortcut to quickly create a SepItem with a given object as r-value.
+SepItem si_obj(void *object) {
+	return item_rvalue(obj_to_sepv(object));
+}
+
 // ===============================================================
 //  Object-like behavior for all types
 // ===============================================================

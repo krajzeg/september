@@ -213,6 +213,8 @@ typedef struct SepObj {
 SepObj *obj_create();
 // Creates a new object with a chosen prototype(s).
 SepObj *obj_create_with_proto(SepV proto);
+// Shortcut to quickly create a SepItem with a given object as r-value.
+SepItem si_obj(void *object);
 
 // ===============================================================
 //  Property lookup for all types
