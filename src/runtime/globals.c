@@ -161,17 +161,17 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
-			SepV body_l = property(branch, "body");
-			SepV result = vm_resolve(frame->vm, body_l);
+			SepV body_v = property(branch, "body");
+			SepV result = vm_subcall(frame->vm, body_v, 0).value;
 			return item_rvalue(result);
 		}
 	}
 
 	// none of the conditions match - do we have an 'else'?
-	SepV else_l = property(ifs, "else_branch");
-	if (else_l != SEPV_NOTHING) {
+	SepV else_v = property(ifs, "else_branch");
+	if (else_v != SEPV_NOTHING) {
 		// there was an 'else', so execute that
-		SepV result = vm_resolve(frame->vm, else_l);
+		SepV result = vm_subcall(frame->vm, else_v, 0).value;
 		return item_rvalue(result);
 	} else {
 		// no branch matched, did nothing, return nothing
@@ -211,7 +211,7 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV body_l = param(scope, "body");
 	while (condition == SEPV_TRUE) {
 		// execute body
-		SepV result = vm_resolve_in(frame->vm, body_l, obj_to_sepv(while_body_scope));
+		SepV result = vm_subcall_in(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
 			or_propagate(result);
 
 		// break?
@@ -297,7 +297,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// execute the body of the loop
 		props_set_prop(for_body_scope, variable_name, element);
-		SepV result = vm_resolve_in(frame->vm, body_l, for_body_scope_v);
+		SepV result = vm_subcall_in(frame->vm, body_l, for_body_scope_v, 0).value;
 			or_propagate(result);
 
 		// breaking
@@ -373,8 +373,8 @@ SepItem statement_try(SepObj *scope, ExecutionFrame *frame) {
 SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	// execute the body
 	SepV try_s = target(scope);
-	SepV try_body_l = property(try_s, "body");
-	SepV try_result = vm_resolve(frame->vm, try_body_l);
+	SepV try_body_v = property(try_s, "body");
+	SepV try_result = vm_subcall(frame->vm, try_body_v, 0).value;
 
 	// was there an exception?
 	if (sepv_is_exception(try_result)) {
@@ -395,7 +395,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 
 			// the type matches, run the catcher body
 			SepV catcher_body = property(catcher_obj, "body");
-			SepV catch_result = vm_resolve(frame->vm, catcher_body);
+			SepV catch_result = vm_subcall(frame->vm, catcher_body, 0).value;
 				or_propagate(catch_result);
 
 			// phew, exception handled!
@@ -409,8 +409,8 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepArray *finalizers = sepv_to_array(property(try_s, "finalizers"));
 	SepArrayIterator it = array_iterate_over(finalizers);
 	while (!arrayit_end(&it)) {
-		SepV finalizer_l = arrayit_next(&it);
-		SepV finalizer_result = vm_resolve(frame->vm, finalizer_l);
+		SepV finalizer_v = arrayit_next(&it);
+		SepV finalizer_result = vm_subcall(frame->vm, finalizer_v, 0).value;
 			or_propagate(finalizer_result);
 	}
 

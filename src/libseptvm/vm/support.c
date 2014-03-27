@@ -151,7 +151,7 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 
 	va_list args;
 	va_start(args, argument_count);
-	SepV result = vm_subcall_v(vm, method_v, argument_count, args).value;
+	SepV result = vm_subcall_v(vm, method_v, SEPV_NO_VALUE, argument_count, args).value;
 	va_end(args);
 
 	return result;

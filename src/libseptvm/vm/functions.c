@@ -33,10 +33,21 @@
 //  Function parameters
 // ===============================================================
 
-// Sets the value of the parameter in a given execution scope object.
-void funcparam_set_in_scope(FuncParam *this, SepObj *scope, SepV value) {
+
+// Sets the value of the parameter in a given execution scope object. Signals problems
+// by returning an exception SepV.
+SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scope, SepV value) {
+	// resolve lazy closures
+	if (sepv_is_lazy(value) && (!this->flags.lazy)) {
+		// a lazy argument and an eager parameter - trigger resolution
+			value = vm_resolve(frame->vm, value);
+			if (sepv_is_exception(value))
+				return value;
+	}
+
+	// pass value in the right manner
 	if (this->flags.sink) {
-		// a '...' sink parameter - always an array
+		// we have a '...' sink parameter - use an array
 		SepArray *sink_array;
 		if (props_find_prop(scope, this->name)) {
 			// the array is present already
@@ -52,6 +63,9 @@ void funcparam_set_in_scope(FuncParam *this, SepObj *scope, SepV value) {
 		// standard parameter, just set the value
 		props_accept_prop(scope, this->name, field_create(value));
 	}
+
+	// everything OK
+	return SEPV_NOTHING;
 }
 
 // Finalizes the value of the parameter - this is where default parameter
@@ -71,6 +85,49 @@ void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err)
 		fail(error_create(EWrongArguments, "Required parameter '%s' is missing.",
 				this->name->cstr));
 	}
+}
+
+// Sets up the all the call arguments inside the execution scope. Also validates them.
+// Any problems found will be reported as an exception SepV in the return value.
+SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scope, ArgumentSource *arguments) {
+	SepError err = NO_ERROR;
+
+	// grab the argument count
+	argcount_t arg_count = arguments->vt->argument_count(arguments);
+
+	FuncParam *parameters = func->vt->get_parameters(func);
+	argcount_t param_count = func->vt->get_parameter_count(func);
+
+	// put arguments into the execution scope
+	argcount_t arg_index = 0, param_index = 0;
+	for (; arg_index < arg_count; arg_index++) {
+		SepV argument = arguments->vt->get_next_argument(arguments);
+		if (sepv_is_exception(argument))
+			return argument;
+
+		FuncParam *param = &parameters[param_index];
+
+		// set the argument in scope
+		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, argument);
+		if (sepv_is_exception(setting_exc))
+			return setting_exc;
+
+		// next parameter (unless this is the sink)
+		if (!param->flags.sink)
+			param_index++;
+	}
+
+	// finalize and validate parameters
+	for (param_index = 0; param_index < param_count; param_index++) {
+		FuncParam *param = &parameters[param_index];
+		funcparam_finalize_value(param, scope, &err);
+			or_handle(EAny) {
+				return sepv_exception(exc.EWrongArguments, sepstr_for(err.message));
+			};
+	}
+
+	// everything ok
+	return SEPV_NOTHING;
 }
 
 // ===============================================================
@@ -149,6 +206,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	// allocate and setup basic properties
 	BuiltInFunc *built_in = mem_allocate(sizeof(BuiltInFunc));
 	built_in->base.vt = &built_in_func_vtable;
+	built_in->base.lazy = false;
 	built_in->parameter_count = parameters;
 	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
 	built_in->implementation = implementation;
@@ -269,9 +327,43 @@ SepFuncVTable interpreted_func_vtable = {
 InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	InterpretedFunc *func = mem_allocate(sizeof(InterpretedFunc));
 	func->base.vt = &interpreted_func_vtable;
+	func->base.lazy = false;
 	func->block = block;
 	func->declaration_scope = declaration_scope;
 	return func;
+}
+
+// ===============================================================
+//  Lazy closures
+// ===============================================================
+
+// exact copy of the ifunc vtable
+SepFuncVTable lazy_closure_vtable = {
+	&_interpreted_initialize_frame,
+	&_interpreted_execute_instructions,
+	&_interpreted_get_parameter_count,
+	&_interpreted_get_parameters,
+	&_interpreted_get_declaration_scope,
+	&_interpreted_get_this_pointer
+};
+
+// Creates a new lazy closure for a given expression.
+InterpretedFunc *lazy_create(CodeBlock *block, SepV declaration_scope) {
+	InterpretedFunc *func = ifunc_create(block, declaration_scope);
+	func->base.lazy = true;
+	return func;
+}
+
+// Checks whether a given SepV is a lazy closure.
+bool sepv_is_lazy(SepV sepv) {
+	if (!sepv_is_func(sepv)) return false;
+	SepFunc *func = sepv_to_func(sepv);
+	return func->lazy;
+}
+
+// Checks whether a given SepFunc* is a lazy closure.
+bool func_is_lazy(SepFunc *func) {
+	return func->lazy;
 }
 
 // ===============================================================

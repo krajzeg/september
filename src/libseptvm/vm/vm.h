@@ -29,6 +29,45 @@ struct SepVM;
 struct ExecutionFrame;
 
 // ===============================================================
+//  Argument sources
+// ===============================================================
+
+/**
+ * An argument source is a place from which arguments for a function
+ * call are gathered. There are 3 ways to do it:
+ * - opcode LAZY - arguments come from bytecode
+ * - vm_subcall_va - arguments come from a C vararg list
+ * - vm_subcall_array - arguments come from a SepArray
+ * Hence, a polymorphic iterator interface for getting them was needed.
+ */
+struct ArgumentSourceVT;
+typedef struct ArgumentSource {
+	struct ArgumentSourceVT *vt;
+} ArgumentSource;
+
+typedef uint8_t argcount_t;
+typedef struct ArgumentSourceVT {
+	// gets the total number of arguments to pass
+	argcount_t (*argument_count)(ArgumentSource *);
+	// returns an argument and advances the source to the next one
+	SepV (*get_next_argument)(ArgumentSource *);
+} ArgumentSourceVT;
+
+/**
+ * Argument source for getting arguments stored in bytecode.
+ */
+typedef struct BytecodeArgs {
+	struct ArgumentSource base;
+	// source for arguments
+	struct ExecutionFrame *source_frame;
+	// stored argument count
+	argcount_t argument_count;
+} BytecodeArgs;
+
+// Initializes a new bytecode source in place.
+void bytecodeargs_init(BytecodeArgs *this, struct ExecutionFrame *frame);
+
+// ===============================================================
 //  Execution frame
 // ===============================================================
 
@@ -103,7 +142,7 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module);
 // the prototype chain for the scope to include the 'syntax' object, the 'this'
 // pointer, and the declaration scope of the function. It also sets up the
 // 'locals' and 'this' properties.
-void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *locals_obj);
+void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *exec_scope, ExecutionFrame *exec_frame);
 // Initializes an execution frame for running a given function.
 // It takes as arguments the frame to initialize, the function to run within the frame,
 // and the execution scope object. The scope object should have the proper prototype
@@ -119,9 +158,13 @@ void vm_free(SepVM *this);
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // Any number of arguments can be passed in, and they should be passed as SepVs.
 SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...);
+// Makes a subcall, but runs the callable in a specified scope (instead of using a normal
+// this + declaration scope + locals scope). Any arguments passed will be added to the
+// scope you specify.
+SepItem vm_subcall_in(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...);
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // A started va_list of SepVs should be passed in by another vararg function.
-SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t parameter_count, va_list args);
+SepItem vm_subcall_v(SepVM *this, SepV callable, SepV custom_scope, uint8_t parameter_count, va_list args);
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value);

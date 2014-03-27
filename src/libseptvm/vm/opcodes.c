@@ -21,6 +21,7 @@
 #include "objects.h"
 #include "arrays.h"
 #include "exceptions.h"
+#include "functions.h"
 #include "vm.h"
 
 #include "../vm/runtime.h"
@@ -56,82 +57,26 @@ void push_const_impl(ExecutionFrame *frame) {
 }
 
 void lazy_call_impl(ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-
-	// quick references
+	// get reference to the function being called
 	SepStack *stack = frame->data;
 	SepFunc *func = sepv_call_target(stack_pop_value(stack));
 
-	// verify argument/parameter relationship
-	uint8_t arg_count = (uint8_t)frame_read(frame);
-	log("opcodes", "lazy <%d args>", arg_count);
+	// use the VM's BytecodeArgs object to avoid allocation
+	BytecodeArgs bcargs;
+	ArgumentSource *args = (ArgumentSource*)(&bcargs);
+	bytecodeargs_init(&bcargs, frame);
 
-	FuncParam *parameters = func->vt->get_parameters(func);
-	uint8_t param_count = func->vt->get_parameter_count(func);
+	log("opcodes", "lazy <%d args>", args->vt->argument_count(args));
 
-	// put arguments into the execution scope
 	SepObj *execution_scope = obj_create();
-	uint8_t arg_index = 0, param_index = 0;
-	for (; arg_index < arg_count; arg_index++) {
-		CodeUnit argument_code = frame_read(frame);
-		FuncParam *param = &parameters[param_index];
-
-		// did we get a constant or a block?
-		SepV argument;
-		if (argument_code > 0) {
-			// constant, that's easy!
-			argument = frame_constant(frame, argument_code);
-		} else {
-			// block - that's a lazy evaluated argument
-			CodeBlock *block = frame_block(frame, -argument_code);
-			if (!block) {
-				frame_raise(frame, sepv_exception(exc.EInternal,
-						sepstr_sprintf("Code block %d out of bounds.", -argument_code)));
-				return;
-			}
-			SepFunc *argument_l = (SepFunc*)ifunc_create(block, frame->locals);
-
-			if (param->flags.lazy) {
-				// the parameter is also lazy - we'll pass the function for later evaluation
-				argument = func_to_sepv(argument_l);
-			} else {
-				// the argument is eager - evaluate right now (in current scope)
-				// and we'll pass the return value to the parameter
-				argument = vm_resolve(frame->vm, func_to_sepv(argument_l));
-				// propagate exception, if any
-				if (sepv_is_exception(argument)) {
-					frame_raise(frame, argument);
-					return;
-				}
-			}
-
-		}
-
-		// set the argument in scope
-		funcparam_set_in_scope(param, execution_scope, argument);
-
-		// next parameter (unless this is the sink)
-		if (!param->flags.sink)
-			param_index++;
+	SepV argument_exception = funcparam_pass_arguments(frame, func, execution_scope, args);
+	if (sepv_is_exception(argument_exception)) {
+		frame_raise(frame, argument_exception);
+		return;
 	}
-
-	// finalize and validate parameters
-	for (param_index = 0; param_index < param_count; param_index++) {
-		FuncParam *param = &parameters[param_index];
-		funcparam_finalize_value(param, execution_scope, &err);
-			or_handle(EAny) {
-				frame_raise(frame, sepv_exception(
-						exc.EWrongArguments,
-						sepstr_for(err.message)));
-			};
-	}
-
-	// add a 'return' function
-	BuiltInFunc *return_f = make_return_func(frame->next_frame);
-	obj_add_field(execution_scope, "return", func_to_sepv(return_f));
 
 	// initialize a new frame for the function being called
-	vm_initialize_scope(frame->vm, func, execution_scope);
+	vm_initialize_scope(frame->vm, func, execution_scope, frame->next_frame);
 	vm_initialize_frame(frame->vm, frame->next_frame, func, obj_to_sepv(execution_scope));
 
 	// we're making a call, so let the VM know about that

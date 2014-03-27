@@ -53,6 +53,47 @@ void frame_raise(ExecutionFrame *frame, SepV exception) {
 }
 
 // ===============================================================
+//  Argument sources
+// ===============================================================
+
+argcount_t _bytecode_argument_count(ArgumentSource *_this) {
+	return ((BytecodeArgs*)_this)->argument_count;
+}
+
+SepV _bytecode_next_argument(ArgumentSource *_this) {
+	ExecutionFrame *frame = ((BytecodeArgs*)_this)->source_frame;
+
+	// read the argument code
+	CodeUnit argument_code = frame_read(frame);
+
+	// did we get a constant or a block?
+	if (argument_code > 0) {
+		// constant, that's easy!
+		return frame_constant(frame, argument_code);
+	} else {
+		// block - that's a lazy evaluated argument
+		CodeBlock *block = frame_block(frame, -argument_code);
+		if (!block) {
+			return sepv_exception(exc.EInternal,
+					sepstr_sprintf("Code block %d out of bounds.", -argument_code));
+		}
+		SepFunc *argument_l = (SepFunc*)lazy_create(block, frame->locals);
+		return func_to_sepv(argument_l);
+	}
+}
+
+ArgumentSourceVT bytecode_args_vt = {
+	&_bytecode_argument_count, &_bytecode_next_argument
+};
+
+// Initializes a new bytecode source in place.
+void bytecodeargs_init(BytecodeArgs *this, ExecutionFrame *frame) {
+	this->base.vt = &bytecode_args_vt;
+	this->source_frame = frame;
+	this->argument_count = (argcount_t)frame_read(frame);
+}
+
+// ===============================================================
 //  The virtual machine
 // ===============================================================
 
@@ -182,7 +223,7 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	root_func->base.vt->initialize_frame((SepFunc*)root_func, frame);
 }
 
-void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope) {
+void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, ExecutionFrame *exec_frame) {
 	SepV exec_scope_v = obj_to_sepv(exec_scope);
 
 	// take prototypes based on the function
@@ -203,6 +244,10 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope) {
 	props_add_field(exec_scope, "locals", exec_scope_v);
 	if (this_ptr_v != SEPV_NOTHING)
 		props_add_field(exec_scope, "this", this_ptr_v);
+
+	// add a 'return' function to the scope
+	BuiltInFunc *return_f = make_return_func(exec_frame);
+	obj_add_field(exec_scope, "return", func_to_sepv(return_f));
 }
 
 // Initializes an execution frame for running a given function.
@@ -245,14 +290,25 @@ void vm_free(SepVM *this) {
 SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...) {
 	va_list args;
 	va_start(args, argument_count);
-	SepItem result = vm_subcall_v(this, callable, argument_count, args);
+	SepItem result = vm_subcall_v(this, callable, SEPV_NO_VALUE, argument_count, args);
+	va_end(args);
+	return result;
+}
+
+// Makes a subcall, but runs the callable in a specified scope (instead of using a normal
+// this + declaration scope + locals scope). Any arguments passed will be added to the
+// scope you specify.
+SepItem vm_subcall_in(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...) {
+	va_list args;
+	va_start(args, argument_count);
+	SepItem result = vm_subcall_v(this, callable, execution_scope, argument_count, args);
 	va_end(args);
 	return result;
 }
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // A started va_list of SepVs should be passed in by another vararg function.
-SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list args) {
+SepItem vm_subcall_v(SepVM *this, SepV callable, SepV custom_scope, uint8_t argument_count, va_list args) {
 	// get a call target
 	SepFunc *func = sepv_call_target(callable);
 	if (!func) {
@@ -268,7 +324,8 @@ SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list
 		return si_exception(exc.EInternal, sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
 
 	// put parameters in
-	SepObj *scope = obj_create();
+	bool custom_scope_provided = custom_scope != SEPV_NO_VALUE;
+	SepObj *scope = custom_scope_provided ? sepv_to_obj(custom_scope) : obj_create();
 	for (index = 0; index < argument_count; index++) {
 		SepV arg = va_arg(args, SepV);
 		FuncParam *param = &parameters[index];
@@ -280,7 +337,8 @@ SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list
 	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth);
 	ExecutionFrame *frame = &this->frames[this->frame_depth];
 
-	vm_initialize_scope(this, func, scope);
+	if (!custom_scope_provided)
+		vm_initialize_scope(this, func, scope, frame);
 	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
 
 	// run to get result
@@ -291,7 +349,7 @@ SepItem vm_subcall_v(SepVM *this, SepV callable, uint8_t argument_count, va_list
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value) {
-	if (sepv_is_func(lazy_value)) {
+	if (sepv_is_lazy(lazy_value)) {
 		// function - resolve it in it's default scope
 		SepFunc *func = sepv_to_func(lazy_value);
 		SepV scope = func->vt->get_declaration_scope(func);
@@ -306,7 +364,7 @@ SepV vm_resolve(SepVM *this, SepV lazy_value) {
 // of in its parent scope).
 SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 	// maybe it doesn't need resolving?
-	if (!sepv_is_func(lazy_value))
+	if (!sepv_is_lazy(lazy_value))
 		return lazy_value;
 
 	// it does - extract the function and set up a frame for it

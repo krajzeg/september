@@ -107,6 +107,10 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 // return value used by the "break" function to signify breaking
 // out of the loop
 #define SEPV_BREAK (SEPV_TYPE_SPECIAL | 0x06)
+// an internal special value used to signify "no SEPV was passed in"
+// different than SEPV_NOTHING, as Nothing is a real object that
+// can be passed to a function (unlike SEPV_NO_VALUE).
+#define SEPV_NO_VALUE (SEPV_TYPE_SPECIAL | 0x07)
 
 // ===============================================================
 //  Booleans and special values

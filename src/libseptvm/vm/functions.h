@@ -25,6 +25,7 @@
 //  Pre-declaring structs
 // ===============================================================
 
+struct ArgumentSource;
 struct ExecutionFrame;
 struct SepFunc;
 
@@ -42,11 +43,9 @@ typedef struct FuncParam {
 	} flags;
 } FuncParam;
 
-// Sets the value of the parameter in a given execution scope object.
-void funcparam_set_in_scope(FuncParam *this, SepObj *scope, SepV value);
-// Finalizes the value of the parameter - this is where default parameter
-// values are set and parameters are validated.
-void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err);
+// Sets up the all the call arguments inside the execution scope. Also validates them.
+// Any problems found will be reported as an exception SepV in the return value.
+SepV funcparam_pass_arguments(struct ExecutionFrame *frame, struct SepFunc *func, SepObj *scope, struct ArgumentSource *arguments);
 
 // ===============================================================
 //  Common function interface
@@ -72,6 +71,8 @@ typedef struct SepFuncVTable {
 typedef struct SepFunc {
 	// v-table that controls actual behavior
 	SepFuncVTable *vt;
+	// is this a lazy closure?
+	bool lazy;
 } SepFunc;
 
 // ===============================================================
@@ -149,6 +150,22 @@ typedef struct InterpretedFunc {
 
 // Creates a new interpreted function for a given piece of code.
 InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope);
+
+// ===============================================================
+//  Lazy closures
+// ===============================================================
+
+/**
+ * Lazy closures are implemented as interpreted functions, but with
+ * a different v-table address to make them recognizable.
+ */
+
+// Creates a new lazy closure for a given expression.
+InterpretedFunc *lazy_create(CodeBlock *block, SepV declaration_scope);
+// Checks whether a given SepV is a lazy closure.
+bool sepv_is_lazy(SepV sepv);
+// Checks whether a given SepFunc* is a lazy closure.
+bool func_is_lazy(SepFunc *func);
 
 // ===============================================================
 //  Bound method objects
