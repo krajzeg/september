@@ -120,6 +120,31 @@ void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
 }
 
 // ===============================================================
+//  Array-based argument source
+// ===============================================================
+
+argcount_t _arrayargs_argument_count(ArgumentSource *_this) {
+	return array_length(((ArrayArgs*)_this)->array);
+}
+
+SepV _arrayargs_next_argument(ArgumentSource *_this) {
+	ArrayArgs *this = (ArrayArgs*)_this;
+	return arrayit_next(&this->iterator);
+}
+
+ArgumentSourceVT array_args_vt = {
+	&_arrayargs_argument_count,
+	&_arrayargs_next_argument
+};
+
+// Initializes a new VAArgs source in place.
+void arrayargs_init(ArrayArgs *this, SepArray *array) {
+	this->base.vt = &array_args_vt;
+	this->array = array;
+	this->iterator = array_iterate_over(array);
+}
+
+// ===============================================================
 //  The virtual machine
 // ===============================================================
 

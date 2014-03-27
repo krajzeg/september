@@ -18,6 +18,7 @@
 #include "types.h"
 #include "functions.h"
 #include "objects.h"
+#include "arrays.h"
 #include "stack.h"
 #include "module.h"
 
@@ -26,6 +27,7 @@
 // ===============================================================
 
 struct SepVM;
+struct SepArray;
 struct ExecutionFrame;
 
 // ===============================================================
@@ -81,6 +83,20 @@ typedef struct VAArgs {
 
 // Initializes a new VAArgs source in place.
 void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args);
+
+/**
+ * Argument source for arguments in a SepArray.
+ */
+typedef struct ArrayArgs {
+	struct ArgumentSource base;
+	// the array
+	SepArray *array;
+	// iterator for going over the elements
+	SepArrayIterator iterator;
+} ArrayArgs;
+
+// Initializes a new ArrayArgs source in place.
+void arrayargs_init(ArrayArgs *this, SepArray *args);
 
 // ===============================================================
 //  Execution frame

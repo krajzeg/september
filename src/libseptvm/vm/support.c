@@ -141,6 +141,11 @@ SepV property(SepV host, char *name) {
 	return sepv_get(host, sepstr_for(name));
 }
 
+// Checks whether a named property exists on a host object (including prototype lookup).
+bool property_exists(SepV host, char *name) {
+	Slot *slot = sepv_lookup(host, sepstr_for(name));
+	return (slot != NULL);
+}
 
 // Calls a method from a SepV and returns the return value. Any problems
 // (the method not being there, the property not being callable) are

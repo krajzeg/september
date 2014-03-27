@@ -91,6 +91,9 @@ SepV property(SepV host, char *name);
 // Retrieves a property and casts it to a string.
 #define prop_as_str(host, name, err) (cast_as_named_str("Property '" name "'", property(host, name), err))
 
+// Checks whether a named property exists on a host object (including prototype lookup).
+bool property_exists(SepV host, char *name);
+
 // Calls a method from a SepV and returns the return value. Any problems
 // (the method not being there, the property not being callable) are
 // reported as an exception. Arguments have to be passed in as SepVs.

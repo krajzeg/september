@@ -1,0 +1,16 @@
+Delayed := Class.new("Delayed")
+Delayed::"<constructor>" = |?operation| {
+	this:operation = operation
+}
+Delayed::run = {
+	this.operation.resolve()
+}
+
+
+x := 40
+increment := Delayed(x = x + 1)
+print("The operation did not run, so x should be 40:", x)
+
+increment.run()
+increment.run()
+print("The operation has run twice, so x should be 42:", x)
