@@ -1,0 +1,15 @@
+# Test for how sink and lazy parameters are handled by callables
+
+execute_and_print := Object()
+execute_and_print::"<call>" = |?expr, ?...operations| {
+	print("Value starts as:", expr.resolve())
+	for (op) in (operations) {
+		op.resolve()
+		print("Value is now:", expr.resolve())
+	}
+}
+
+x := 21
+print("This should print first 21, then 42 and 45.")
+execute_and_print(x, x = x * 2, x = x + 3)
+

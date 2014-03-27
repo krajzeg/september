@@ -1,0 +1,4 @@
+This should print first 21, then 42 and 45.
+Value starts as: 21
+Value is now: 42
+Value is now: 45
