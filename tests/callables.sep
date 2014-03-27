@@ -1,0 +1,14 @@
+dog := Object()
+dog:sound = "Woof!"
+dog::"<call>" = |how_many| {
+	n := 0
+	while (n < how_many) {
+		print(this.sound)
+		n = n + 1
+	}
+}
+
+print("This shouldn't print anything.")
+dog(0)
+print("This should print 'Woof!' twice.")
+dog(2)

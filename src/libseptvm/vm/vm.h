@@ -167,7 +167,7 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 void vm_free(SepVM *this);
 
 // ===============================================================
-//  Subcalls and lazy argument resolution
+// Invoking function calls from C code
 // ===============================================================
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
@@ -180,6 +180,10 @@ SepItem vm_invoke_in_scope(SepVM *this, SepV callable, SepV execution_scope, uin
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // An argument source with the arguments of this call has to be provided.
 SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, ArgumentSource *args);
+
+// ===============================================================
+// Resolving lazy values
+// ===============================================================
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value);

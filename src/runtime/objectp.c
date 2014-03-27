@@ -31,8 +31,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	return property_value;
 }
 
-// The ':' property creation operator, valid for all objects.
-SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
+SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, Slot *slot) {
 	SepError err = NO_ERROR;
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(exc.EWrongType);
@@ -47,12 +46,21 @@ SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
 		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", property_name->cstr);
 
 	// create the field
-	props_accept_prop(host, property_name, field_create(SEPV_NOTHING));
+	props_accept_prop(host, property_name, slot);
 
-	// return the slot for reassigning (reacquire it as it could have been moved
-	// in memory)
-	Slot *slot = props_find_prop(host, property_name);
+	// return the actual slot entry from within the object
+	slot = props_find_prop(host, property_name);
 	return item_lvalue(slot, SEPV_NOTHING);
+}
+
+// The ':' field creation operator, valid for all objects.
+SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
+	return insert_slot_impl(scope, frame, field_create(SEPV_NOTHING));
+}
+
+// The '::' method creation operator, valid for all objects.
+SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
+	return insert_slot_impl(scope, frame, method_create(SEPV_NOTHING));
 }
 
 // ===============================================================
@@ -131,6 +139,7 @@ SepObj *create_object_prototype() {
 	// add operators common to all objects
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
 	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
+	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
 
 	// add common methods
 	obj_add_builtin_method(Object, "debugString", object_debug_string, 0);
