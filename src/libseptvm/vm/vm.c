@@ -53,7 +53,7 @@ void frame_raise(ExecutionFrame *frame, SepV exception) {
 }
 
 // ===============================================================
-//  Argument sources
+//  Bytecode argument source
 // ===============================================================
 
 argcount_t _bytecode_argument_count(ArgumentSource *_this) {
@@ -83,7 +83,8 @@ SepV _bytecode_next_argument(ArgumentSource *_this) {
 }
 
 ArgumentSourceVT bytecode_args_vt = {
-	&_bytecode_argument_count, &_bytecode_next_argument
+	&_bytecode_argument_count,
+	&_bytecode_next_argument
 };
 
 // Initializes a new bytecode source in place.
@@ -91,6 +92,31 @@ void bytecodeargs_init(BytecodeArgs *this, ExecutionFrame *frame) {
 	this->base.vt = &bytecode_args_vt;
 	this->source_frame = frame;
 	this->argument_count = (argcount_t)frame_read(frame);
+}
+
+// ===============================================================
+//  va_list argument source
+// ===============================================================
+
+argcount_t _va_argument_count(ArgumentSource *_this) {
+	return ((VAArgs*)_this)->argument_count;
+}
+
+SepV _va_next_argument(ArgumentSource *_this) {
+	va_list list = ((VAArgs*)_this)->c_arg_list;
+	return va_arg(list, SepV);
+}
+
+ArgumentSourceVT va_args_vt = {
+	&_va_argument_count,
+	&_va_next_argument
+};
+
+// Initializes a new VAArgs source in place.
+void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
+	this->base.vt = &va_args_vt;
+	this->argument_count = arg_count;
+	this->c_arg_list = args;
 }
 
 // ===============================================================
@@ -287,10 +313,14 @@ void vm_free(SepVM *this) {
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // Any number of parameters can be passed in, and they should be passed as SepVs.
-SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...) {
+SepItem vm_invoke(SepVM *this, SepV callable, uint8_t argument_count, ...) {
 	va_list args;
 	va_start(args, argument_count);
-	SepItem result = vm_subcall_v(this, callable, SEPV_NO_VALUE, argument_count, args);
+
+	VAArgs source;
+	vaargs_init(&source, argument_count, args);
+
+	SepItem result = vm_invoke_with_argsource(this, callable, SEPV_NO_VALUE, (ArgumentSource*)(&source));
 	va_end(args);
 	return result;
 }
@@ -298,17 +328,21 @@ SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...) {
 // Makes a subcall, but runs the callable in a specified scope (instead of using a normal
 // this + declaration scope + locals scope). Any arguments passed will be added to the
 // scope you specify.
-SepItem vm_subcall_in(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...) {
+SepItem vm_invoke_in_scope(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...) {
 	va_list args;
 	va_start(args, argument_count);
-	SepItem result = vm_subcall_v(this, callable, execution_scope, argument_count, args);
+
+	VAArgs source;
+	vaargs_init(&source, argument_count, args);
+
+	SepItem result = vm_invoke_with_argsource(this, callable, execution_scope, (ArgumentSource*)(&source));
 	va_end(args);
 	return result;
 }
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // A started va_list of SepVs should be passed in by another vararg function.
-SepItem vm_subcall_v(SepVM *this, SepV callable, SepV custom_scope, uint8_t argument_count, va_list args) {
+SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, ArgumentSource *args) {
 	// get a call target
 	SepFunc *func = sepv_call_target(callable);
 	if (!func) {
@@ -316,21 +350,12 @@ SepItem vm_subcall_v(SepVM *this, SepV callable, SepV custom_scope, uint8_t argu
 			sepstr_for("Attempted to call an object which is not callable."));
 	}
 
-	// verify parameter count
-	uint8_t index;
-	uint8_t param_count = func->vt->get_parameter_count(func);
-	FuncParam *parameters = func->vt->get_parameters(func);
-	if (param_count != argument_count)
-		return si_exception(exc.EInternal, sepstr_sprintf("Argument count mismatch: expected %d arguments, got %d arguments.", param_count, argument_count));
-
-	// put parameters in
+	// create the execution scope
 	bool custom_scope_provided = custom_scope != SEPV_NO_VALUE;
 	SepObj *scope = custom_scope_provided ? sepv_to_obj(custom_scope) : obj_create();
-	for (index = 0; index < argument_count; index++) {
-		SepV arg = va_arg(args, SepV);
-		FuncParam *param = &parameters[index];
-		props_accept_prop(scope, param->name, field_create(arg));
-	}
+	ExecutionFrame *calling_frame = &this->frames[this->frame_depth];
+	SepV argument_exc = funcparam_pass_arguments(calling_frame, func, scope, args);
+		or_propagate(argument_exc);
 
 	// initialize an execution frame
 	this->frame_depth++;

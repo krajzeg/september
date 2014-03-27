@@ -63,7 +63,7 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 			// maybe we have a toString() method?
 			SepV to_string = property(thing, "toString");
 				or_propagate(to_string);
-			SepItem string_i = vm_subcall(frame->vm, to_string, 0);
+			SepItem string_i = vm_invoke(frame->vm, to_string, 0);
 				or_propagate(string_i.value);
 			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
 				or_raise(exc.EWrongType);
@@ -139,7 +139,7 @@ SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
 	// delegate to statement if
 	SepV statement = statement_if(scope, frame).value;
 	SepV executor = property(statement, "..!");
-	return vm_subcall(frame->vm, executor, 0);
+	return vm_invoke(frame->vm, executor, 0);
 }
 
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
@@ -162,7 +162,7 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
 			SepV body_v = property(branch, "body");
-			SepV result = vm_subcall(frame->vm, body_v, 0).value;
+			SepV result = vm_invoke(frame->vm, body_v, 0).value;
 			return item_rvalue(result);
 		}
 	}
@@ -171,7 +171,7 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV else_v = property(ifs, "else_branch");
 	if (else_v != SEPV_NOTHING) {
 		// there was an 'else', so execute that
-		SepV result = vm_subcall(frame->vm, else_v, 0).value;
+		SepV result = vm_invoke(frame->vm, else_v, 0).value;
 		return item_rvalue(result);
 	} else {
 		// no branch matched, did nothing, return nothing
@@ -211,7 +211,7 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV body_l = param(scope, "body");
 	while (condition == SEPV_TRUE) {
 		// execute body
-		SepV result = vm_subcall_in(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
+		SepV result = vm_invoke_in_scope(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
 			or_propagate(result);
 
 		// break?
@@ -281,7 +281,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	// actually start the loop
 	while(true) {
 		// get the next element in the collection
-		SepV element = vm_subcall(frame->vm, iterator_next, 0).value;
+		SepV element = vm_invoke(frame->vm, iterator_next, 0).value;
 		if (sepv_is_exception(element)) {
 			// check if its ENoMoreElements - if so, break out of the loop
 			SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
@@ -297,7 +297,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// execute the body of the loop
 		props_set_prop(for_body_scope, variable_name, element);
-		SepV result = vm_subcall_in(frame->vm, body_l, for_body_scope_v, 0).value;
+		SepV result = vm_invoke_in_scope(frame->vm, body_l, for_body_scope_v, 0).value;
 			or_propagate(result);
 
 		// breaking
@@ -374,7 +374,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	// execute the body
 	SepV try_s = target(scope);
 	SepV try_body_v = property(try_s, "body");
-	SepV try_result = vm_subcall(frame->vm, try_body_v, 0).value;
+	SepV try_result = vm_invoke(frame->vm, try_body_v, 0).value;
 
 	// was there an exception?
 	if (sepv_is_exception(try_result)) {
@@ -395,7 +395,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 
 			// the type matches, run the catcher body
 			SepV catcher_body = property(catcher_obj, "body");
-			SepV catch_result = vm_subcall(frame->vm, catcher_body, 0).value;
+			SepV catch_result = vm_invoke(frame->vm, catcher_body, 0).value;
 				or_propagate(catch_result);
 
 			// phew, exception handled!
@@ -410,7 +410,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepArrayIterator it = array_iterate_over(finalizers);
 	while (!arrayit_end(&it)) {
 		SepV finalizer_v = arrayit_next(&it);
-		SepV finalizer_result = vm_subcall(frame->vm, finalizer_v, 0).value;
+		SepV finalizer_result = vm_invoke(frame->vm, finalizer_v, 0).value;
 			or_propagate(finalizer_result);
 	}
 

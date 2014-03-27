@@ -53,6 +53,7 @@ typedef struct ArgumentSourceVT {
 	SepV (*get_next_argument)(ArgumentSource *);
 } ArgumentSourceVT;
 
+
 /**
  * Argument source for getting arguments stored in bytecode.
  */
@@ -66,6 +67,20 @@ typedef struct BytecodeArgs {
 
 // Initializes a new bytecode source in place.
 void bytecodeargs_init(BytecodeArgs *this, struct ExecutionFrame *frame);
+
+/**
+ * Argument source for getting arguments from a C vararg function.
+ */
+typedef struct VAArgs {
+	struct ArgumentSource base;
+	// stored argument count
+	argcount_t argument_count;
+	// a started va_list with the arguments as SepVs
+	va_list c_arg_list;
+} VAArgs;
+
+// Initializes a new VAArgs source in place.
+void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args);
 
 // ===============================================================
 //  Execution frame
@@ -157,14 +172,14 @@ void vm_free(SepVM *this);
 
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // Any number of arguments can be passed in, and they should be passed as SepVs.
-SepItem vm_subcall(SepVM *this, SepV callable, uint8_t argument_count, ...);
+SepItem vm_invoke(SepVM *this, SepV callable, uint8_t argument_count, ...);
 // Makes a subcall, but runs the callable in a specified scope (instead of using a normal
 // this + declaration scope + locals scope). Any arguments passed will be added to the
 // scope you specify.
-SepItem vm_subcall_in(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...);
+SepItem vm_invoke_in_scope(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...);
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
-// A started va_list of SepVs should be passed in by another vararg function.
-SepItem vm_subcall_v(SepVM *this, SepV callable, SepV custom_scope, uint8_t parameter_count, va_list args);
+// An argument source with the arguments of this call has to be provided.
+SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, ArgumentSource *args);
 
 // Uses the VM to resolve a lazy value.
 SepV vm_resolve(SepVM *this, SepV lazy_value);
