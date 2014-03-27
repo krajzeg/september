@@ -103,8 +103,7 @@ argcount_t _va_argument_count(ArgumentSource *_this) {
 }
 
 SepV _va_next_argument(ArgumentSource *_this) {
-	va_list list = ((VAArgs*)_this)->c_arg_list;
-	return va_arg(list, SepV);
+	return va_arg(((VAArgs*)_this)->c_arg_list, SepV);
 }
 
 ArgumentSourceVT va_args_vt = {
@@ -116,7 +115,7 @@ ArgumentSourceVT va_args_vt = {
 void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
 	this->base.vt = &va_args_vt;
 	this->argument_count = arg_count;
-	this->c_arg_list = args;
+	va_copy(this->c_arg_list, args);
 }
 
 // ===============================================================
