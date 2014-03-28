@@ -160,9 +160,11 @@ def Body():
 def Parameters():
     return Node(Parameters)
 
-def Parameter(name, flags):
-    param = Node(Parameter, name)
+def Parameter(name, flags, default_expression = None):
+    param = Node(Parameter, name, ["default"])
     param.flags = flags
+    if default_expression:
+        param.first = default_expression
     return param
 
 ##############################################
@@ -391,47 +393,62 @@ class ParameterListParser(ContextlessParser):
     """
 
     @classmethod
+    def parse_parameter_flags(cls, parser):
+        flags = set()
+        # parameter flags will be recognized e as an operator token
+        # preceding the parameter name
+        if parser.token.is_a(lexer.Operator):
+            flag_string = parser.token.value
+            # lazy?
+            if "?" in flag_string:
+                flag_string = flag_string.replace("?", "")
+                flags.add(P_LAZY_EVALUATED)
+            # sink?
+            if "..." in flag_string:
+                flag_string = flag_string.replace("...", "")
+                flags.add(P_SINK)
+            # did we miss anything?
+            if flag_string != "":
+                parser.error("Unrecognized parameter flags: %s" %
+                             flag_string)
+            # advance over the "operator"
+            parser.advance()
+        return flags
+
+    @classmethod
+    def parse_parameter_name(cls, parser):
+        if not parser.token.is_a(lexer.Id):
+            parser.error("Expected parameter name but got %s instead." %
+                         parser.token)
+        name = parser.token.value
+        parser.advance()
+        return name
+
+    @classmethod
+    def parse_default_value(cls, parser):
+        if parser.token.raw == "=":
+            parser.advance()
+            return parser.expression(0)
+        else:
+            return None
+
+    @classmethod
     def null_parse(cls, parser, token):
-        # non-empty argument list, read it
         params = Parameters()
         parser.advance("|")
 
+        # parse until the end of the parameter list
         while not parser.token.is_a("|"):
-            # parameter flags will be recognized e as an operator token
-            # preceding the parameter name
-            flags = set()
-            if parser.token.is_a(lexer.Operator):
-                flag_string = parser.token.value
-                # lazy?
-                if "?" in flag_string:
-                    flag_string = flag_string.replace("?", "")
-                    flags.add(P_LAZY_EVALUATED)
-                # sink?
-                if "..." in flag_string:
-                    flag_string = flag_string.replace("...", "")
-                    flags.add(P_SINK)
-                # did we miss anything?
-                if flag_string != "":
-                    parser.error("Unrecognized parameter flags: %s" %
-                                 flag_string)
-                # advance over the "operator"
+            flags = cls.parse_parameter_flags(parser)
+            name = cls.parse_parameter_name(parser)
+            default_value = cls.parse_default_value(parser)
+
+            params.add(Parameter(name, flags, default_value))
+
+            if parser.token.is_a(","):
                 parser.advance()
 
-            # OK, this has to be an Id
-            if not parser.token.is_a(lexer.Id):
-                parser.error("Expected parameter name but got %s instead." %
-                             parser.token)
-            name = parser.token.value
-
-            # add parameter and advance
-            params.add(Parameter(name, flags))
-            parser.advance()
-
-            # no, swallow a comma if not in the end yet
-            if not parser.token.kind == "|":
-                parser.advance(",")
-
-        # swallow the closing |
+        # out of the loop, swallow the remaining '|'
         parser.advance("|")
 
         return params
