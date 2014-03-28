@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-aspartame"
+#define SEPTEMBER_VERSION "0.1-athlete"
 
 // ===============================================================
 //  Prototype creation methods
