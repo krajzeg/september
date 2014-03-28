@@ -28,6 +28,7 @@
 struct ArgumentSource;
 struct ExecutionFrame;
 struct SepFunc;
+struct SepModule;
 
 // ===============================================================
 //  Code units
@@ -85,6 +86,8 @@ typedef struct SepFuncVTable {
 } SepFuncVTable;
 
 typedef struct SepFunc {
+	// the module which hosts this function
+	struct SepModule *module;
 	// v-table that controls actual behavior
 	SepFuncVTable *vt;
 	// is this a lazy closure?

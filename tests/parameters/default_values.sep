@@ -1,0 +1,24 @@
+## Simple example of a default value
+
+simple := |required, optional = 42| {
+	print(required, optional)
+}
+
+simple("The answer to life, the universe and everything is")
+simple("The answer to life, the universe and everything is", "not 'cucumber'")
+
+## More complex example - the default value is a lazy expression
+## This will more commonly be used with expressions like '[]' - but this is not available yet as of 0.1-at.
+
+id := 0
+next_id := { 
+	id = id + 1
+	return (id)
+}
+lazy := |id = next_id()| {
+	return (id)
+}
+
+print("This should print 1, 2, the default is evaluated on each call:", lazy(), lazy())
+print("This should print 42 as it was explicitly provided:", lazy(42))
+print("This should print 3 as the parameter is left out again:", lazy())

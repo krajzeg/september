@@ -1,0 +1,5 @@
+The answer to life, the universe and everything is 42
+The answer to life, the universe and everything is not 'cucumber'
+This should print 1, 2, the default is evaluated on each call: 1 2
+This should print 42 as it was explicitly provided: 42
+This should print 3 as the parameter is left out again: 3

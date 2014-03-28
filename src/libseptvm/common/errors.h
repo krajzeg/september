@@ -61,6 +61,8 @@ typedef enum SepErrorType {
 		ETypeMismatch = 0xFFFF0201,
 		// some problem with arguments of a function call
 		EWrongArguments = 0xFFFF0202,
+		// general internal error
+		EInternal = 0xFFFF0203,
 
 	// fatal runtime errors
 	EFatal = 0xFF000200,
@@ -124,6 +126,7 @@ SepError e_malformed_module_file(const char *detail);
 
 SepError e_out_of_memory();
 SepError e_not_implemented_yet(const char *what);
+SepError e_internal(const char *message);
 
 SepError e_type_mismatch(const char *what, const char *expected_type);
 SepError e_wrong_arguments(const char *message);

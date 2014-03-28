@@ -25,6 +25,7 @@
 #include "functions.h"
 #include "exceptions.h"
 #include "vm.h"
+#include "support.h"
 
 #include "../common/errors.h"
 #include "../vm/runtime.h"
@@ -70,28 +71,52 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 
 // Finalizes the value of the parameter - this is where default parameter
 // values are set and parameters are validated.
-void funcparam_finalize_value(FuncParam *this, SepObj *scope, SepError *out_err) {
+SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *this, SepObj *scope) {
 	if (!props_find_prop(scope, this->name)) {
 		// parameter missing
 
-		// sink parameters always have at least an empty array inside
-		if (this->flags.sink) {
-			SepV sink_array_v = obj_to_sepv(array_create(0));
-			props_accept_prop(scope, this->name, field_create(sink_array_v));
-			return;
+		SepV default_value = SEPV_NO_VALUE;
+
+		// default value?
+		if (this->flags.optional) {
+			CodeUnit ref = this->default_value_reference;
+			if (ref >= 0) {
+				// this is a constant - get from the constant pool of the function
+				default_value = cpool_constant(func->module->constants, ref);
+			} else {
+				// this is a lazy expression - call it in the function declaration scope
+				SepV scope = func->vt->get_declaration_scope(func);
+				CodeBlock *block = bpool_block(func->module->blocks, -ref);
+				SepFunc *default_value_l = (SepFunc*)lazy_create(block, scope);
+				default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
+			}
 		}
 
-		// no default value to be found, that's an error
-		fail(error_create(EWrongArguments, "Required parameter '%s' is missing.",
-				this->name->cstr));
+		// sink parameters always have at least an empty array inside, even if no
+		// default value was given
+		if (default_value == SEPV_NO_VALUE && this->flags.sink) {
+			default_value = obj_to_sepv(array_create(0));
+		}
+
+		if (default_value != SEPV_NO_VALUE) {
+			// we have arrived at some default value to assign
+			props_accept_prop(scope, this->name, field_create(default_value));
+			return SEPV_NOTHING;
+		} else {
+			// no default value to be found, that's an error
+			return sepv_exception(exc.EWrongArguments, sepstr_sprintf(
+				"Required parameter '%s' is missing.", this->name->cstr
+			));
+		}
 	}
+
+	// nothing wrong with the parameter
+	return SEPV_NOTHING;
 }
 
 // Sets up the all the call arguments inside the execution scope. Also validates them.
 // Any problems found will be reported as an exception SepV in the return value.
 SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scope, ArgumentSource *arguments) {
-	SepError err = NO_ERROR;
-
 	// grab the argument count
 	argcount_t arg_count = arguments->vt->argument_count(arguments);
 
@@ -120,10 +145,8 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 	// finalize and validate parameters
 	for (param_index = 0; param_index < param_count; param_index++) {
 		FuncParam *param = &parameters[param_index];
-		funcparam_finalize_value(param, scope, &err);
-			or_handle(EAny) {
-				return sepv_exception(exc.EWrongArguments, sepstr_for(err.message));
-			};
+		SepV result = funcparam_finalize_value(frame, func, param, scope);
+			or_propagate_sepv(result);
 	}
 
 	// everything ok
@@ -207,6 +230,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	BuiltInFunc *built_in = mem_allocate(sizeof(BuiltInFunc));
 	built_in->base.vt = &built_in_func_vtable;
 	built_in->base.lazy = false;
+	built_in->base.module = NULL;
 	built_in->parameter_count = parameters;
 	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
 	built_in->implementation = implementation;
@@ -329,6 +353,7 @@ InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	InterpretedFunc *func = mem_allocate(sizeof(InterpretedFunc));
 	func->base.vt = &interpreted_func_vtable;
 	func->base.lazy = false;
+	func->base.module = block->module;
 	func->block = block;
 	func->declaration_scope = declaration_scope;
 	return func;
@@ -418,6 +443,8 @@ SepFuncVTable bound_method_vtable = {
 BoundMethod *boundmethod_create(SepFunc *function, SepV this_pointer) {
 	BoundMethod *bm = mem_allocate(sizeof(BoundMethod));
 	bm->base.vt = &bound_method_vtable;
+	bm->base.module = function->module;
+	bm->base.lazy = false;
 	bm->original_instance = function;
 	bm->this_pointer = this_pointer;
 	return bm;

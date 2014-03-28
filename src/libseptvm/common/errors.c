@@ -14,7 +14,7 @@ SepError e_module_not_found(const char *module_name) { return error_create(EFile
 
 SepError e_out_of_memory() { return error_create(EOutOfMemory, "Out of memory."); }
 SepError e_not_implemented_yet(const char *what) { return error_create(ENotImplementedYet, "Missing implementation for: %s.", what); }
-
+SepError e_internal(const char *message) { return error_create(EInternal, message); }
 SepError e_type_mismatch(const char *what, const char *expected_type) { return error_create(ETypeMismatch, "%s was expected to be of type '%s'", what, expected_type); }
 SepError e_wrong_arguments(const char *message) { return error_create(EWrongArguments, message); }
 
