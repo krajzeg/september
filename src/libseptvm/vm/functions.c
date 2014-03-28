@@ -223,6 +223,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		// extract flag
 		parameter->flags.sink = parameter_extract_flag(&param_name, "...");
 		parameter->flags.lazy = parameter_extract_flag(&param_name, "?");
+		parameter->flags.optional = 0; // no way to make optional parameters in builtins for now
 
 		// set the name (undecorated by now, the decoration got translated into flags)
 		parameter->name = sepstr_for(param_name);

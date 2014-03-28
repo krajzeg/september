@@ -37,7 +37,8 @@ enum OpcodeFlags {
 
 enum ParamFlags {
 	MFILE_P_LAZY_EVALUATED = 0x01,
-	MFILE_P_SINK = 0x10
+	MFILE_P_SINK = 0x10,
+	MFILE_P_OPTIONAL = 0x80
 };
 
 // ===============================================================
@@ -182,16 +183,27 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 	// read parameter list
 	int index;
 	for (index = 0; index < param_count; index++) {
+		FuncParam parameter;
 
+		// deal with the flags first
 		uint8_t param_flags = decoder_read_byte(this, &err);
 			or_quit();
-		char *param_name = decoder_read_string(this, &err);
-			or_quit();
-
-		FuncParam parameter;
-		parameter.name = sepstr_for(param_name);
 		parameter.flags.lazy = (param_flags & MFILE_P_LAZY_EVALUATED) != 0;
 		parameter.flags.sink = (param_flags & MFILE_P_SINK) != 0;
+		parameter.flags.optional = (param_flags & MFILE_P_OPTIONAL) != 0;
+
+		// default value?
+		if (parameter.flags.optional) {
+			// read default value reference
+			parameter.default_value_reference = decoder_read_int(this, &err);
+				or_quit();
+		}
+
+		// read the name
+		parameter.name = sepstr_for(decoder_read_string(this, &err));
+			or_quit();
+
+		// remember the parameter
 		block->parameters[index] = parameter;
 	}
 }

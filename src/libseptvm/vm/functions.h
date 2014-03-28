@@ -30,17 +30,33 @@ struct ExecutionFrame;
 struct SepFunc;
 
 // ===============================================================
+//  Code units
+// ===============================================================
+
+/**
+ * Instruction streams inside code blocks consist of code units.
+ * Each code unit is either an encoded instruction to execute,
+ * or the argument of such an instruction.
+ */
+typedef int16_t CodeUnit;
+
+// ===============================================================
 //  Function parameters
 // ===============================================================
 
 typedef struct FuncParam {
 	// undecorated parameter name
 	SepString *name;
-	// style
+	// flags controlling how the parameter is passed
 	struct {
 		int lazy:1;
 		int sink:1;
+		int optional:1;
 	} flags;
+	// if the parameter is optional, a reference to the default value
+	// (an index into the constant pool/function pool) will be stored
+	// here
+	CodeUnit default_value_reference;
 } FuncParam;
 
 // Sets up the all the call arguments inside the execution scope. Also validates them.
@@ -103,13 +119,6 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 // ===============================================================
 //  Code blocks
 // ===============================================================
-
-/**
- * Instruction streams inside code blocks consist of code units.
- * Each code unit is either an ID of an instruction to execute,
- * or an argument of such an instruction.
- */
-typedef int16_t CodeUnit;
 
 /**
  * Represents a single code block from a module file. Those are just
