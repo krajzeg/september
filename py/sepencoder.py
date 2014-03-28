@@ -34,8 +34,10 @@ FLAG_ENCODING = {
 ### Bitmask for parameter type flags
 PARAM_FLAG_ENCODING = {
     P_LAZY_EVALUATED: 0x1,
-    P_SINK: 0x10
+    P_SINK: 0x10,
+    P_OPTIONAL: 0x80
 }
+
 
 ### Constant types writable to the file
 # Note: float is not yet supported
@@ -99,6 +101,14 @@ class ModuleFileOutput:
                 mask >>= 8
                 shift -= 8
 
+    def _write_ref(self, reference):
+        if reference.type == REF_CONSTANT:
+            self._write_int(reference.index)
+        elif reference.type == REF_FUNCTION:
+            self._write_int(-reference.index)
+        else:
+            raise Exception("Don't know how to write down reference of type %s." % reference.type)
+
     def _write_str(self, str_value):
         """Encodes a string inside the file.
         The encoding is (int:string length)(utf8 encoded bytes).
@@ -142,8 +152,11 @@ class ModuleFileOutput:
             flag_byte = 0
             for flag in parameter.flags:
                 flag_byte |= PARAM_FLAG_ENCODING[flag]
-            # write it down flags first
+
+            # write the parameter down
             self._write_byte(flag_byte)
+            if P_OPTIONAL in parameter.flags:
+                self._write_ref(parameter.default_value_ref)
             self._write_str(param_name)
 
     def function_footer(self):
@@ -158,13 +171,13 @@ class ModuleFileOutput:
         """
         self._write_byte(encode_operation(opcode, flags))
         for arg in pre:
-            self._write_int(arg)
+            self._write_ref(arg)
         if is_vararg(opcode):
             self._write_int(len(args))
         for arg in args:
-            self._write_int(arg)
+            self._write_ref(arg)
         for arg in post:
-            self._write_int(arg)
+            self._write_ref(arg)
 
     def file_header(self):
         """Writes the file header."""

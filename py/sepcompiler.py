@@ -13,6 +13,8 @@ from sepconstants import *
 import sepparser as parser
 import sepencoder as encoder
 
+import collections
+
 ##############################################
 # Exceptions
 ##############################################
@@ -46,12 +48,12 @@ def create_function_arguments(function, node):
             args.append(arg_node.value)
         elif arg_node.kind == parser.Block:
             # create a new function that pushes that block on the stack
-            block_func = function.compiler.create_function(None, arg_node)
+            block_func = function.compiler.create_expression_function(arg_node)
             args.append(block_func)
         else:
             # create a new function representing the expression used as
             # argument
-            lazy_func = function.compiler.create_function(None, arg_node)
+            lazy_func = function.compiler.create_expression_function(arg_node)
             args.append(lazy_func)
     return args
 
@@ -109,7 +111,7 @@ def emit_binary_op(function, node):
     if node.second.kind == parser.Constant:
         function.add(LAZY, "f", [node.value], [node.second.value], [])
     else:
-        subfunc = function.compiler.create_function(None, node.second)
+        subfunc = function.compiler.create_expression_function(node.second)
         function.add(LAZY, "f", [node.value], [subfunc], [])
 
 
@@ -122,7 +124,7 @@ def emit_unary_op(function, node):
 def emit_block(function, node):
     # compile the block body as a new function
     params, body = node.child("parameters"), node.child("body")
-    func = function.compiler.create_function(params, body)
+    func = function.compiler.create_explicit_function(params, body)
     # at the point it was encountered, we have to push it on the stack
     function.add(PUSH, "", [], [func], [])
 
@@ -166,8 +168,8 @@ def merge_nops_forward(func):
             if flag_set.isdisjoint(set(n_flags)):
                 # merge the nop.xxx as preamble to the next instruction
                 code[index + 1] = (
-                n_opcode, flags + n_flags, pre + n_pre, args + n_args,
-                post + n_post)
+                    n_opcode, flags + n_flags, pre + n_pre, args + n_args,
+                    post + n_post)
                 code = code[:index] + code[index + 1:]
             else:
                 index += 1
@@ -193,8 +195,8 @@ def merge_nops_backward(func):
             if flag_set.isdisjoint(set(p_flags)):
                 # merge the nop.xxx into previous instruction
                 code[index - 1] = (
-                p_opcode, p_flags + flags, p_pre + pre, p_args + args,
-                p_post + post)
+                    p_opcode, p_flags + flags, p_pre + pre, p_args + args,
+                    p_post + post)
                 code = code[:index] + code[index + 1:]
             else:
                 index += 1
@@ -259,7 +261,7 @@ class ConstantCompiler:
         constant pool."""
 
         # collect
-        self.constant_occurrences = {}
+        self.constant_occurrences = collections.defaultdict(int)
         self.walk_ast_tree(ast, self.add_occurrence)
 
         # sort them according to how often they occur
@@ -279,12 +281,28 @@ class ConstantCompiler:
 
     def add_occurrence(self, node):
         if node.kind in ConstantCompiler.CONST_NODES:
-            self.constant_occurrences[
-                node.value] = self.constant_occurrences.get(node.value, 0) + 1
+            self.constant_occurrences[node.value] += 1
 
 ##############################################
 # Compiling actual code
 ##############################################
+
+class Reference:
+    """A reference into one of the pools (constant pool or function
+    pool in the module.
+    """
+    def __init__(self, type, index):
+        self.type = type
+        self.index = index
+
+    @classmethod
+    def constant(cls, index):
+        return cls(REF_CONSTANT, index)
+
+    @classmethod
+    def function(cls, index):
+        return cls(REF_FUNCTION, index)
+
 
 class CompiledFunction:
     """Represents a single September function."""
@@ -301,29 +319,17 @@ class CompiledFunction:
     def compile_node(self, node):
         self.compiler.compile_node(self, node)
 
-    def args_to_ints(self, args):
-        """Converts operation arguments into encoded integers that can be
-        written to the module file.
+    def args_to_refs(self, args):
+        """Converts operation arguments into references into the constant
+        or function pool.
         """
-        actual_args = []
-        for arg in args:
-            if isinstance(arg, CompiledFunction):
-                actual_args += [-arg.index]
-            else:
-                try:
-                    constant_index = self.compiler.constants[arg]
-                    actual_args += [constant_index]
-                except KeyError:
-                    raise CompilationError(None,
-                                           "Constant '%s' is not present in index." % arg)
-        return actual_args
+        return [self.compiler.create_reference(arg) for arg in args]
 
     def add(self, opcode, flags, pre_args, args, post_args):
         """Adds a new operation to the function."""
-        pre_args, args, post_args = map(self.args_to_ints,
+        pre_args, args, post_args = map(self.args_to_refs,
                                         [pre_args, args, post_args])
         self.code += [(opcode, flags, pre_args, args, post_args)]
-
 
 class CodeCompiler:
     """Walks over the AST and compiles all the functions contained within,
@@ -335,27 +341,50 @@ class CodeCompiler:
         self.constants = constants
         self.functions = []
 
-    def create_function(self, parameters, body):
-        """Creates a new function to be compiled with the provided body.
-        Parameters have to be provided as a parser.Parameters node, or
-        None if there are none. The body must be either a parser.Body node
-        (when compiling a function specified explicitly) or any other node
-        (when creating an anonymous function out of a single expression).
-        """
-        if body.kind != parser.Body:
-            statements = [body]
-        else:
-            statements = body.children
+    def create_main_function(self, body):
+        """Creates the main function of a module using the provided Body node."""
+        main_func = CompiledFunction(self, len(self.functions) + 1, [])
+        return self.compile_function(main_func, body.children)
 
-        if parameters is None:
-            parameter_nodes = []
-        else:
-            parameter_nodes = parameters.children
+    def create_explicit_function(self, parameters, body):
+        """Creates a new explicitly declared function with the given Parameters and Body."""
+        func = CompiledFunction(self, len(self.functions) + 1, parameters.children)
+        return self.compile_function(func, body.children)
 
-        func = CompiledFunction(self, len(self.functions) + 1,
-                                parameter_nodes)
+    def create_expression_function(self, expression):
+        """Creates a new function representing a provided expression node."""
+        expr_func = CompiledFunction(self, len(self.functions) + 1, [])
+        return self.compile_function(expr_func, [expression])
+
+    def create_reference(self, value):
+        """Takes a function or a constant, and creates an indexed reference into
+        the constant or function pool."""
+        if isinstance(value, CompiledFunction):
+            return Reference.function(value.index)
+        else:
+            try:
+                index = self.constants[value]
+            except KeyError:
+                raise CompilationError(
+                    None,
+                    "Cannot create reference to '%s' - it's not in the constant index." % value)
+            return Reference.constant(index)
+
+    def compile_function(self, func, statements):
+        """Compiles a previously created function, using the provided statements as its body."""
         self.functions.append(func)
 
+        # compile default value expressions for the parameters
+        for parameter in func.params:
+            if parameter.child("default"):
+                default_expr = parameter.child("default")
+                if default_expr.kind == parser.Constant:
+                    value = default_expr.value
+                else:
+                    value = self.create_expression_function(default_expr)
+                parameter.default_value_ref = self.create_reference(value)
+
+        # compile the body
         for statement in statements:
             self.compile_node(func, statement)
             func.add(NOP, F_POP_RESULT, [], [], [])
@@ -372,7 +401,7 @@ class CodeCompiler:
 
     def compile(self, ast):
         """Compiles the code in the provided AST into the compiler's output."""
-        self.create_function(None, ast)
+        self.create_main_function(ast)
 
         for func in self.functions:
             for optimizer in OPTIMIZERS:
@@ -395,6 +424,9 @@ class StringOutput:
     def __init__(self):
         self.string = ""
 
+    def ref_string(self, ref):
+        return "%s%d" % (ref.type[0], ref.index)
+
     def constants_header(self, count):
         self.string += "CONSTANTS(%d):\n" % count
 
@@ -407,12 +439,14 @@ class StringOutput:
     def function_header(self, params):
         param_names = []
         for param in params:
-            name = param.value
+            param_string = param.value
             if P_SINK in param.flags:
-                name = "..." + name
+                param_string = "..." + param_string
             if P_LAZY_EVALUATED in param.flags:
-                name = "?" + name
-            param_names.append(name)
+                param_string = "?" + param_string
+            if P_OPTIONAL in param.flags:
+                param_string += "=<%s>" % self.ref_string(param.default_value_ref)
+            param_names.append(param_string)
 
         self.string += "FUNC("
         self.string += ",".join(param_names)
@@ -430,7 +464,7 @@ class StringOutput:
     def code(self, opcode, flags, pre, args, post):
         operation = "\t%s%s" % (opcode, "." + flags if flags else "")
         self.string += operation + " " * (14 - len(operation))
-        self.string += ", ".join([str(arg) for arg in pre + args + post])
+        self.string += ", ".join([self.ref_string(arg) for arg in pre + args + post])
         self.string += "\n"
 
 ##############################################

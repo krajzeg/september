@@ -22,3 +22,8 @@ F_POP_RESULT = "v"
 ### Parameter flags
 P_LAZY_EVALUATED = "lazy"
 P_SINK = "sink"
+P_OPTIONAL = "optional"
+
+### Reference type
+REF_CONSTANT = "constant"
+REF_FUNCTION = "function"

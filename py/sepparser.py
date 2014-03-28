@@ -48,9 +48,7 @@ class Node:
             if len(self.children) > index_or_name:
                 return self.children[index_or_name]
             else:
-                raise Exception("Internal error: node %s does not have a "
-                                "child with index %d" % (self.kind,
-                                                         index_or_name))
+                return None
         else:
             # treat as a name
             if self.name_map and index_or_name in self.name_map:
@@ -164,6 +162,7 @@ def Parameter(name, flags, default_expression = None):
     param = Node(Parameter, name, ["default"])
     param.flags = flags
     if default_expression:
+        param.flags.add(P_OPTIONAL)
         param.first = default_expression
     return param
 
