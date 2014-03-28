@@ -8,11 +8,24 @@ The September way is to make everything a method call, even things like `if`, `w
 
 ## Current status
 
-This is a **very early version** of the language, and the 0.1 version number does not lie. The parser/compiler is a separate piece of code written in Python and compiles down to a simple bytecode format. The interpreter for this bytecode is written in C. Many basic capabilities of the language are not yet in place, and the runtime support is minimal. **Everything is experimental** at this point, and there are some parts of the codebase (such as the Python parser) that are intended to be removed at some point. So, I guess what I want to say is: *caveat emptor*.
+This is a **very early version** of the language. From the work done so far, it seems that the no-keyword experiment was successful and the resulting language looks promising. 
 
-## Still want to try it?
+The majority of the effort right now goes to making the virtual machine fully featured, leaving the standard library for later. This is the roadmap to version 0.2:
 
-To try it out, build the interpreter, then compile one of the examples, and run it!
+* ☐ implement all basic features related to functions and function calls
+	* ☑ "sink" arguments (`|...things|`)
+	* ☐ optional arguments (`|reverse = False|`)
+	* ☐ named arguments in calls (`people.sort(reverse: True)`) 
+* ☐ allow for writing and importing modules
+* ☐ get the basic class system with constructors, fields and methods working
+* ☐ implement a simple mark-and-sweep garbage collector 
+
+Once those things are done, the next step will be making the language capable of implementing its own parser/compiler by writing the most basic parts of the standard library.
+
+## Want to try it?
+
+In this early version there is not much in terms of documentation - but you can still try it out!
+Just build the interpreter, pick one of the examples in the "tests" directory, and run it.
 
     make
     ./run tests/<oneoftheexamples>.sep   # or just 'run' on Windows
