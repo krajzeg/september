@@ -2,4 +2,4 @@ Omitting semicolons should be OK.
 Also inside braces.
 But it should not break multi-line blocks.
 Now, let's try an operator on the next line.
-0.1-ATHLETE
+THIS SHOULD BE UPPERCASE.
