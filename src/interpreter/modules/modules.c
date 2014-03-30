@@ -50,7 +50,7 @@ SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_
 // Extracts the native functions used in module initialization
 // from an open shared object.
 ModuleNativeCode *load_native_code(SharedObject *object) {
-	ModuleNativeCode *mnc = malloc(sizeof(ModuleNativeCode));
+	ModuleNativeCode *mnc = mem_unmanaged_allocate(sizeof(ModuleNativeCode));
 
 	mnc->early_initializer = shared_get_function(object, EARLY_INIT_NAME);
 	mnc->late_initializer = shared_get_function(object, LATE_INIT_NAME);

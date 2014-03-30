@@ -148,7 +148,7 @@ void arrayargs_init(ArrayArgs *this, SepArray *array) {
 // ===============================================================
 
 SepVM *vm_create(SepModule *module, SepObj *syntax) {
-	SepVM *vm = malloc(sizeof(SepVM));
+	SepVM *vm = mem_unmanaged_allocate(sizeof(SepVM));
 
 	// create the data stack
 	vm->data = stack_create();
@@ -328,7 +328,7 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 
 void vm_free(SepVM *this) {
 	if (!this) return;
-	free(this);
+	mem_unmanaged_free(this);
 }
 
 // ===============================================================

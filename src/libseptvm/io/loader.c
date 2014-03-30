@@ -111,7 +111,7 @@ SepV load_module_by_name(SepString *module_name) {
 
 // Creates a new module definition from its components.
 ModuleDefinition *moduledef_create(ByteSource *bytecode, ModuleNativeCode *native) {
-	ModuleDefinition *def = malloc(sizeof(ModuleDefinition));
+	ModuleDefinition *def = mem_unmanaged_allocate(sizeof(ModuleDefinition));
 	def->bytecode = bytecode;
 	def->native = native;
 	return def;
@@ -122,8 +122,8 @@ void moduledef_free(ModuleDefinition *this) {
 	if (this->bytecode)
 		this->bytecode->vt->close_and_free(this->bytecode);
 	if (this->native)
-		free(this->native);
-	free(this);
+		mem_unmanaged_free(this->native);
+	mem_unmanaged_free(this);
 }
 
 // ===============================================================
@@ -152,7 +152,7 @@ void filesource_close_and_free(ByteSource *_this) {
 	if (!this) return;
 	if (this->file)
 		fclose(this->file);
-	free(this);
+	mem_unmanaged_free(this);
 }
 
 ByteSourceVT filesource_vt = {
@@ -167,7 +167,7 @@ ByteSource *file_bytesource_create(const char *filename, SepError *out_err) {
 		fail(NULL, e_file_not_found(filename));
 
 	// allocate and set up the data structure
-	FileSource *source = malloc(sizeof(FileSource));
+	FileSource *source = mem_unmanaged_allocate(sizeof(FileSource));
 	source->vt = &filesource_vt;
 	source->file = file;
 

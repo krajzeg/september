@@ -33,7 +33,7 @@ void platform_initialize(int argc, char **argv) {}
 // The returned string has to be freed by the caller.
 SepString *get_executable_path() {
 	// extract executable filename
-	char *buffer = malloc(MAX_PATH + 1);
+	char *buffer = mem_unmanaged_allocate(MAX_PATH + 1);
 	memset(buffer, 0, MAX_PATH + 1);
 	GetModuleFileName(NULL, buffer, MAX_PATH);
 
@@ -89,7 +89,7 @@ SharedObject *shared_open(const char *path, SepError *out_err) {
 	HMODULE handle = LoadLibrary(path);
 
 	// allocate and return a result
-	WindowsSharedObject *so = malloc(sizeof(WindowsSharedObject));
+	WindowsSharedObject *so = mem_unmanaged_allocate(sizeof(WindowsSharedObject));
 	so->handle = handle;
 	return (SharedObject*)so;
 }
@@ -110,5 +110,5 @@ void *shared_get_function(SharedObject *object, const char *name) {
 void shared_close(SharedObject *object) {
 	WindowsSharedObject *wso = (WindowsSharedObject*)object;
 	FreeLibrary(wso->handle);
-	free(wso);
+	mem_unmanaged_free(wso);
 }

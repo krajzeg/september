@@ -26,14 +26,14 @@
 
 // Creates a new, empty data stack.
 SepStack *stack_create() {
-	SepStack *stack = (SepStack*)malloc(sizeof(SepStack));
+	SepStack *stack = (SepStack*)mem_unmanaged_allocate(sizeof(SepStack));
 	ga_init(&stack->array, 8, sizeof(SepItem));
 	return stack;
 }
 
 // Frees the stack and all the contents.
 void stack_free(SepStack *this) {
-	free(this);
+	mem_unmanaged_free(this);
 }
 
 // == stack operation

@@ -94,7 +94,7 @@ char *decoder_read_string(BytecodeDecoder *this, SepError *out_err) {
 	if (length < 0)
 		fail(NULL, e_malformed_module_file("Negative string length."));
 
-	char *string = malloc(length + 1);
+	char *string = mem_unmanaged_allocate(length + 1);
 	string[length] = '\0';
 
 	char *c = string;
@@ -105,12 +105,12 @@ char *decoder_read_string(BytecodeDecoder *this, SepError *out_err) {
 	return string;
 
 clean_up:
-	free(string);
+	mem_unmanaged_free(string);
 	fail(NULL, err);
 }
 
 BytecodeDecoder *decoder_create(ByteSource *source) {
-	BytecodeDecoder *decoder = malloc(sizeof(BytecodeDecoder));
+	BytecodeDecoder *decoder = mem_unmanaged_allocate(sizeof(BytecodeDecoder));
 	decoder->source = source;
 	return decoder;
 }
@@ -322,5 +322,5 @@ void decoder_free(BytecodeDecoder *this) {
 
 	if (this->source)
 		this->source->vt->close_and_free(this->source);
-	free(this);
+	mem_unmanaged_free(this);
 }

@@ -36,7 +36,7 @@
 // Creates a new module.
 SepModule *module_create(){
 	// allocate and initialize
-	SepModule *module = malloc(sizeof(SepModule));
+	SepModule *module = mem_unmanaged_allocate(sizeof(SepModule));
 	module->runtime = &rt;
 	module->name = NULL;
 	module->blocks = NULL;
@@ -64,8 +64,8 @@ void module_free(SepModule *this) {
 
 	bpool_free(this->blocks);
 	cpool_free(this->constants);
-	free(this->name);
-	free(this);
+	mem_unmanaged_free(this->name);
+	mem_unmanaged_free(this);
 }
 
 // ===============================================================
@@ -80,7 +80,7 @@ void _cpool_resize(ConstantPool *this, uint32_t new_data_size) {
 	uint8_t *old_data = this->data;
 
 	// reallocate data, move pointers to their proper spaces
-	this->data = aligned_realloc(this->data, new_data_size, SEP_PTR_ALIGNMENT);
+	this->data = mem_unmanaged_realloc(this->data, new_data_size);
 	ptrdiff_t offset = this->data - old_data;
 	this->data_alloc_ptr += offset;
 	this->data_end_ptr = this->data + new_data_size;
@@ -128,7 +128,7 @@ void *_cpool_alloc(ConstantPool *this, size_t bytes) {
 // values.
 ConstantPool *cpool_create(uint32_t num_constants) {
 	// allocate pool and set up properties
-	ConstantPool *pool = malloc(sizeof(ConstantPool));
+	ConstantPool *pool = mem_unmanaged_allocate(sizeof(ConstantPool));
 	pool->constant_count = 0;
 	pool->max_constants = num_constants;
 
@@ -137,10 +137,7 @@ ConstantPool *cpool_create(uint32_t num_constants) {
 	size_t initial_memory_size = bytes_for_sepvs + 4;
 
 	// allocate space for constants and set initial pointers
-	// the memory has to be 8-byte aligned since some of the
-	// constants will be pointers, and pointers in SepVs have
-	// to be 8-byte aligned.
-	pool->data = aligned_alloc(initial_memory_size, SEP_PTR_ALIGNMENT);
+	pool->data = mem_unmanaged_allocate(initial_memory_size);
 	pool->data_alloc_ptr = pool->data + bytes_for_sepvs;
 	pool->data_end_ptr = pool->data + initial_memory_size;
 
@@ -151,8 +148,8 @@ ConstantPool *cpool_create(uint32_t num_constants) {
 // Frees the constant pool and all its contents.
 void cpool_free(ConstantPool *this) {
 	if (!this) return;
-	aligned_free(this->data);
-	free(this);
+	mem_unmanaged_free(this->data);
+	mem_unmanaged_free(this);
 }
 
 // Adds a new string constant at the next index.
@@ -204,7 +201,7 @@ void _bpool_ensure_fit(BlockPool *this, uint32_t bytes) {
 		uint8_t *original_base = this->memory;
 
 		// move the memory block
-		this->memory = realloc(this->memory, new_size);
+		this->memory = mem_unmanaged_realloc(this->memory, new_size);
 		this->memory_end = this->memory + new_size;
 
 		// fix up pointers (block index is not fixed up as its always the last allocation)
@@ -234,11 +231,11 @@ void _bpool_ensure_fit(BlockPool *this, uint32_t bytes) {
 
 // Creates a new, empty block pool.
 BlockPool *bpool_create(SepModule *module, uint32_t initial_memory_size) {
-	BlockPool *pool = malloc(sizeof(BlockPool));
+	BlockPool *pool = mem_unmanaged_allocate(sizeof(BlockPool));
 
 	// intitialize fields
 	pool->module = module;
-	pool->memory = malloc(initial_memory_size);
+	pool->memory = mem_unmanaged_allocate(initial_memory_size);
 	pool->memory_end = pool->memory + initial_memory_size;
 	pool->block_index = NULL;
 	pool->current_block = NULL;
@@ -333,8 +330,8 @@ CodeBlock *bpool_block(BlockPool *this, uint32_t index) {
 void bpool_free(BlockPool *this) {
 	if (!this) return;
 
-	free(this->memory);
-	free(this);
+	mem_unmanaged_free(this->memory);
+	mem_unmanaged_free(this);
 }
 
 

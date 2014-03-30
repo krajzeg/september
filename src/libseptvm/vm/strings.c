@@ -84,7 +84,7 @@ SepString *sepstr_new(const char *c_string) {
 
 SepString *sepstr_sprintf(const char *format, ...) {
 	int buffer_size = 80;
-	char *buffer = malloc(buffer_size);
+	char *buffer = mem_unmanaged_allocate(buffer_size);
 	bool fit = true;
 
 	va_list args;
@@ -96,13 +96,13 @@ SepString *sepstr_sprintf(const char *format, ...) {
 			buffer[chars_written] = '\0';
 		} else {
 			buffer_size *= 2;
-			buffer = realloc(buffer, buffer_size);
+			buffer = mem_unmanaged_realloc(buffer, buffer_size);
 		}
 		va_end(args);
 	} while (!fit);
 
 	SepString *new_sepstr = sepstr_new(buffer);
-	free(buffer);
+	mem_unmanaged_free(buffer);
 	return new_sepstr;
 }
 

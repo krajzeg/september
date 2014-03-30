@@ -132,9 +132,6 @@ void _props_resize(PropertyMap *this, int new_capacity) {
 		propit_next(&it);
 	}
 
-	// free the old entries (nobody else is using this but us)
-	mem_free(this->entries);
-
 	// copy data from temporary map to here, taking over the entry table
 	this->overflow = temp.overflow;
 	this->capacity = temp.capacity;

@@ -65,16 +65,43 @@ void aligned_free(void *aligned_memory) {
 //  Memory manager
 // ===============================================================
 
-void *mem_allocate(uint32_t bytes) {
-	void *memory = aligned_alloc(bytes, SEP_PTR_ALIGNMENT);
-	if (!memory) {
-		// TODO: handle this problem correctly by properly
-		// shutting down the interpreter when it occurs
-	}
+// Called when an out of memory error occurs. The only thing we do
+// is print a message describing the problem before dying.
+void handle_out_of_memory() {
+	fprintf(stderr, "FATAL ERROR: Out of memory. Shutting down.");
+	exit(EXIT_OUT_OF_MEMORY);
+}
+
+// Allocates a new chunk of memory of a given size.
+void *mem_unmanaged_allocate(uint32_t bytes) {
+	void *memory = aligned_alloc(bytes, 8);
+	if (!memory)
+		handle_out_of_memory();
 	return memory;
 }
 
-void mem_free(void *memory) {
+// Reallocates a chunk of memory to a new size, keeping the contents, but
+// possibly moving it.
+void *mem_unmanaged_realloc(void *memory, uint32_t new_size) {
+	memory = aligned_realloc(memory, new_size, 8);
+	if (!memory)
+		handle_out_of_memory();
+	return memory;
+}
+
+// Frees a chunk of unmanaged memory. Unlike managed memory, it has to be
+// explicitly freed.
+void mem_unmanaged_free(void *memory) {
 	aligned_free(memory);
 }
 
+// ===============================================================
+//  Memory manager
+// ===============================================================
+
+// Allocates a new chunk of managed memory. Managed memory does not have
+// to be freed - it will be freed automatically by the garbage collector.
+void *mem_allocate(uint32_t bytes) {
+	// TODO: mocked for now
+	return mem_unmanaged_allocate(bytes);
+}

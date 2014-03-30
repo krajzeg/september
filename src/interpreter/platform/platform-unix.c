@@ -46,7 +46,7 @@ SepString *get_executable_path() {
 	char *buffer = calloc(strlen(exec_arg) + 1, 1);
 	strncpy(buffer, exec_arg, last_slash - exec_arg);
 	SepString *exec_path = sepstr_for(buffer);
-	free(buffer);
+	mem_unmanaged_free(buffer);
 	
 	return exec_path;
 }
@@ -97,7 +97,7 @@ SharedObject *shared_open(const char *path, SepError *out_err) {
 	void *handle = dlopen(path, RTLD_LAZY);
 
 	// allocate and return a result
-	UnixSharedObject *so = malloc(sizeof(UnixSharedObject));
+	UnixSharedObject *so = mem_unmanaged_allocate(sizeof(UnixSharedObject));
 	so->handle = handle;
 	return (SharedObject*)so;
 }
@@ -118,5 +118,5 @@ void *shared_get_function(SharedObject *object, const char *name) {
 void shared_close(SharedObject *object) {
 	UnixSharedObject *uso = (UnixSharedObject*)object;
 	dlclose(uso->handle);
-	free(uso);
+	mem_unmanaged_free(uso);
 }

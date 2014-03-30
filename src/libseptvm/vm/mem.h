@@ -29,28 +29,34 @@
 // point to the right place.
 #define SEP_PTR_ALIGNMENT 8
 
+// The exit code used when we bail due to an out of memory error.
+#define EXIT_OUT_OF_MEMORY 16
+
 // ===============================================================
-//  Working with aligned memory
+//  Unmanaged memory
 // ===============================================================
 
 /**
- * The functions here are provided because the availability of
- * various 'standard' aligned malloc functions varies heavily
- * between compilers.
+ * Unmanaged memory is a thin wrapper on malloc, ensuring 8-byte alignment
+ * and some very basic error handling.
  */
 
-// Allocate new memory, with the starting address aligned at
-// an even 'alignment' bytes.
-void *aligned_alloc(size_t bytes, size_t alignment);
-// Reallocate a bit of aligned memory to a new size, keeping
-// the alignment intact.
-void *aligned_realloc(void *aligned_memory, size_t new_size, size_t alignment);
-// Free memory previously allocated with aligned_alloc.
-void aligned_free(void *aligned_memory);
+// Allocates a new chunk of memory of a given size.
+void *mem_unmanaged_allocate(uint32_t bytes);
+// Reallocates a chunk of memory to a new size, keeping the contents, but
+// possibly moving it.
+void *mem_unmanaged_realloc(void *memory, uint32_t new_size);
+// Frees a chunk of unmanaged memory. Unlike managed memory, it has to be
+// explicitly freed.
+void mem_unmanaged_free(void *memory);
 
-/*****************************************************************/
+// ===============================================================
+//  Managed memory
+// ===============================================================
 
+// Allocates a new chunk of managed memory. Managed memory does not have
+// to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(uint32_t bytes);
-void mem_free(void *memory);
+
 
 #endif

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include "../vm/mem.h"
 #include "errors.h"
 
 /*****************************************************************/
@@ -23,7 +24,7 @@ SepError e_wrong_arguments(const char *message) { return error_create(EWrongArgu
 SepError error_create(SepErrorType type, const char *message_fmt, ...) {
 	SepError error = {type, false, NULL, NULL};
 
-	char *message = malloc(1024);
+	char *message = mem_unmanaged_allocate(1024);
 	va_list args;
 	va_start(args, message_fmt);
 	vsnprintf(message, 1024, message_fmt, args);
@@ -38,10 +39,10 @@ bool error_matches(SepError error, SepErrorType type) {
 }
 
 void error_free(SepError error) {
-	free(error.message);
+	mem_unmanaged_free(error.message);
 	if (error.previous) {
 		error_free(*(error.previous));
-		free(error.previous);
+		mem_unmanaged_free(error.previous);
 	}
 }
 
