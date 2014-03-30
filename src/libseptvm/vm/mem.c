@@ -155,7 +155,7 @@ typedef struct ManagedMemory {
 } ManagedMemory;
 
 // The global storing the status of the memory.
-ManagedMemory *memory;
+ManagedMemory *_managed_memory;
 
 // ===============================================================
 //  MemoryChunk internals
@@ -252,33 +252,33 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 // Initializes the memory manager. Memory will be allocated in increments of chunk_size,
 // and it has to be a power of two. The minimum chunk size is 1024 bytes.
 void mem_initialize(uint32_t chunk_size) {
-	memory = mem_unmanaged_allocate(sizeof(ManagedMemory));
-	memory->chunk_size = chunk_size;
-	memory->total_allocated_bytes = 0;
-	memory->used_bytes = 0;
+	_managed_memory = mem_unmanaged_allocate(sizeof(ManagedMemory));
+	_managed_memory->chunk_size = chunk_size;
+	_managed_memory->total_allocated_bytes = 0;
+	_managed_memory->used_bytes = 0;
 
-	ga_init(&memory->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
+	ga_init(&_managed_memory->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
 
-	_mem_add_chunks(memory, 1);
+	_mem_add_chunks(_managed_memory, 1);
 }
 
 // Initializes the memory subsystem in such a way that a ManagedMemory controlled
 // by someone outside our module (.dll/.so) can be used.
 void mem_initialize_from_master(ManagedMemory *master_memory) {
 	// just use the same instance
-	memory = master_memory;
+	_managed_memory = master_memory;
 }
 
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes) {
-	if (bytes > memory->chunk_size - 2 * ALLOCATION_UNIT) {
+	if (bytes > _managed_memory->chunk_size - 2 * ALLOCATION_UNIT) {
 		// TODO: allocations not fitting in a chunk not implemented yet
 		handle_out_of_memory();
 	}
 
-	MemoryChunk **chunk = memory->chunks.start;
-	MemoryChunk **end = memory->chunks.end;
+	MemoryChunk **chunk = _managed_memory->chunks.start;
+	MemoryChunk **end = _managed_memory->chunks.end;
 
 	// go through all the chunks looking for one that can satisfy the allocation
 	while (chunk < end) {
@@ -295,8 +295,8 @@ void *mem_allocate(size_t bytes) {
 	// TODO: this will start a forced GC once its implemented
 	log("mem", "Not enough space to allocate %d bytes, allocating new chunk.", bytes);
 
-	_mem_add_chunks(memory, 1);
-	chunk = ga_get(&memory->chunks, ga_length(&memory->chunks) - 1);
+	_mem_add_chunks(_managed_memory, 1);
+	chunk = ga_get(&_managed_memory->chunks, ga_length(&_managed_memory->chunks) - 1);
 	return _chunk_allocate(*chunk, bytes); // should not fail
 }
 

@@ -57,7 +57,7 @@ void mem_unmanaged_free(void *memory);
 // Essentially a private type, but a pointer will have to be passed around between
 // master/slave VMs - so we have to define enough to allow a pointer.
 struct ManagedMemory;
-extern struct ManagedMemory *memory;
+extern struct ManagedMemory *_managed_memory;
 
 // Initializes the memory manager. Memory will be allocated in increments of chunk_size,
 // and it has to be a power of two. The minimum chunk size is 1024 bytes.
@@ -81,7 +81,7 @@ void *mem_allocate(size_t bytes);
 typedef struct Allocator {
 	void *(*allocate)(size_t bytes);
 	void *(*reallocate)(void *original, size_t old_size, size_t new_size);
-	void (*free)(void *memory);
+	void (*free)(void *_managed_memory);
 } Allocator;
 
 // Pre-defined managed/unmanaged allocators.

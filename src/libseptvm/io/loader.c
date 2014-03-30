@@ -57,7 +57,7 @@ SepV load_module(ModuleDefinition *definition) {
 	if (native) {
 		if (!native->initialize_slave_vm)
 			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
-		native->initialize_slave_vm(memory, &err)
+		native->initialize_slave_vm(_managed_memory, &err)
 			or_handle(EAny) { goto cleanup; }
 	}
 
