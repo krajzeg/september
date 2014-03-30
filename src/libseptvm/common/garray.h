@@ -19,12 +19,16 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include "../vm/mem.h"
 
 // ===============================================================
 //  Genericized arrays
 // ===============================================================
 
 typedef struct GenericArray {
+	// the memory allocation strategy
+	Allocator *allocator;
+
 	// element size in bytes
 	size_t element_size;
 
@@ -34,9 +38,9 @@ typedef struct GenericArray {
 } GenericArray;
 
 // Creates a new, empty generic array.
-GenericArray *ga_create(uint32_t initial_capacity, size_t element_size);
+GenericArray *ga_create(uint32_t initial_capacity, size_t element_size, Allocator *allocator);
 // Initializes a new generic array in place.
-void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size);
+void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size, Allocator *allocator);
 // Pushes a new value at the end of this array.
 void *ga_push(GenericArray *this, void *value_ptr);
 // Pops a value from the end of this array.

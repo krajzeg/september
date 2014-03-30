@@ -27,7 +27,7 @@
 // Creates a new, empty data stack.
 SepStack *stack_create() {
 	SepStack *stack = (SepStack*)mem_unmanaged_allocate(sizeof(SepStack));
-	ga_init(&stack->array, 8, sizeof(SepItem));
+	ga_init(&stack->array, 8, sizeof(SepItem), &allocator_unmanaged);
 	return stack;
 }
 

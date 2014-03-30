@@ -28,8 +28,7 @@
 // Resizes the array's backing store to a new number of elements.
 void _ga_resize(GenericArray *this, uint32_t new_size) {
 	// create new content array, copying the old contents over
-	void *new_contents = mem_allocate(new_size * this->element_size);
-	memcpy(new_contents, this->start, this->end - this->start);
+	void *new_contents = this->allocator->reallocate(this->start, this->end - this->start, new_size * this->element_size);
 
 	// attach new storage
 	ptrdiff_t length = this->end - this->start;
@@ -43,19 +42,19 @@ void _ga_resize(GenericArray *this, uint32_t new_size) {
 // ===============================================================
 
 // Creates a new, empty array.
-GenericArray *ga_create(uint32_t initial_capacity, size_t element_size) {
+GenericArray *ga_create(uint32_t initial_capacity, size_t element_size, Allocator *allocator) {
 	// allocate, initialize, return
-	GenericArray *array = mem_allocate(sizeof(GenericArray));
-	ga_init(array, initial_capacity, element_size);
+	GenericArray *array = allocator->allocate(sizeof(GenericArray));
+	ga_init(array, initial_capacity, element_size, allocator);
 	return array;
 }
 
 // Initializes a new generic array in place.
-void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size) {
-	// remember element size
+void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size, Allocator *allocator) {
+	this->allocator = allocator;
 	this->element_size = element_size;
 	// allocate some storage for contents
-	this->start = mem_allocate(initial_capacity * element_size);
+	this->start = allocator->allocate(initial_capacity * element_size);
 	this->end = this->start;
 	this->memory_end = this->start + (initial_capacity * element_size);
 }

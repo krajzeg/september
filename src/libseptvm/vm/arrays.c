@@ -44,7 +44,7 @@ SepArray *array_create(uint32_t initial_size) {
 	array->base.traits = ARRAY_TRAITS;
 
 	// allocate the underlying dynamic array
-	ga_init(&array->array, initial_size, sizeof(SepV));
+	ga_init(&array->array, initial_size, sizeof(SepV), &allocator_managed);
 
 	// return
 	return array;

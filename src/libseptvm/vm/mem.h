@@ -42,10 +42,10 @@
  */
 
 // Allocates a new chunk of memory of a given size.
-void *mem_unmanaged_allocate(uint32_t bytes);
+void *mem_unmanaged_allocate(size_t bytes);
 // Reallocates a chunk of memory to a new size, keeping the contents, but
 // possibly moving it.
-void *mem_unmanaged_realloc(void *memory, uint32_t new_size);
+void *mem_unmanaged_realloc(void *memory, size_t new_size);
 // Frees a chunk of unmanaged memory. Unlike managed memory, it has to be
 // explicitly freed.
 void mem_unmanaged_free(void *memory);
@@ -56,7 +56,25 @@ void mem_unmanaged_free(void *memory);
 
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
-void *mem_allocate(uint32_t bytes);
+void *mem_allocate(size_t bytes);
 
+// ===============================================================
+//  Generalizing allocation
+// ===============================================================
+
+/**
+ * Some objects want to be able to work with both managed and unmanaged memory,
+ * like the GenericArray. The Allocator interface is a way to do that.
+ */
+
+typedef struct Allocator {
+	void *(*allocate)(size_t bytes);
+	void *(*reallocate)(void *original, size_t old_size, size_t new_size);
+	void (*free)(void *memory);
+} Allocator;
+
+// Pre-defined managed/unmanaged allocators.
+extern Allocator allocator_managed;
+extern Allocator allocator_unmanaged;
 
 #endif

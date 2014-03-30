@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "mem.h"
 #include "../common/errors.h"
@@ -73,7 +74,7 @@ void handle_out_of_memory() {
 }
 
 // Allocates a new chunk of memory of a given size.
-void *mem_unmanaged_allocate(uint32_t bytes) {
+void *mem_unmanaged_allocate(size_t bytes) {
 	void *memory = aligned_alloc(bytes, 8);
 	if (!memory)
 		handle_out_of_memory();
@@ -82,7 +83,7 @@ void *mem_unmanaged_allocate(uint32_t bytes) {
 
 // Reallocates a chunk of memory to a new size, keeping the contents, but
 // possibly moving it.
-void *mem_unmanaged_realloc(void *memory, uint32_t new_size) {
+void *mem_unmanaged_realloc(void *memory, size_t new_size) {
 	memory = aligned_realloc(memory, new_size, 8);
 	if (!memory)
 		handle_out_of_memory();
@@ -101,7 +102,27 @@ void mem_unmanaged_free(void *memory) {
 
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
-void *mem_allocate(uint32_t bytes) {
+void *mem_allocate(size_t bytes) {
 	// TODO: mocked for now
 	return mem_unmanaged_allocate(bytes);
 }
+
+// ===============================================================
+//  Generalizing allocation
+// ===============================================================
+
+// Adapting unmanaged/managed allocations to the Allocator interface
+void *_managed_reallocate(void *memory, size_t old_size, size_t new_size) {
+	void *new_memory = mem_allocate(new_size);
+	memcpy(new_memory, memory, old_size);
+	return new_memory;
+}
+void _managed_free(void *memory) {}
+
+void *_unmanaged_reallocate(void *memory, size_t old_size, size_t new_size) {
+	return mem_unmanaged_realloc(memory, new_size);
+}
+
+// Pre-defined managed/unmanaged allocators.
+Allocator allocator_managed = {&mem_allocate, &_managed_reallocate, &_managed_free};
+Allocator allocator_unmanaged = {&mem_unmanaged_allocate, &_unmanaged_reallocate, &mem_unmanaged_free};
