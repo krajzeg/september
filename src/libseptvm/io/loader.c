@@ -43,22 +43,32 @@ SepV load_module(ModuleDefinition *definition) {
 	// create the empty module
 	SepModule *module = module_create(&rt);
 
+	ModuleNativeCode *native = definition->native;
+	ByteSource *bytecode = definition->bytecode;
+
 	// if there is any bytecode, load it in
-	if (definition->bytecode) {
-		BytecodeDecoder *decoder = decoder_create(definition->bytecode);
+	if (bytecode) {
+		BytecodeDecoder *decoder = decoder_create(bytecode);
 		decoder_read_pools(decoder, module, &err);
 			or_handle(EAny) { goto cleanup; }
 	}
 
 	// execute early initialization, if any
-	if (definition->native && definition->native->early_initializer) {
-		ModuleInitFunc early_initialization = definition->native->early_initializer;
+	if (native) {
+		if (!native->initialize_slave_vm)
+			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
+		native->initialize_slave_vm(memory, &err)
+			or_handle(EAny) { goto cleanup; }
+	}
+
+	if (native && native->early_initializer) {
+		ModuleInitFunc early_initialization = native->early_initializer;
 		early_initialization(module, &err);
 			or_handle(EAny) { goto cleanup; }
 	}
 
 	// execute bytecode, if any
-	if (definition->bytecode) {
+	if (bytecode) {
 		// execute the root function
 		SepVM *vm = vm_create(module, rt.syntax);
 		vm_initialize_root_frame(vm, module);
@@ -71,8 +81,8 @@ SepV load_module(ModuleDefinition *definition) {
 	}
 
 	// execute early initialization, if any
-	if (definition->native && definition->native->late_initializer) {
-		ModuleInitFunc late_initialization = definition->native->late_initializer;
+	if (native && native->late_initializer) {
+		ModuleInitFunc late_initialization = native->late_initializer;
 		late_initialization(module, &err);
 			or_handle(EAny) { goto cleanup; }
 	}

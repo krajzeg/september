@@ -212,6 +212,14 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope);
 // to itself.
 SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value);
 
+// ===============================================================
+//  Initialization of the whole library
+// ===============================================================
+
+// Initializes a slave libseptvm (as used inside a module DLL/.so). This is needed
+// so that things like the memory manager can be shared with the master process.
+void libseptvm_initialize_slave(struct ManagedMemory *master_memory);
+
 /*****************************************************************/
 
 #endif

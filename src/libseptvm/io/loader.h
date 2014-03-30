@@ -49,10 +49,10 @@ typedef struct ByteSourceVT {
  * before or after the part of the module written September is
  * executed.
  */
-typedef void (*VMInitFunc)(SepObj *globals, SepError *out_err);
+typedef void (*VMInitFunc)(struct ManagedMemory *memory, SepError *out_err);
 typedef void (*ModuleInitFunc)(SepModule *module, SepError *out_err);
 typedef struct ModuleNativeCode {
-	VMInitFunc initialize_vm_library;
+	VMInitFunc initialize_slave_vm;
 	ModuleInitFunc early_initializer;
 	ModuleInitFunc late_initializer;
 } ModuleNativeCode;

@@ -22,6 +22,7 @@
 //  Constants
 // ===============================================================
 
+char INIT_SLAVE_VM_NAME[] = "module_initialize_slave_vm";
 char EARLY_INIT_NAME[] = "module_initialize_early";
 char LATE_INIT_NAME[]  = "module_initialize_late";
 
@@ -52,6 +53,7 @@ SepString *find_file(SepArray *search_paths, SepString *filename, SepError *out_
 ModuleNativeCode *load_native_code(SharedObject *object) {
 	ModuleNativeCode *mnc = mem_unmanaged_allocate(sizeof(ModuleNativeCode));
 
+	mnc->initialize_slave_vm = shared_get_function(object, INIT_SLAVE_VM_NAME);
 	mnc->early_initializer = shared_get_function(object, EARLY_INIT_NAME);
 	mnc->late_initializer = shared_get_function(object, LATE_INIT_NAME);
 

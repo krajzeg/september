@@ -54,6 +54,17 @@ void mem_unmanaged_free(void *memory);
 //  Managed memory
 // ===============================================================
 
+// Essentially a private type, but a pointer will have to be passed around between
+// master/slave VMs - so we have to define enough to allow a pointer.
+struct ManagedMemory;
+extern struct ManagedMemory *memory;
+
+// Initializes the memory manager. Memory will be allocated in increments of chunk_size,
+// and it has to be a power of two. The minimum chunk size is 1024 bytes.
+void mem_initialize(uint32_t chunk_size);
+// Initializes the memory subsystem in such a way that a ManagedMemory controlled
+// by someone outside our module (.dll/.so) can be used.
+void mem_initialize_from_master(struct ManagedMemory *master_memory);
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes);

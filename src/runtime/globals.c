@@ -498,3 +498,7 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 	// the globals are our root object
 	module->root = globals;
 }
+
+void MODULE_EXPORT module_initialize_slave_vm(struct ManagedMemory *master_memory, SepError *out_err) {
+	libseptvm_initialize_slave(master_memory);
+}
