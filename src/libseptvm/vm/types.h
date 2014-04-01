@@ -113,6 +113,14 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 #define SEPV_NO_VALUE (SEPV_TYPE_SPECIAL | 0x07)
 
 // ===============================================================
+//  Working with SepV types
+// ===============================================================
+
+#define sepv_type(value) ((value) & SEPV_TYPE_MASK)
+#define sepv_is_pointer(value) ((sepv_type(value) >= SEPV_TYPE_STRING && sepv_type(value) <= SEPV_TYPE_SLOT) || sepv_type(value) == SEPV_TYPE_EXCEPTION)
+#define sepv_to_pointer(value) ((void*)(intptr_t)(value << 3))
+
+// ===============================================================
 //  Booleans and special values
 // ===============================================================
 

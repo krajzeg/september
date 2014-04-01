@@ -21,6 +21,7 @@
 #include "../common/debugging.h"
 #include "../common/garray.h"
 #include "../common/errors.h"
+#include "../vm/types.h"
 
 // ===============================================================
 //  Aligned memory
@@ -102,58 +103,6 @@ void mem_unmanaged_free(void *memory) {
 //  Managed memory internal definitions
 // ===============================================================
 
-// how many bytes are considered one unit in memory bitmaps
-#define ALLOCATION_UNIT 8
-// a type of size ALLOCATION_UNIT bytes (only the size matters, as it will be used for pointers)
-typedef uint64_t alloc_unit_t;
-
-/**
- * A header stored at the start of every free extent in the chunk's arena. The headers
- * make up a linked list of free extents in the chunk.
- */
-typedef struct FreeBlockHeader {
-	// the size of this block in allocation units
-	uint32_t size;
-	// the offset from the start of this free extent to the start of the next one
-	// if this is the last free extent in the chunk, this will be 0
-	uint32_t offset_to_next_free;
-} FreeBlockHeader;
-
-typedef struct BlockFlags {
-	int marked : 1;
-} BlockFlags;
-
-typedef struct UsedBlockHeader {
-	// the size of this block in allocation units
-	uint32_t size;
-	// status
-	union {
-		BlockFlags flags;
-		uint32_t word;
-	} status;
-} UsedBlockHeader;
-
-/**
- * Represents a single chunk of managed memory.
- */
-typedef struct MemoryChunk {
-	// the memory backing this memory chunk
-	alloc_unit_t *memory;
-	// pointer to the first entry in the free block list
-	FreeBlockHeader *free_list;
-} MemoryChunk;
-
-/**
- * Represents the entirety of managed memory.
- */
-typedef struct ManagedMemory {
-	GenericArray chunks;
-	uint32_t chunk_size;
-
-	uint64_t total_allocated_bytes;
-	uint64_t used_bytes;
-} ManagedMemory;
-
 // The global storing the status of the memory.
 ManagedMemory *_managed_memory;
 
@@ -189,6 +138,25 @@ void *_free_block_allocate(FreeBlockHeader *block, FreeBlockHeader *previous, ui
 	return ((alloc_unit_t*)allocated) + 1;
 }
 
+// Creates a fresh MemoryChunk.
+MemoryChunk *_chunk_create(ManagedMemory *memory) {
+	MemoryChunk *chunk = mem_unmanaged_allocate(sizeof(MemoryChunk));
+	chunk->memory = mem_unmanaged_allocate(memory->chunk_size);
+
+	// initialize the free block list
+	// first the artificial head
+	FreeBlockHeader *head = chunk->free_list = (FreeBlockHeader*)chunk->memory;
+	head->offset_to_next_free = 1;
+	head->size = 1;
+
+	// then the actual giant free block
+	FreeBlockHeader *block = (FreeBlockHeader*)(chunk->memory + head->offset_to_next_free);
+	block->size = (memory->chunk_size / ALLOCATION_UNIT) - 1;
+	block->offset_to_next_free = 0; // nothing next
+
+	return chunk;
+}
+
 // Tries to allocate memory from a given chunk. If the allocation cannot be satisfied,
 // returns NULL.
 void *_chunk_allocate(MemoryChunk *chunk, size_t bytes) {
@@ -219,24 +187,6 @@ void *_chunk_allocate(MemoryChunk *chunk, size_t bytes) {
 //  ManagedMemory internals
 // ===============================================================
 
-MemoryChunk *_chunk_create(ManagedMemory *memory) {
-	MemoryChunk *chunk = mem_unmanaged_allocate(sizeof(MemoryChunk));
-	chunk->memory = mem_unmanaged_allocate(memory->chunk_size);
-
-	// initialize the free block list
-	// first the artificial head
-	FreeBlockHeader *head = chunk->free_list = (FreeBlockHeader*)chunk->memory;
-	head->offset_to_next_free = 1;
-	head->size = 1;
-
-	// then the actual giant free block
-	FreeBlockHeader *block = (FreeBlockHeader*)(chunk->memory + head->offset_to_next_free);
-	block->size = (memory->chunk_size / ALLOCATION_UNIT) - 1;
-	block->offset_to_next_free = 0; // nothing next
-
-	return chunk;
-}
-
 void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 	int i;
 	for (i = 0; i < how_many; i++) {
@@ -244,6 +194,7 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 		ga_push(&memory->chunks, &chunk);
 	}
 }
+
 
 // ===============================================================
 //  Managed memory public interface

@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mem.h"
+#include "gc.h"
 #include "objects.h"
 #include "exceptions.h"
 #include "arrays.h"
@@ -329,6 +330,30 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 void vm_free(SepVM *this) {
 	if (!this) return;
 	mem_unmanaged_free(this);
+}
+
+// ===============================================================
+//  Garbage collection
+// ===============================================================
+
+// Queues all the objects directly reachable from this VM. These are objects on the
+// data stack and all the execution frame scopes.
+void vm_queue_gc_roots(SepVM *this, GarbageCollection *gc) {
+	// queue all items from the data stack
+	GenericArrayIterator sit = ga_iterate_over(&this->data->array);
+	while (!gait_end(&sit)) {
+		SepItem stack_item = *((SepItem*)gait_current(&sit));
+		gc_add_to_queue(gc, stack_item.value);
+	}
+
+	// queue everything accessible from the execution frames
+	int f = 0;
+	for (; f <= this->frame_depth; f++) {
+		ExecutionFrame *frame = &this->frames[f];
+		gc_add_to_queue(gc, func_to_sepv(frame->function));
+		gc_add_to_queue(gc, frame->locals);
+		gc_add_to_queue(gc, frame->return_value.value);
+	}
 }
 
 // ===============================================================

@@ -19,7 +19,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include "../vm/mem.h"
 
 // ===============================================================
 //  Genericized arrays
@@ -27,7 +26,7 @@
 
 typedef struct GenericArray {
 	// the memory allocation strategy
-	Allocator *allocator;
+	struct Allocator *allocator;
 
 	// element size in bytes
 	size_t element_size;
@@ -38,9 +37,9 @@ typedef struct GenericArray {
 } GenericArray;
 
 // Creates a new, empty generic array.
-GenericArray *ga_create(uint32_t initial_capacity, size_t element_size, Allocator *allocator);
+GenericArray *ga_create(uint32_t initial_capacity, size_t element_size, struct Allocator *allocator);
 // Initializes a new generic array in place.
-void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size, Allocator *allocator);
+void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size, struct Allocator *allocator);
 // Pushes a new value at the end of this array.
 void *ga_push(GenericArray *this, void *value_ptr);
 // Pops a value from the end of this array.
@@ -53,6 +52,11 @@ void *ga_set(GenericArray *this, uint32_t index, void *value_ptr);
 void ga_grow(GenericArray *this, uint32_t cells);
 // Gets the length of this array.
 uint32_t ga_length(GenericArray *this);
+// Frees just the internal entries table (for use with arrays created via ga_init). The memory for the array
+// itself has to be freed separately.
+void ga_free_entries(GenericArray *this);
+// Frees the array.
+void ga_free(GenericArray *this);
 
 // ===============================================================
 //  Genericized arrays

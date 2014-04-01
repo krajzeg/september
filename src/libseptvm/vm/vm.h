@@ -28,6 +28,7 @@
 
 struct SepVM;
 struct SepArray;
+struct GarbageCollection;
 struct ExecutionFrame;
 
 // ===============================================================
@@ -181,6 +182,14 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *exec_scope, Executi
 void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV scope);
 // Destroys a VM.
 void vm_free(SepVM *this);
+
+// ===============================================================
+//  Garbage collection
+// ===============================================================
+
+// Queues all the objects directly reachable from this VM. These are objects on the
+// data stack and all the execution frame scopes.
+void vm_queue_gc_roots(SepVM *this, struct GarbageCollection *gc);
 
 // ===============================================================
 // Invoking function calls from C code

@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "../common/errors.h"
+#include "../common/garray.h"
 
 // ===============================================================
 //  Constants
@@ -54,10 +55,62 @@ void mem_unmanaged_free(void *memory);
 //  Managed memory
 // ===============================================================
 
-// Essentially a private type, but a pointer will have to be passed around between
-// master/slave VMs - so we have to define enough to allow a pointer.
-struct ManagedMemory;
-extern struct ManagedMemory *_managed_memory;
+// how many bytes are considered one unit in memory bitmaps
+#define ALLOCATION_UNIT 8
+// a type of size ALLOCATION_UNIT bytes (only the size matters, as it will be used for pointers)
+typedef uint64_t alloc_unit_t;
+
+/**
+ * A header stored at the start of every free extent in the chunk's arena. The headers
+ * make up a linked list of free extents in the chunk.
+ */
+typedef struct FreeBlockHeader {
+	// the size of this block in allocation units
+	uint32_t size;
+	// the offset from the start of this free extent to the start of the next one
+	// if this is the last free extent in the chunk, this will be 0
+	uint32_t offset_to_next_free;
+} FreeBlockHeader;
+
+// Flags used by every used block header.
+typedef struct BlockFlags {
+	// was this block marked in the last GC mark phase?
+	int marked : 1;
+} BlockFlags;
+
+// A header stored at the start of every used block of memory.
+typedef struct UsedBlockHeader {
+	// the size of this block in allocation units
+	uint32_t size;
+	// status
+	union {
+		BlockFlags flags;
+		uint32_t word;
+	} status;
+} UsedBlockHeader;
+
+/**
+ * Represents a single chunk of managed memory.
+ */
+typedef struct MemoryChunk {
+	// the memory backing this memory chunk
+	alloc_unit_t *memory;
+	// pointer to the first entry in the free block list
+	FreeBlockHeader *free_list;
+} MemoryChunk;
+
+/**
+ * Represents the entirety of managed memory.
+ */
+typedef struct ManagedMemory {
+	// the array of memory chunks currently in use
+	GenericArray chunks;
+	// the size used for all the chunks
+	uint32_t chunk_size;
+
+	uint64_t total_allocated_bytes;
+	uint64_t used_bytes;
+} ManagedMemory;
 
 // Initializes the memory manager. Memory will be allocated in increments of chunk_size,
 // and it has to be a power of two. The minimum chunk size is 1024 bytes.
@@ -68,6 +121,9 @@ void mem_initialize_from_master(struct ManagedMemory *master_memory);
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes);
+
+// the global memory pointer
+extern ManagedMemory *_managed_memory;
 
 // ===============================================================
 //  Generalizing allocation

@@ -152,3 +152,18 @@ bool gait_end(GenericArrayIterator *this) {
 	return this->position >= this->array->end;
 }
 
+// ===============================================================
+//  Freeing memory
+// ===============================================================
+
+// Frees just the internal entries table (for use with arrays created via ga_init). The memory for the array
+// itself has to be freed separately.
+void ga_free_entries(GenericArray *this) {
+	this->allocator->free(this->start);
+}
+
+// Frees the array.
+void ga_free(GenericArray *this) {
+	this->allocator->free(this->start);
+	this->allocator->free(this);
+}
