@@ -17,11 +17,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "mem.h"
 #include "../common/debugging.h"
 #include "../common/garray.h"
 #include "../common/errors.h"
-#include "../vm/types.h"
+#include "mem.h"
+#include "gc.h"
+#include "types.h"
 
 // ===============================================================
 //  Aligned memory
@@ -195,6 +196,25 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 	}
 }
 
+void *_mem_allocate_from_any_chunk(ManagedMemory *memory, uint32_t bytes) {
+	GenericArrayIterator it = ga_iterate_over(&_managed_memory->chunks);
+
+	// go through all the chunks looking for one that can satisfy the allocation
+	while (!gait_end(&it)) {
+		// try this chunk
+		MemoryChunk *chunk = *((MemoryChunk**)gait_current(&it));
+		void *memory = _chunk_allocate(chunk, bytes);
+		if (memory)
+			return memory;
+
+		// did not work - maybe the next one will have enough space
+		gait_advance(&it);
+	}
+
+	// no free space anywhere
+	return NULL;
+}
+
 
 // ===============================================================
 //  Managed memory public interface
@@ -228,27 +248,21 @@ void *mem_allocate(size_t bytes) {
 		handle_out_of_memory();
 	}
 
-	MemoryChunk **chunk = _managed_memory->chunks.start;
-	MemoryChunk **end = _managed_memory->chunks.end;
+	// allocate from any memory chunk
+	void *allocation = _mem_allocate_from_any_chunk(_managed_memory, bytes);
+	if (allocation)
+		return allocation;
 
-	// go through all the chunks looking for one that can satisfy the allocation
-	while (chunk < end) {
-		// try this chunk
-		void *memory = _chunk_allocate(*chunk, bytes);
-		if (memory)
-			return memory;
+	// no free space in any chunk - make some space by launching GC and try again
+	gc_perform_full_gc();
+	allocation = _mem_allocate_from_any_chunk(_managed_memory, bytes);
+	if (allocation)
+		return allocation;
 
-		// did not work - maybe the next one will have enough space
-		chunk++;
-	}
-
-	// no free space in any chunk, make a new one
-	// TODO: this will start a forced GC once its implemented
+	// still didn't work - we simply have to get a new chunk to satisfy the allocation
 	log("mem", "Not enough space to allocate %d bytes, allocating new chunk.", bytes);
-
 	_mem_add_chunks(_managed_memory, 1);
-	chunk = ga_get(&_managed_memory->chunks, ga_length(&_managed_memory->chunks) - 1);
-	return _chunk_allocate(*chunk, bytes); // should not fail
+	return _mem_allocate_from_any_chunk(_managed_memory, bytes); // cannot fail with a fresh chunk available
 }
 
 // ===============================================================

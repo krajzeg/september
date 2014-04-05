@@ -152,8 +152,18 @@ void gc_mark_all(GarbageCollection *this) {
 //  Sweep phase
 // ===============================================================
 
+void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
+	// to be implemented
+}
+
 void gc_sweep_all(GarbageCollection *this) {
-	// not implemented yet
+	GenericArray *chunks = &this->memory->chunks;
+	GenericArrayIterator it = ga_iterate_over(chunks);
+	while (!gait_end(&it)) {
+		MemoryChunk *chunk = *((MemoryChunk**)gait_current(&it));
+		gc_sweep_chunk(this, chunk);
+		gait_advance(&it);
+	}
 }
 
 // ===============================================================
