@@ -63,7 +63,8 @@ void frame_raise(ExecutionFrame *frame, SepV exception) {
 
 // Registers a value as a GC root to prevent it from being freed before its unused.
 void frame_register(ExecutionFrame *frame, SepV value) {
-	ga_push(&frame->gc_roots, &value);
+	if (sepv_is_pointer(value))
+		ga_push(&frame->gc_roots, &value);
 }
 
 // Releases a value previously held in the frame's GC root table,
