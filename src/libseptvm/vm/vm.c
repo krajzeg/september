@@ -425,6 +425,7 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 	while (!gait_end(&sit)) {
 		SepItem stack_item = *((SepItem*)gait_current(&sit));
 		gc_add_to_queue(gc, stack_item.value);
+		gait_advance(&sit);
 	}
 
 	// queue everything accessible from the execution frames
@@ -436,11 +437,11 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 		gc_add_to_queue(gc, frame->return_value.value);
 
 		// additional GC roots - objects allocated by this frame
-		GenericArrayIterator it = ga_iterate_over(&frame->gc_roots);
-		while (!gait_end(&it)) {
-			SepV value = *((SepV*)gait_current(&it));
+		GenericArrayIterator rit = ga_iterate_over(&frame->gc_roots);
+		while (!gait_end(&rit)) {
+			SepV value = *((SepV*)gait_current(&rit));
 			gc_add_to_queue(gc, value);
-			gait_advance(&it);
+			gait_advance(&rit);
 		}
 	}
 }

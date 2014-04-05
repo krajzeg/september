@@ -12,6 +12,7 @@
 //  Includes
 // ===============================================================
 
+#include "../common/debugging.h"
 #include "gc.h"
 #include "mem.h"
 #include "types.h"
@@ -52,7 +53,7 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 
 	// add to the queue buffer
 	uint32_t buffer_length = ga_length(&this->mark_queue);
-	bool buffer_full = ((this->queue_end + 1) % buffer_length) == this->queue_start;
+	bool buffer_full = (buffer_length == 0) || ((this->queue_end + 1) % buffer_length) == this->queue_start;
 	if (!buffer_full) {
 		// buffer not full yet, add at end
 		ga_set(&this->mark_queue, this->queue_end, &object);
@@ -140,6 +141,11 @@ void gc_mark_all(GarbageCollection *this) {
 	// collect GC roots from the VM
 	vm_queue_gc_roots(this);
 
+	int root_count = this->queue_end - this->queue_start;
+	if (root_count < 0)
+		root_count += ga_length(&this->mark_queue);
+	log("mem", "Starting GC mark phase with %d roots.", root_count);
+
 	// mark all objects, collecting references from them
 	SepV object = gc_next_in_queue(this);
 	while (object != SEPV_NO_VALUE) {
@@ -157,6 +163,8 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 }
 
 void gc_sweep_all(GarbageCollection *this) {
+	log0("mem", "GC mark phase complete, starting the sweep phase.");
+
 	GenericArray *chunks = &this->memory->chunks;
 	GenericArrayIterator it = ga_iterate_over(chunks);
 	while (!gait_end(&it)) {
@@ -189,9 +197,13 @@ void gc_free(GarbageCollection *this) {
 
 // Performs a full collection from start to finish, both mark and sweep.
 void gc_perform_full_gc() {
+	log0("mem", "Starting a full garbage collection.");
+
 	GarbageCollection *collection = gc_create();
 	gc_mark_all(collection);
 	gc_sweep_all(collection);
 	gc_free(collection);
+
+	log0("mem", "Full garbage collection completed.");
 }
 
