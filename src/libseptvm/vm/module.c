@@ -163,8 +163,9 @@ SepV cpool_add_string(ConstantPool *this, const char *c_string) {
 	// a "used block" header the memory managed would use if this string
 	// was dynamically allocated
 	void *memory = _cpool_alloc(this, size + 8);
-	uint64_t *padding = memory;
-	*padding = 0;
+	UsedBlockHeader *padding_block = memory;
+	padding_block->status.word = 0;
+	padding_block->status.flags.marked = 1;
 
 	// time for the string itself
 	SepString *string = (SepString*)(memory + 8);
