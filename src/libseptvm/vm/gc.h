@@ -25,8 +25,6 @@
 
 // Represents an undergoing garbage collection process.
 typedef struct GarbageCollection {
-	// pointer to the VM executing the code
-	struct SepVM *vm;
 	// pointer to the memory being collected
 	struct ManagedMemory *memory;
 	// queue of objects to mark in the mark phase (treated as a circular buffer)
@@ -38,7 +36,7 @@ typedef struct GarbageCollection {
 } GarbageCollection;
 
 // Performs a full collection from start to finish, both mark and sweep.
-void gc_perform_full_gc(struct SepVM *vm);
+void gc_perform_full_gc();
 // Queues an object for marking.
 void gc_add_to_queue(GarbageCollection *this, SepV object);
 

@@ -138,7 +138,7 @@ void gc_mark_one_object(GarbageCollection *this, SepV object) {
 // Performs the entire mark phase in one shot
 void gc_mark_all(GarbageCollection *this) {
 	// collect GC roots from the VM
-	vm_queue_gc_roots(this->vm, this);
+	vm_queue_gc_roots(this);
 
 	// mark all objects, collecting references from them
 	SepV object = gc_next_in_queue(this);
@@ -161,13 +161,12 @@ void gc_sweep_all(GarbageCollection *this) {
 // ===============================================================
 
 // Creates a new garbage collection process for a given VM.
-GarbageCollection *gc_create(SepVM *vm) {
+GarbageCollection *gc_create() {
 	GarbageCollection *gc = mem_unmanaged_allocate(sizeof(GarbageCollection));
 
 	gc->memory = _managed_memory;
 	ga_init(&gc->mark_queue, 32, sizeof(SepV), &allocator_unmanaged);
 	gc->queue_start = gc->queue_end = 0;
-	gc->vm = vm;
 
 	return gc;
 }
@@ -179,8 +178,8 @@ void gc_free(GarbageCollection *this) {
 }
 
 // Performs a full collection from start to finish, both mark and sweep.
-void gc_perform_full_gc(SepVM *vm) {
-	GarbageCollection *collection = gc_create(vm);
+void gc_perform_full_gc() {
+	GarbageCollection *collection = gc_create();
 	gc_mark_all(collection);
 	gc_sweep_all(collection);
 	gc_free(collection);

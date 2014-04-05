@@ -216,9 +216,9 @@ ExecutionFrame *vm_current_frame();
 //  Garbage collection
 // ===============================================================
 
-// Queues all the objects directly reachable from this VM. These are objects on the
-// data stack and all the execution frame scopes.
-void vm_queue_gc_roots(SepVM *this, struct GarbageCollection *gc);
+// Queues all the objects directly reachable from any of the currently running VMs for
+// marking in the garbage collection process.
+void vm_queue_gc_roots(struct GarbageCollection *gc);
 
 // ===============================================================
 // Invoking function calls from C code

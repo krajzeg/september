@@ -415,9 +415,12 @@ ExecutionFrame *vm_current_frame() {
 
 // Queues all the objects directly reachable from this VM. These are objects on the
 // data stack and all the execution frame scopes.
-void vm_queue_gc_roots(SepVM *this, GarbageCollection *gc) {
+void vm_queue_gc_roots(GarbageCollection *gc) {
+	// just one VM for now - this will have to change when concurrency support is added
+	SepVM *vm = vm_current();
+
 	// queue all items from the data stack
-	GenericArrayIterator sit = ga_iterate_over(&this->data->array);
+	GenericArrayIterator sit = ga_iterate_over(&vm->data->array);
 	while (!gait_end(&sit)) {
 		SepItem stack_item = *((SepItem*)gait_current(&sit));
 		gc_add_to_queue(gc, stack_item.value);
@@ -425,11 +428,19 @@ void vm_queue_gc_roots(SepVM *this, GarbageCollection *gc) {
 
 	// queue everything accessible from the execution frames
 	int f = 0;
-	for (; f <= this->frame_depth; f++) {
-		ExecutionFrame *frame = &this->frames[f];
+	for (; f <= vm->frame_depth; f++) {
+		ExecutionFrame *frame = &vm->frames[f];
 		gc_add_to_queue(gc, func_to_sepv(frame->function));
 		gc_add_to_queue(gc, frame->locals);
 		gc_add_to_queue(gc, frame->return_value.value);
+
+		// additional GC roots - objects allocated by this frame
+		GenericArrayIterator it = ga_iterate_over(&frame->gc_roots);
+		while (!gait_end(&it)) {
+			SepV value = *((SepV*)gait_current(&it));
+			gc_add_to_queue(gc, value);
+			gait_advance(&it);
+		}
 	}
 }
 
