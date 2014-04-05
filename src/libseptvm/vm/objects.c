@@ -325,6 +325,11 @@ SepObj *obj_create() {
 	// default prototype is runtime.Object - Object class
 	obj->prototypes = obj_to_sepv(rt.Object);
 
+	// register in as a GC root in the current frame to prevent accidental freeing
+	ExecutionFrame *current_frame = vm_current_frame();
+	if (current_frame)
+		frame_register(current_frame, obj_to_sepv(obj));
+
 	return obj;
 }
 

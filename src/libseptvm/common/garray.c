@@ -122,6 +122,11 @@ void ga_grow(GenericArray *this, uint32_t cells) {
 	this->end += cells * this->element_size;
 }
 
+// Clears the array, truncating it to 0 entries, but keeping its storage intact.
+void ga_clear(GenericArray *this) {
+	this->end = this->start;
+}
+
 // Gets the length of this array.
 uint32_t ga_length(GenericArray *this) {
 	return (this->end - this->start) / this->element_size;
@@ -140,6 +145,11 @@ GenericArrayIterator ga_iterate_over(GenericArray *this) {
 // Returns the current element under the iterator.
 void *gait_current(GenericArrayIterator *this) {
 	return this->position;
+}
+
+// Returns the index of the current element under the iterator.
+uint32_t gait_index(GenericArrayIterator *this) {
+	return (this->position - this->start) / this->array->element_size;
 }
 
 // Advances the iterator to the next element.

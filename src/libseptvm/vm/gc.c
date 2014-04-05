@@ -83,7 +83,9 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	// queue property values
 	PropertyIterator it = props_iterate_over(object);
 	while (!propit_end(&it)) {
-		// what about slots?
+		// make sure the name of the property is not GC'd
+		gc_mark_region(propit_name(&it));
+		// the value will wait its turn in the queue
 		gc_add_to_queue(this, propit_value(&it));
 	}
 

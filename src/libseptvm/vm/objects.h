@@ -124,8 +124,6 @@ void props_init(void *this,
 // inside the map.
 Slot *props_accept_prop(void *this, SepString *name,
 		Slot *slot);
-// Removes a previously existing property.
-// TODO: implement SepV props_delete_prop(void *this, SepString *name);
 // Sets the value of a property, which must already exist in the map.
 SepV props_set_prop(void *this, SepString *name, SepV value);
 // Gets the value of a property, which must exist in the map.

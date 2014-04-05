@@ -61,6 +61,32 @@ void frame_raise(ExecutionFrame *frame, SepV exception) {
 	frame->finished = true;
 }
 
+// Registers a value as a GC root to prevent it from being freed before its unused.
+void frame_register(ExecutionFrame *frame, SepV value) {
+	ga_push(&frame->gc_roots, &value);
+}
+
+// Releases a value previously held in the frame's GC root table,
+// making it eligible for garbage collection again.
+void frame_release(ExecutionFrame *frame, SepV value) {
+	GenericArray *roots = &frame->gc_roots;
+	GenericArrayIterator it = ga_iterate_over(roots);
+	while (!gait_end(&it)) {
+		SepV itv = *((SepV*)gait_current(&it));
+
+		if (itv == value) {
+			// remove the element
+			uint32_t index = gait_index(&it);
+			SepV value_from_end = *((SepV*)ga_pop(roots));
+			if (index < ga_length(roots))
+				ga_set(roots, index, &value_from_end);
+		}
+
+		// next element
+		gait_advance(&it);
+	}
+}
+
 // ===============================================================
 //  Bytecode argument source
 // ===============================================================
@@ -158,6 +184,13 @@ void arrayargs_init(ArrayArgs *this, SepArray *array) {
 
 SepVM *vm_create(SepModule *module, SepObj *syntax) {
 	SepVM *vm = mem_unmanaged_allocate(sizeof(SepVM));
+
+	// initialize all execution frames for safe usage later
+	int f;
+	for (f = 0; f < VM_FRAME_COUNT; f++) {
+		ExecutionFrame *frame = &vm->frames[f];
+		ga_init(&frame->gc_roots, 4, sizeof(SepV), &allocator_unmanaged);
+	}
 
 	// create the data stack
 	vm->data = stack_create();
@@ -291,6 +324,9 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	InterpretedFunc *root_func = ifunc_create(root_block, frame->locals);
 	frame->function = (SepFunc*)root_func;
 
+	// empty the additional GC root table
+	ga_clear(&frame->gc_roots);
+
 	// perform function specific initialization for the root function
 	root_func->base.vt->initialize_frame((SepFunc*)root_func, frame);
 }
@@ -344,6 +380,9 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 	frame->instruction_ptr = NULL;
 	frame->module = NULL;
 
+	// empty the additional GC root table
+	ga_clear(&frame->gc_roots);
+
 	// perform function specific initialization
 	func->vt->initialize_frame(func, frame);
 }
@@ -365,6 +404,8 @@ SepVM *vm_current() {
 
 // Returns the current execution frame in the current thread.
 ExecutionFrame *vm_current_frame() {
+	if (!_currently_running_vm)
+		return NULL;
 	return &_currently_running_vm->frames[_currently_running_vm->frame_depth];
 }
 

@@ -34,7 +34,6 @@
 //  Function parameters
 // ===============================================================
 
-
 // Sets the value of the parameter in a given execution scope object. Signals problems
 // by returning an exception SepV.
 SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scope, SepV value) {
@@ -154,6 +153,16 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 }
 
 // ===============================================================
+//  Registering functions on creation
+// ===============================================================
+
+void _sepfunc_register(SepFunc *this) {
+	ExecutionFrame *current_frame = vm_current_frame();
+	if (current_frame)
+		frame_register(current_frame, func_to_sepv(this));
+}
+
+// ===============================================================
 //  Built-in function v-table
 // ===============================================================
 
@@ -253,6 +262,9 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		parameter->name = sepstr_for(param_name);
 	}
 	
+	// register to avoid accidental GC
+	_sepfunc_register((SepFunc*)built_in);
+
 	// return
 	return built_in;
 }
@@ -356,6 +368,10 @@ InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	func->base.module = block->module;
 	func->block = block;
 	func->declaration_scope = declaration_scope;
+
+	// register to avoid accidental GC
+	_sepfunc_register((SepFunc*)func);
+
 	return func;
 }
 
@@ -447,5 +463,9 @@ BoundMethod *boundmethod_create(SepFunc *function, SepV this_pointer) {
 	bm->base.lazy = false;
 	bm->original_instance = function;
 	bm->this_pointer = this_pointer;
+
+	// register to avoid accidental GC
+	_sepfunc_register((SepFunc*)bm);
+
 	return bm;
 }

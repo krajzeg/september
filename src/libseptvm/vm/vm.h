@@ -32,6 +32,13 @@ struct GarbageCollection;
 struct ExecutionFrame;
 
 // ===============================================================
+//  Constants
+// ===============================================================
+
+// the maximum call depth allowed - the number of execution frames per VM
+#define VM_FRAME_COUNT 1024
+
+// ===============================================================
 //  Argument sources
 // ===============================================================
 
@@ -123,7 +130,13 @@ typedef struct ExecutionFrame {
 	// execution called into another frame?
 	bool called_another_frame;
 
-	// Those pointers are set up by the VM to make up a linked
+	// an array of objects allocated in this frame
+	// all objects allocated within a frame have to be kept until
+	// the frame finishes execution, so they are added as GC roots
+	// during garbage collection
+	GenericArray gc_roots;
+
+	// These pointers are set up by the VM to make up a linked
 	// list of frames.
 	struct ExecutionFrame *next_frame;
 	struct ExecutionFrame *prev_frame;
@@ -144,6 +157,12 @@ void frame_return(ExecutionFrame *frame, SepItem return_value);
 // Raise an exception inside a frame and finalizes it.
 void frame_raise(ExecutionFrame *frame, SepV exception);
 
+// Registers a value as a GC root to prevent it from being freed before its unused.
+void frame_register(ExecutionFrame *frame, SepV value);
+// Releases a value previously held in the frame's GC root table,
+// making it eligible for garbage collection again.
+void frame_release(ExecutionFrame *frame, SepV value);
+
 // ===============================================================
 //  The virtual machine
 // ===============================================================
@@ -156,7 +175,7 @@ typedef struct SepVM {
 	SepStack *data;
 	// the whole execution stack, with the main function of the main
 	// module at the bottom, and the current function at the top
-	ExecutionFrame frames[1024];
+	ExecutionFrame frames[VM_FRAME_COUNT];
 	// how deep the frame currently executed is
 	int frame_depth;
 } SepVM;
