@@ -279,10 +279,12 @@ SepV vm_run(SepVM *this) {
 			while (stack_value != SEPV_UNWIND_MARKER)
 				stack_value = stack_pop_value(this->data);
 
-			// push the return value on the data stack of its parent
+			// push the return value on the data stack for its parent
 			if (this->frame_depth >= starting_depth) {
 				ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
 				stack_push_item(parent_frame->data, current_frame->return_value);
+				// the return value is "owned" by the parent frame to avoid GC collecting it prematurely
+				frame_register(parent_frame, current_frame->return_value.value);
 			} else {
 				// this is the end of this execution
 				// return the result of the whole execution
