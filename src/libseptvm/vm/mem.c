@@ -23,6 +23,7 @@
 #include "mem.h"
 #include "gc.h"
 #include "types.h"
+#include "vm.h"
 
 // ===============================================================
 //  Aligned memory
@@ -99,13 +100,6 @@ void *mem_unmanaged_realloc(void *memory, size_t new_size) {
 void mem_unmanaged_free(void *memory) {
 	aligned_free(memory);
 }
-
-// ===============================================================
-//  Managed memory internal definitions
-// ===============================================================
-
-// The global storing the status of the memory.
-ManagedMemory *_managed_memory;
 
 // ===============================================================
 //  MemoryChunk internals
@@ -196,16 +190,16 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 	}
 }
 
-void *_mem_allocate_from_any_chunk(ManagedMemory *memory, uint32_t bytes) {
-	GenericArrayIterator it = ga_iterate_over(&_managed_memory->chunks);
+void *_mem_allocate_from_any_chunk(ManagedMemory *manager, uint32_t bytes) {
+	GenericArrayIterator it = ga_iterate_over(&manager->chunks);
 
 	// go through all the chunks looking for one that can satisfy the allocation
 	while (!gait_end(&it)) {
 		// try this chunk
 		MemoryChunk *chunk = *((MemoryChunk**)gait_current(&it));
-		void *memory = _chunk_allocate(chunk, bytes);
-		if (memory)
-			return memory;
+		void *allocation = _chunk_allocate(chunk, bytes);
+		if (allocation)
+			return allocation;
 
 		// did not work - maybe the next one will have enough space
 		gait_advance(&it);
@@ -220,49 +214,46 @@ void *_mem_allocate_from_any_chunk(ManagedMemory *memory, uint32_t bytes) {
 //  Managed memory public interface
 // ===============================================================
 
-// Initializes the memory manager. Memory will be allocated in increments of chunk_size,
+// Initializes a new memory manager. Memory will be allocated in increments of chunk_size,
 // and it has to be a power of two. The minimum chunk size is 1024 bytes.
-void mem_initialize(uint32_t chunk_size) {
-	_managed_memory = mem_unmanaged_allocate(sizeof(ManagedMemory));
-	_managed_memory->chunk_size = chunk_size;
-	_managed_memory->total_allocated_bytes = 0;
-	_managed_memory->used_bytes = 0;
+ManagedMemory *mem_initialize(uint32_t chunk_size) {
+	ManagedMemory *mem = mem_unmanaged_allocate(sizeof(ManagedMemory));
+	mem->chunk_size = chunk_size;
+	mem->total_allocated_bytes = 0;
+	mem->used_bytes = 0;
 
-	ga_init(&_managed_memory->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
+	// add a chunk of memory for a good start
+	ga_init(&mem->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
+	_mem_add_chunks(mem, 1);
 
-	_mem_add_chunks(_managed_memory, 1);
-}
-
-// Initializes the memory subsystem in such a way that a ManagedMemory controlled
-// by someone outside our module (.dll/.so) can be used.
-void mem_initialize_from_master(ManagedMemory *master_memory) {
-	// just use the same instance
-	_managed_memory = master_memory;
+	return mem;
 }
 
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes) {
-	if (bytes > _managed_memory->chunk_size - 2 * ALLOCATION_UNIT) {
+	ManagedMemory *manager = lsvm_globals.memory;
+
+	if (bytes > manager->chunk_size - 2 * ALLOCATION_UNIT) {
 		// TODO: allocations not fitting in a chunk not implemented yet
 		handle_out_of_memory();
 	}
 
 	// allocate from any memory chunk
-	void *allocation = _mem_allocate_from_any_chunk(_managed_memory, bytes);
+	void *allocation = _mem_allocate_from_any_chunk(manager, bytes);
 	if (allocation)
 		return allocation;
 
 	// no free space in any chunk - make some space by launching GC and try again
 	gc_perform_full_gc();
-	allocation = _mem_allocate_from_any_chunk(_managed_memory, bytes);
+	allocation = _mem_allocate_from_any_chunk(manager, bytes);
 	if (allocation)
 		return allocation;
 
 	// still didn't work - we simply have to get a new chunk to satisfy the allocation
 	log("mem", "Not enough space to allocate %d bytes, allocating new chunk.", bytes);
-	_mem_add_chunks(_managed_memory, 1);
-	return _mem_allocate_from_any_chunk(_managed_memory, bytes); // cannot fail with a fresh chunk available
+	_mem_add_chunks(manager, 1);
+	return _mem_allocate_from_any_chunk(manager, bytes); // cannot fail with a fresh chunk available
 }
 
 // ===============================================================

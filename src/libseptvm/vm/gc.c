@@ -182,7 +182,7 @@ void gc_sweep_all(GarbageCollection *this) {
 GarbageCollection *gc_create() {
 	GarbageCollection *gc = mem_unmanaged_allocate(sizeof(GarbageCollection));
 
-	gc->memory = _managed_memory;
+	gc->memory = lsvm_globals.memory;
 	ga_init(&gc->mark_queue, 32, sizeof(SepV), &allocator_unmanaged);
 	gc->queue_start = gc->queue_end = 0;
 

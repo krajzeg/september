@@ -17,8 +17,11 @@
 #include "../vm/support.h"
 
 // ===============================================================
-//  Thread local storage
+//  Global variables
 // ===============================================================
+
+// All the globals
+LibSeptVMGlobals lsvm_globals = {NULL};
 
 // While a VM is running, a pointer to it is always stored here. Every thread can
 // only run one VM at a time, and each thread has its own VM.
@@ -397,10 +400,15 @@ void vm_free(SepVM *this) {
 //  Global access to VM instances
 // ===============================================================
 
+// Low-level implementation function for access to the thread-local.
+SepVM *_vm_for_current_thread() {
+	return _currently_running_vm;
+}
+
 // Returns the VM currently used running in this thread. Only one SepVM instance is
 // allowed per thread.
 SepVM *vm_current() {
-	return _currently_running_vm;
+	return lsvm_globals.vm_for_current_thread_func();
 }
 
 // Returns the current execution frame in the current thread.
@@ -561,13 +569,18 @@ SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value) {
 	return vm_resolve_in(this, lazy_value, SEPV_LITERALS);
 }
 
-
 // ===============================================================
-//  Initialization of the whole library
+//  Master/slave configuration of the library
 // ===============================================================
 
 // Initializes a slave libseptvm (as used inside a module DLL/.so). This is needed
 // so that things like the memory manager can be shared with the master process.
-void libseptvm_initialize_slave(struct ManagedMemory *master_memory) {
-	mem_initialize_from_master(master_memory);
+void libseptvm_initialize_slave(LibSeptVMGlobals *parent_config) {
+	lsvm_globals = *parent_config;
+}
+
+// Initializes the master libseptvm in the interpreter.
+void libseptvm_initialize() {
+	lsvm_globals.vm_for_current_thread_func = &_vm_for_current_thread;
+	lsvm_globals.memory = mem_initialize(0x10000);
 }

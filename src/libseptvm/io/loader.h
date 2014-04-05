@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "../vm/objects.h"
 #include "../vm/module.h"
+#include "../vm/vm.h"
 #include "../common/errors.h"
 
 // ===============================================================
@@ -49,7 +50,7 @@ typedef struct ByteSourceVT {
  * before or after the part of the module written September is
  * executed.
  */
-typedef void (*VMInitFunc)(struct ManagedMemory *memory, SepError *out_err);
+typedef void (*VMInitFunc)(LibSeptVMGlobals *globals, SepError *out_err);
 typedef void (*ModuleInitFunc)(SepModule *module, SepError *out_err);
 typedef struct ModuleNativeCode {
 	VMInitFunc initialize_slave_vm;
