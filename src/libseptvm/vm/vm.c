@@ -283,8 +283,6 @@ SepV vm_run(SepVM *this) {
 			if (this->frame_depth >= starting_depth) {
 				ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
 				stack_push_item(parent_frame->data, current_frame->return_value);
-				// the return value is "owned" by the parent frame to avoid GC collecting it prematurely
-				frame_register(parent_frame, current_frame->return_value.value);
 			} else {
 				// this is the end of this execution
 				// return the result of the whole execution
@@ -506,9 +504,13 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
 
 	// run to get result
-	SepV result = vm_run(this);
+	SepV return_value = vm_run(this);
 
-	return item_rvalue(result);
+	// register the return value in the parent frame to prevent it from being GC'd
+	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
+	frame_register(parent_frame, return_value);
+
+	return item_rvalue(return_value);
 }
 
 // Uses the VM to resolve a lazy value.
@@ -541,6 +543,10 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 
 	// run from that point until 'func' returns
 	SepV return_value = vm_run(this);
+
+	// register the return value in the parent frame to prevent it from being GC'd
+	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
+	frame_register(parent_frame, return_value);
 
 	// return its return value
 	return return_value;
