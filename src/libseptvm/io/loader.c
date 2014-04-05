@@ -69,11 +69,21 @@ SepV load_module(ModuleDefinition *definition) {
 
 	// execute bytecode, if any
 	if (bytecode) {
-		// execute the root function
-		SepVM *vm = vm_create(module, rt.syntax);
-		vm_initialize_root_frame(vm, module);
-		SepV result = vm_run(vm);
-		vm_free(vm);
+		// execute the root function in the currently running VM
+		SepVM *vm = vm_current();
+		SepV result;
+		if (!vm) {
+			// no current VM, create a new one just for the module
+			vm = vm_create(module, rt.syntax);
+			vm_initialize_root_frame(vm, module);
+			result = vm_run(vm);
+			vm_free(vm);
+		} else {
+			// use current VM
+			CodeBlock *root_block = bpool_block(module->blocks, 1);
+			InterpretedFunc *root_func = ifunc_create(root_block, obj_to_sepv(module->root));
+			result = vm_invoke_in_scope(vm, func_to_sepv(root_func), obj_to_sepv(module->root), 0).value;
+		}
 
 		// exception?
 		if (sepv_is_exception(result))

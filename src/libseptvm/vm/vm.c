@@ -17,6 +17,14 @@
 #include "../vm/support.h"
 
 // ===============================================================
+//  Thread local storage
+// ===============================================================
+
+// While a VM is running, a pointer to it is always stored here. Every thread can
+// only run one VM at a time, and each thread has its own VM.
+__thread SepVM *_currently_running_vm = NULL;
+
+// ===============================================================
 //  Execution frame
 // ===============================================================
 
@@ -164,6 +172,14 @@ SepVM *vm_create(SepModule *module, SepObj *syntax) {
 }
 
 SepV vm_run(SepVM *this) {
+	// sanity check - one VM allowed per thread
+	SepVM *previously_running = _currently_running_vm;
+	if (previously_running && previously_running != this) {
+		return sepv_exception(exc.EInternal, sepstr_for("An attempt was made to run a second VM in one thread."));
+	} else {
+		_currently_running_vm = this;
+	}
+
 	// store the starting depth for this run - once we leave this level,
 	// we stop execution and return the last return value
 	int starting_depth = this->frame_depth;
@@ -174,9 +190,10 @@ SepV vm_run(SepVM *this) {
 
 	// repeat until we have a return value ready
 	// (a break handles this from inside the body)
+	ExecutionFrame *current_frame;
 	while (true) {
 		// grab a frame to execute
-		ExecutionFrame *current_frame = &this->frames[this->frame_depth];
+		current_frame = &this->frames[this->frame_depth];
 
 		// execute instructions (if we're not done)
 		if ((!current_frame->finished) && (!current_frame->called_another_frame))
@@ -215,7 +232,7 @@ SepV vm_run(SepVM *this) {
 				}
 
 				// and pass the exception to the authorities
-				return current_frame->return_value.value;
+				goto cleanup_and_return;
 			}
 
 			// nope, just a normal return
@@ -236,10 +253,14 @@ SepV vm_run(SepVM *this) {
 			} else {
 				// this is the end of this execution
 				// return the result of the whole execution
-				return current_frame->return_value.value;
+				goto cleanup_and_return;
 			}
 		}
 	}
+
+cleanup_and_return:
+	_currently_running_vm = previously_running;
+	return current_frame->return_value.value;
 }
 
 // Initializes the root execution frame based on a module.
@@ -330,6 +351,21 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 void vm_free(SepVM *this) {
 	if (!this) return;
 	mem_unmanaged_free(this);
+}
+
+// ===============================================================
+//  Global access to VM instances
+// ===============================================================
+
+// Returns the VM currently used running in this thread. Only one SepVM instance is
+// allowed per thread.
+SepVM *vm_current() {
+	return _currently_running_vm;
+}
+
+// Returns the current execution frame in the current thread.
+ExecutionFrame *vm_current_frame() {
+	return &_currently_running_vm->frames[_currently_running_vm->frame_depth];
 }
 
 // ===============================================================

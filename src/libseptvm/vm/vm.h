@@ -184,6 +184,16 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 void vm_free(SepVM *this);
 
 // ===============================================================
+//  Global access to VM instances
+// ===============================================================
+
+// Returns the VM currently used running in this thread. Only one SepVM instance is
+// allowed per thread.
+SepVM *vm_current();
+// Returns the current execution frame in the current thread.
+ExecutionFrame *vm_current_frame();
+
+// ===============================================================
 //  Garbage collection
 // ===============================================================
 
