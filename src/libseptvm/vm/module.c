@@ -157,7 +157,17 @@ SepV cpool_add_string(ConstantPool *this, const char *c_string) {
 	log("cpool", "Adding constant %d: '%s'.", this->constant_count, c_string);
 
 	size_t size = sepstr_allocation_size(c_string);
-	SepString *string = _cpool_alloc(this, size);
+
+	// we allocate 8 extra bytes for padding before the string itself
+	// this padding is required by the garbage collector and simulates
+	// a "used block" header the memory managed would use if this string
+	// was dynamically allocated
+	void *memory = _cpool_alloc(this, size + 8);
+	uint64_t *padding = memory;
+	*padding = 0;
+
+	// time for the string itself
+	SepString *string = (SepString*)(memory + 8);
 	sepstr_init(string, c_string);
 
 	SepV *sepvs = (SepV*)this->data;

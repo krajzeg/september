@@ -99,8 +99,6 @@ int run_program(const char *filename) {
 }
 
 int main(int argc, char **argv) {
-	debug_module("mem");
-
 	// == 'verify' and parse arguments
 	if (argc != 2) {
 		fprintf(stderr, "Usage: 09 <module file>\n");

@@ -12,6 +12,7 @@
 //  Includes
 // ===============================================================
 
+#include <assert.h>
 #include <stdio.h>
 
 #include "../common/debugging.h"
@@ -78,9 +79,7 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 
 // Marks a region of memory as being still in use.
 void gc_mark_region(void *region) {
-	uint32_t previous = *(((uint32_t*)region) - 1);
-	if (previous > 1)
-		gc_mark_region(NULL);
+	assert(*(((uint32_t*)region) - 1) <= 1);
 	if (region)
 		used_block_header(region)->status.flags.marked = 1;
 }
@@ -94,24 +93,22 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	// queue property values
 	PropertyIterator it = props_iterate_over(object);
 	while (!propit_end(&it)) {
-		// make sure the name of the property is not GC'd
-		//gc_add_to_queue(str_to_sepv(propit_name(&it)));
-		// the value will wait its turn in the queue
-		//gc_add_to_queue(this, propit_value(&it));
+		// the name and the value of this property are not to be collected
+		gc_add_to_queue(this, str_to_sepv(propit_name(&it)));
+		gc_add_to_queue(this, propit_value(&it));
 
 		// advance the iterator
 		propit_next(&it);
 	}
 
-	// queue prototypes
-	//gc_add_to_queue(this, object->prototypes);
+	// the prototypes are not to be collected
+	gc_add_to_queue(this, object->prototypes);
 
 	// arrays need to collect their elements too
 	if (object->traits.representation == REPRESENTATION_ARRAY) {
 		SepArrayIterator ait = array_iterate_over((SepArray*)object);
 		while (!arrayit_end(&ait)) {
-			//gc_add_to_queue(this, arrayit_next(&ait));
-			arrayit_next(&ait);
+			gc_add_to_queue(this, arrayit_next(&ait));
 		}
 	}
 }
