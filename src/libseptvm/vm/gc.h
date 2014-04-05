@@ -37,6 +37,9 @@ typedef struct GarbageCollection {
 
 // Performs a full collection from start to finish, both mark and sweep.
 void gc_perform_full_gc();
+
+// Marks a region of memory as being still in use.
+void gc_mark_region(void *region);
 // Queues an object for marking.
 void gc_add_to_queue(GarbageCollection *this, SepV object);
 

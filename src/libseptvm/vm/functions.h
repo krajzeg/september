@@ -68,6 +68,7 @@ SepV funcparam_pass_arguments(struct ExecutionFrame *frame, struct SepFunc *func
 //  Common function interface
 // ===============================================================
 
+struct GarbageCollection;
 typedef struct SepFuncVTable {
 	// initializes an execution frame, setting the instruction pointer
 	void (*initialize_frame)(struct SepFunc *this, struct ExecutionFrame *frame);
@@ -83,6 +84,10 @@ typedef struct SepFuncVTable {
 	// in case of methods, return the 'this' object a method instance is bound to
 	// for free functions, this will simply be NULL
 	SepV (*get_this_pointer)(struct SepFunc *this);
+	// marks any managed memory regions allocated by this function and
+	// queues any objects reachable from this SepFunc instance for marking
+	// in garbage collection
+	void (*mark_and_queue)(struct SepFunc *this, struct GarbageCollection *gc);
 } SepFuncVTable;
 
 typedef struct SepFunc {

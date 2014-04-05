@@ -318,6 +318,11 @@ SepObj *obj_create() {
 
 	SepObj *obj = mem_allocate(sizeof(SepObj));
 
+	// make sure all unallocated pointers are NULL to avoid GC
+	// tripping over uninitialized pointers and going berserk on
+	// random memory
+	obj->props.entries = NULL;
+
 	// initialize property map
 	props_init((PropertyMap*) obj, 2);
 	// set up traits

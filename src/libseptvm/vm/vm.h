@@ -257,7 +257,6 @@ SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value);
 typedef struct LibSeptVMGlobals {
 	// the managed memory used by libseptvm
 	ManagedMemory *memory;
-
 	// pointer to the function capable of getting the right VM for current thread
 	SepVM *(*vm_for_current_thread_func)();
 } LibSeptVMGlobals;

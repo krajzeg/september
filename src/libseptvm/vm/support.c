@@ -243,7 +243,7 @@ BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
 
 	// remember some stuff inside the function to be able to escape
 	// to the right place with the right value later
-	EscapeData *escape_data = mem_allocate(sizeof(EscapeData));
+	EscapeData *escape_data = mem_unmanaged_allocate(sizeof(EscapeData));
 	escape_data->original_frame = frame;
 	escape_data->return_value = value_returned;
 	function->data = escape_data;

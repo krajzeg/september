@@ -20,6 +20,7 @@
 #include <stdarg.h>
 
 #include "mem.h"
+#include "gc.h"
 #include "arrays.h"
 #include "opcodes.h"
 #include "functions.h"
@@ -207,6 +208,13 @@ SepV _built_in_get_this_pointer(SepFunc *this) {
 	return SEPV_NOTHING;
 }
 
+void _built_in_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	BuiltInFunc *func = (BuiltInFunc*)this;
+	// the parameter array is allocated dynamically, mark it
+	gc_mark_region(func->parameters);
+	// no declaration scope, no this pointer, so no reachable objects
+}
+
 // v-table for built-ins
 SepFuncVTable built_in_func_vtable = {
 	&_built_in_initialize_frame,
@@ -214,7 +222,8 @@ SepFuncVTable built_in_func_vtable = {
 	&_built_in_get_parameter_count,
 	&_built_in_get_parameters,
 	&_built_in_get_declaration_scope,
-	&_built_in_get_this_pointer
+	&_built_in_get_this_pointer,
+	&_built_in_mark_and_queue
 };
 
 // ===============================================================
@@ -237,6 +246,11 @@ bool parameter_extract_flag(char **parameter_name, const char *flag) {
 BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameters, va_list args) {
 	// allocate and setup basic properties
 	BuiltInFunc *built_in = mem_allocate(sizeof(BuiltInFunc));
+
+	// make sure all unallocated pointers are NULL to avoid GC tripping over
+	// uninitialized pointers
+	built_in->parameters = NULL;
+
 	built_in->base.vt = &built_in_func_vtable;
 	built_in->base.lazy = false;
 	built_in->base.module = NULL;
@@ -345,6 +359,12 @@ SepV _interpreted_get_this_pointer(SepFunc *this) {
 	return SEPV_NOTHING;
 }
 
+void _interpreted_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	InterpretedFunc *func = (InterpretedFunc*)this;
+	// we can reach our declaration scope
+	gc_add_to_queue(gc, func->declaration_scope);
+}
+
 // v-table for built-ins
 SepFuncVTable interpreted_func_vtable = {
 	&_interpreted_initialize_frame,
@@ -352,7 +372,8 @@ SepFuncVTable interpreted_func_vtable = {
 	&_interpreted_get_parameter_count,
 	&_interpreted_get_parameters,
 	&_interpreted_get_declaration_scope,
-	&_interpreted_get_this_pointer
+	&_interpreted_get_this_pointer,
+	&_interpreted_mark_and_queue
 };
 
 // ===============================================================
@@ -386,7 +407,8 @@ SepFuncVTable lazy_closure_vtable = {
 	&_interpreted_get_parameter_count,
 	&_interpreted_get_parameters,
 	&_interpreted_get_declaration_scope,
-	&_interpreted_get_this_pointer
+	&_interpreted_get_this_pointer,
+	&_interpreted_mark_and_queue
 };
 
 // Creates a new lazy closure for a given expression.
@@ -437,9 +459,17 @@ SepV _bm_get_declaration_scope(SepFunc *this) {
 	return original->vt->get_declaration_scope(original);
 }
 
+void _bm_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	BoundMethod *method = (BoundMethod*)this;
+	// we can reach the 'this' object and our original function instance
+	gc_add_to_queue(gc, method->this_pointer);
+	gc_add_to_queue(gc, func_to_sepv(method->original_instance));
+}
+
 SepV _bm_get_this_pointer(SepFunc *this) {
 	return ((BoundMethod*)this)->this_pointer;
 }
+
 
 // v-table for bound methods
 SepFuncVTable bound_method_vtable = {
@@ -448,7 +478,8 @@ SepFuncVTable bound_method_vtable = {
 	&_bm_get_parameter_count,
 	&_bm_get_parameters,
 	&_bm_get_declaration_scope,
-	&_bm_get_this_pointer
+	&_bm_get_this_pointer,
+	&_bm_mark_and_queue
 };
 
 // ===============================================================

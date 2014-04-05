@@ -12,6 +12,8 @@
 //  Includes
 // ===============================================================
 
+#include <stdio.h>
+
 #include "../common/debugging.h"
 #include "gc.h"
 #include "mem.h"
@@ -48,8 +50,12 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 	if (!sepv_is_pointer(object))
 		return;
 	// already marked?
-	if (used_block_header(sepv_to_pointer(object))->status.flags.marked)
+	void *ptr = sepv_to_pointer(object);
+	if (used_block_header(ptr)->status.flags.marked) {
+		this->queue_end = this->queue_end * 2 / 2;
 		return;
+	}
+
 
 	// add to the queue buffer
 	uint32_t buffer_length = ga_length(&this->mark_queue);
@@ -70,9 +76,13 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 //  Mark phase
 // ===============================================================
 
-// Marks a region of memory.
+// Marks a region of memory as being still in use.
 void gc_mark_region(void *region) {
-	used_block_header(region)->status.flags.marked = 1;
+	uint32_t previous = *(((uint32_t*)region) - 1);
+	if (previous > 1)
+		gc_mark_region(NULL);
+	if (region)
+		used_block_header(region)->status.flags.marked = 1;
 }
 
 // Queues objects reachable from a SepObj for marking and marks its internal
@@ -85,19 +95,23 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	PropertyIterator it = props_iterate_over(object);
 	while (!propit_end(&it)) {
 		// make sure the name of the property is not GC'd
-		gc_mark_region(propit_name(&it));
+		//gc_add_to_queue(str_to_sepv(propit_name(&it)));
 		// the value will wait its turn in the queue
-		gc_add_to_queue(this, propit_value(&it));
+		//gc_add_to_queue(this, propit_value(&it));
+
+		// advance the iterator
+		propit_next(&it);
 	}
 
 	// queue prototypes
-	gc_add_to_queue(this, object->prototypes);
+	//gc_add_to_queue(this, object->prototypes);
 
 	// arrays need to collect their elements too
 	if (object->traits.representation == REPRESENTATION_ARRAY) {
 		SepArrayIterator ait = array_iterate_over((SepArray*)object);
 		while (!arrayit_end(&ait)) {
-			gc_add_to_queue(this, arrayit_next(&ait));
+			//gc_add_to_queue(this, arrayit_next(&ait));
+			arrayit_next(&ait);
 		}
 	}
 }
@@ -105,11 +119,8 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 // Queues objects reachable from a SepFunc for marking and marks its internal
 // memory regions.
 void gc_mark_and_queue_func(GarbageCollection *this, SepFunc *func) {
-	// mark the region storing parameters of this function
-	gc_mark_region(func->vt->get_parameters(func));
-	// add referenced scopes
-	gc_add_to_queue(this, func->vt->get_declaration_scope(func));
-	gc_add_to_queue(this, func->vt->get_this_pointer(func));
+	// delegate - each function type has different logic here
+	func->vt->mark_and_queue(func, this);
 }
 
 // Marks any value passed in as a SepV and queues all other objects

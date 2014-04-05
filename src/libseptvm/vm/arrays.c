@@ -35,6 +35,11 @@ SepArray *array_create(uint32_t initial_size) {
 	// allocate
 	SepArray *array = mem_allocate(sizeof(SepArray));
 
+	// make sure all unallocated pointers are NULL to make sure GC
+	// does not trip over some uninitialized pointers
+	array->array.start = NULL;
+	array->base.props.entries = NULL;
+
 	// initialize property map (arrays don't usually hold
 	// properties, so make it as small as possible)
 	props_init((PropertyMap*)array, 1);

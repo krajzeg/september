@@ -22,8 +22,7 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
 
-	SepString *upper_str = mem_allocate(sepstr_allocation_size(this->cstr));
-	upper_str->length = this->length;
+	SepString *upper_str = sepstr_new(this->cstr);
 	char *src = this->cstr;
 	char *dest = upper_str->cstr;
 	do {

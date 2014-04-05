@@ -26,7 +26,7 @@ SepItem array_iterator(SepObj *scope, ExecutionFrame *frame) {
 	SepArray *this = sepv_to_array(target(scope));
 
 	SepObj *iterator_obj = obj_create_with_proto(obj_to_sepv(ArrayIterator));
-	SepArrayIterator *iterator = mem_allocate(sizeof(SepArrayIterator));
+	SepArrayIterator *iterator = mem_unmanaged_allocate(sizeof(SepArrayIterator));
 	*iterator = array_iterate_over(this);
 	iterator_obj->data = iterator;
 
