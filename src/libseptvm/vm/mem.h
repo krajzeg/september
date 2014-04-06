@@ -94,7 +94,7 @@ typedef struct UsedBlockHeader {
  */
 typedef struct MemoryChunk {
 	// the memory backing this memory chunk
-	alloc_unit_t *memory;
+	alloc_unit_t *memory, *memory_end;
 	// pointer to the first entry in the free block list
 	FreeBlockHeader *free_list;
 } MemoryChunk;

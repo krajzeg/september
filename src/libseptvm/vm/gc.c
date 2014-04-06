@@ -79,6 +79,10 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 
 // Marks a region of memory as being still in use.
 void gc_mark_region(void *region) {
+	if (*(((uint32_t*)region) - 1) > 1) {
+		// TODO: remove, for debugging only
+		gc_mark_region(NULL);
+	}
 	assert(*(((uint32_t*)region) - 1) <= 1);
 	if (region)
 		used_block_header(region)->status.flags.marked = 1;
@@ -166,9 +170,79 @@ void gc_mark_all(GarbageCollection *this) {
 //  Sweep phase
 // ===============================================================
 
+typedef enum MemoryBlockType {
+	BLK_FREE, BLK_GARBAGE, BLK_IN_USE
+} MemoryBlockType;
+
 void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
-	// to be implemented
+	alloc_unit_t *memory = chunk->memory;
+	alloc_unit_t *memory_end = chunk->memory_end;
+	alloc_unit_t *next_free = memory + chunk->free_list->offset_to_next_free;
+	alloc_unit_t *current_block = memory + 1;
+
+	FreeBlockHeader *last_free_block = chunk->free_list;
+	MemoryBlockType last_seen = BLK_IN_USE, current_block_type;
+	while (current_block < memory_end) {
+		// recognize what type of block we are in
+		if (next_free == current_block) {
+			current_block_type = BLK_FREE;
+		} else {
+			current_block_type = ((UsedBlockHeader*)current_block)->status.flags.marked ? BLK_IN_USE : BLK_GARBAGE;
+		}
+
+		// act based on the block type
+		if (current_block_type == BLK_FREE || current_block_type == BLK_GARBAGE) {
+			// these blocks are handled similarly, but have different headers
+			uint32_t current_block_size;
+			switch(current_block_type) {
+				case BLK_FREE: {
+					// update our internal 'next free' pointer
+					FreeBlockHeader *free_header = (FreeBlockHeader*)current_block;
+					next_free = current_block + free_header->offset_to_next_free;
+					// extract the size
+					current_block_size = free_header->size;
+					break;
+				}
+
+				case BLK_GARBAGE: {
+					UsedBlockHeader *used_header = (UsedBlockHeader*)current_block;
+					current_block_size = used_header->size;
+					break;
+				}
+
+				default: {}
+			}
+
+			// mark this block as free
+			if (last_seen == BLK_FREE) {
+				// previous block was free - just enlarge it with the space from this block
+				last_free_block->size += current_block_size;
+			} else {
+				// previous block was not free - we'll become a new free block
+				// update the linked list in the previous free block
+				last_free_block->offset_to_next_free = current_block - ((alloc_unit_t*)last_free_block);
+				// update internal state
+				last_seen = BLK_FREE;
+				last_free_block = (FreeBlockHeader*)current_block;
+				last_free_block->size = current_block_size;
+			}
+			// move to next block
+			current_block += current_block_size;
+
+		} else {
+			// this block is still in use - skip over it
+			UsedBlockHeader *used_header = (UsedBlockHeader*)current_block;
+			// update internal state
+			last_seen = BLK_IN_USE;
+			// move to next
+			current_block += used_header->size;
+		}
+	}
+
+	// fix up the last free block - mark it as the tail in the free block linked list
+	last_free_block->offset_to_next_free = 0;
 }
+
 
 void gc_sweep_all(GarbageCollection *this) {
 	log0("mem", "GC mark phase complete, starting the sweep phase.");

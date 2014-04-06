@@ -134,9 +134,10 @@ void *_free_block_allocate(FreeBlockHeader *block, FreeBlockHeader *previous, ui
 }
 
 // Creates a fresh MemoryChunk.
-MemoryChunk *_chunk_create(ManagedMemory *memory) {
+MemoryChunk *_chunk_create(ManagedMemory *manager) {
 	MemoryChunk *chunk = mem_unmanaged_allocate(sizeof(MemoryChunk));
-	chunk->memory = mem_unmanaged_allocate(memory->chunk_size);
+	chunk->memory = mem_unmanaged_allocate(manager->chunk_size);
+	chunk->memory_end = chunk->memory + (manager->chunk_size / ALLOCATION_UNIT);
 
 	// initialize the free block list
 	// first the artificial head
@@ -146,7 +147,7 @@ MemoryChunk *_chunk_create(ManagedMemory *memory) {
 
 	// then the actual giant free block
 	FreeBlockHeader *block = (FreeBlockHeader*)(chunk->memory + head->offset_to_next_free);
-	block->size = (memory->chunk_size / ALLOCATION_UNIT) - 1;
+	block->size = (manager->chunk_size / ALLOCATION_UNIT) - 1;
 	block->offset_to_next_free = 0; // nothing next
 
 	return chunk;
