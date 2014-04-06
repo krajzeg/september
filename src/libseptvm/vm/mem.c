@@ -247,6 +247,12 @@ void *mem_allocate(size_t bytes) {
 
 	// no free space in any chunk - make some space by launching GC and try again
 	gc_perform_full_gc();
+	// TODO: debugging to find the culprit
+	// this will ensure no new allocation from swept blocks happen ever again
+	// this way we can find out whether its the sweeper writing stuff that breaks things
+	// or the subsequent allocation of something which should not be freed
+	//ga_clear(&manager->chunks);
+
 	allocation = _mem_allocate_from_any_chunk(manager, bytes);
 	if (allocation)
 		return allocation;

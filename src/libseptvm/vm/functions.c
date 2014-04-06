@@ -212,7 +212,8 @@ void _built_in_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
 	BuiltInFunc *func = (BuiltInFunc*)this;
 	// the parameter array is allocated dynamically, mark it
 	gc_mark_region(func->parameters);
-	// no declaration scope, no this pointer, so no reachable objects
+	// additional data
+	gc_add_to_queue(gc, func->data);
 }
 
 // v-table for built-ins
@@ -250,15 +251,20 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	// make sure all unallocated pointers are NULL to avoid GC tripping over
 	// uninitialized pointers
 	built_in->parameters = NULL;
+	built_in->data = SEPV_NOTHING;
 
 	built_in->base.vt = &built_in_func_vtable;
 	built_in->base.lazy = false;
 	built_in->base.module = NULL;
 	built_in->parameter_count = parameters;
-	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
 	built_in->implementation = implementation;
 
+	// register to avoid accidental GC
+	_sepfunc_register((SepFunc*)built_in);
+
 	// setup parameters	according to va list
+	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
+
 	int i;
 	char *param_name;
 	for (i = 0; i < parameters; i++) {
@@ -275,9 +281,6 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		// set the name (undecorated by now, the decoration got translated into flags)
 		parameter->name = sepstr_for(param_name);
 	}
-	
-	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)built_in);
 
 	// return
 	return built_in;

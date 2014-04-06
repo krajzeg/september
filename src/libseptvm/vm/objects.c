@@ -36,7 +36,7 @@
 // ===============================================================
 
 Slot *slot_create(SlotVTable *behavior, SepV initial_value) {
-	Slot *slot = (Slot*) mem_allocate(sizeof(Slot));
+	Slot *slot = (Slot*) mem_unmanaged_allocate(sizeof(Slot)); // TODO: really should be managed
 	slot->vt = behavior;
 	slot->value = initial_value;
 
@@ -318,22 +318,23 @@ SepObj *obj_create() {
 
 	SepObj *obj = mem_allocate(sizeof(SepObj));
 
-	// make sure all unallocated pointers are NULL to avoid GC
-	// tripping over uninitialized pointers and going berserk on
-	// random memory
-	obj->props.entries = NULL;
-
-	// initialize property map
-	props_init((PropertyMap*) obj, 2);
 	// set up traits
 	obj->traits = DEFAULT_TRAITS;
 	// default prototype is runtime.Object - Object class
 	obj->prototypes = obj_to_sepv(rt.Object);
 
+	// make sure all unallocated pointers are NULL to avoid GC
+	// tripping over uninitialized pointers and going berserk on
+	// random memory
+	obj->props.entries = NULL;
+
 	// register in as a GC root in the current frame to prevent accidental freeing
 	ExecutionFrame *current_frame = vm_current_frame();
 	if (current_frame)
 		frame_register(current_frame, obj_to_sepv(obj));
+
+	// initialize property map (possible allocation here, so perform as late as possible)
+	props_init((PropertyMap*) obj, 2);
 
 	return obj;
 }

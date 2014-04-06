@@ -259,6 +259,8 @@ typedef struct LibSeptVMGlobals {
 	ManagedMemory *memory;
 	// pointer to the function capable of getting the right VM for current thread
 	SepVM *(*vm_for_current_thread_func)();
+	// names of the modules for which debug logging is turned on
+	char *debugged_module_names;
 } LibSeptVMGlobals;
 
 // all the globals used by libseptvm in one place

@@ -60,6 +60,10 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	// get reference to the function being called
 	SepStack *stack = frame->data;
 	SepFunc *func = sepv_call_target(stack_pop_value(stack));
+	if (!func) {
+		frame_raise(frame, sepv_exception(exc.EWrongType, sepstr_new("The object to be called is not a function or a callable.")));
+		return;
+	}
 
 	// use the VM's BytecodeArgs object to avoid allocation
 	BytecodeArgs bcargs;

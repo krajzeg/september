@@ -4,21 +4,18 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "debugging.h"
-
-/**************************************************/
-
-char sep_debugged_modules[4096] = "";
+#include "../vm/vm.h"
 
 /**************************************************/
 
 void debug_module(const char *module) {
-	strcat(sep_debugged_modules, "[");
-	strcat(sep_debugged_modules, module);
-	strcat(sep_debugged_modules, "]");	
+	strcat(lsvm_globals.debugged_module_names, "[");
+	strcat(lsvm_globals.debugged_module_names, module);
+	strcat(lsvm_globals.debugged_module_names, "]");
 }
 
 void debug_log(const char *module, const char *format, ...) {
-	if (!strstr(sep_debugged_modules, module))
+	if (!strstr(lsvm_globals.debugged_module_names, module))
 		return;
 
 	printf("%12s ", module);

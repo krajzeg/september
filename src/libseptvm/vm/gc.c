@@ -79,13 +79,16 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 
 // Marks a region of memory as being still in use.
 void gc_mark_region(void *region) {
+	if (!region)
+		return;
+
+	// TODO: remove, for debugging only
 	if (*(((uint32_t*)region) - 1) > 1) {
-		// TODO: remove, for debugging only
 		gc_mark_region(NULL);
 	}
+
 	assert(*(((uint32_t*)region) - 1) <= 1);
-	if (region)
-		used_block_header(region)->status.flags.marked = 1;
+	used_block_header(region)->status.flags.marked = 1;
 }
 
 // Queues objects reachable from a SepObj for marking and marks its internal
@@ -95,14 +98,19 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	gc_mark_region(object->props.entries);
 
 	// queue property values
-	PropertyIterator it = props_iterate_over(object);
-	while (!propit_end(&it)) {
-		// the name and the value of this property are not to be collected
-		gc_add_to_queue(this, str_to_sepv(propit_name(&it)));
-		gc_add_to_queue(this, propit_value(&it));
+	if (object->props.entries) {
+		PropertyIterator it = props_iterate_over(object);
+		while (!propit_end(&it)) {
+			// the name and the value of this property are not to be collected
 
-		// advance the iterator
-		propit_next(&it);
+			gc_add_to_queue(this, str_to_sepv(propit_name(&it)));
+			// the value is retrieved directly from the slot without using
+			// slot->vt->retrieve to avoid allocations in GC
+			gc_add_to_queue(this, propit_slot(&it)->value);
+
+			// advance the iterator
+			propit_next(&it);
+		}
 	}
 
 	// the prototypes are not to be collected
@@ -110,9 +118,12 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 
 	// arrays need to collect their elements too
 	if (object->traits.representation == REPRESENTATION_ARRAY) {
-		SepArrayIterator ait = array_iterate_over((SepArray*)object);
-		while (!arrayit_end(&ait)) {
-			gc_add_to_queue(this, arrayit_next(&ait));
+		SepArray *array = (SepArray*)object;
+		if (array->array.start) {
+			SepArrayIterator ait = array_iterate_over(array);
+			while (!arrayit_end(&ait)) {
+				gc_add_to_queue(this, arrayit_next(&ait));
+			}
 		}
 	}
 }

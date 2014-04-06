@@ -13,8 +13,6 @@
 
 /***************************************************************/
 
-extern char sep_debugged_modules[4096];
-
 void debug_module(const char *module);
 void debug_log(const char *module, const char *format, ...);
 

@@ -166,6 +166,7 @@ SepV cpool_add_string(ConstantPool *this, const char *c_string) {
 	UsedBlockHeader *padding_block = memory;
 	padding_block->status.word = 0;
 	padding_block->status.flags.marked = 1;
+	padding_block->size = 0xCAFEBABE;
 
 	// time for the string itself
 	SepString *string = (SepString*)(memory + 8);
