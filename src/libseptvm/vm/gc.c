@@ -50,8 +50,15 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 	// non-pointer types do not use managed memory
 	if (!sepv_is_pointer(object))
 		return;
+
 	// already marked?
 	void *ptr = sepv_to_pointer(object);
+
+	// TODO: sanity check - remove later
+	if (*(((uint32_t*)ptr) - 1) > 1) {
+		gc_mark_region(NULL);
+	}
+
 	if (used_block_header(ptr)->status.flags.marked) {
 		this->queue_end = this->queue_end * 2 / 2;
 		return;
@@ -120,6 +127,9 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	if (object->traits.representation == REPRESENTATION_ARRAY) {
 		SepArray *array = (SepArray*)object;
 		if (array->array.start) {
+			// mark the array's storage area as used
+			gc_mark_region(array->array.start);
+			// queue all elements of this array
 			SepArrayIterator ait = array_iterate_over(array);
 			while (!arrayit_end(&ait)) {
 				gc_add_to_queue(this, arrayit_next(&ait));
