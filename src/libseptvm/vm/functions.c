@@ -210,12 +210,15 @@ SepV _built_in_get_this_pointer(SepFunc *this) {
 
 void _built_in_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
 	BuiltInFunc *func = (BuiltInFunc*)this;
+
 	// the parameter array is allocated dynamically, mark it and all parameter names in it
-	gc_mark_region(func->parameters);
-	uint8_t p;
-	for (p = 0; p < func->parameter_count; p++) {
-		FuncParam *param = &func->parameters[p];
-		gc_add_to_queue(gc, str_to_sepv(param->name));
+	if (func->parameters) {
+		gc_mark_region(func->parameters);
+		uint8_t p;
+		for (p = 0; p < func->parameter_count; p++) {
+			FuncParam *param = &func->parameters[p];
+			gc_add_to_queue(gc, str_to_sepv(param->name));
+		}
 	}
 
 	// additional data
