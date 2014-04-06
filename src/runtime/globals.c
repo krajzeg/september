@@ -497,6 +497,11 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 	initialize_runtime_references(obj_to_sepv(globals));
 	// the globals are our root object
 	module->root = globals;
+
+	// register things we want to prevent from being GC'd
+	module_register_private(module, obj_to_sepv(proto_ForStatement));
+	module_register_private(module, obj_to_sepv(proto_IfStatement));
+	module_register_private(module, obj_to_sepv(proto_TryStatement));
 }
 
 void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals, SepError *out_err) {

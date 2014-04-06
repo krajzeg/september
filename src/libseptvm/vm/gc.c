@@ -110,8 +110,8 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 		PropertyIterator it = props_iterate_over(object);
 		while (!propit_end(&it)) {
 			// the name and the value of this property are not to be collected
-
 			gc_add_to_queue(this, str_to_sepv(propit_name(&it)));
+
 			// the value is retrieved directly from the slot without using
 			// slot->vt->retrieve to avoid allocations in GC
 			gc_add_to_queue(this, propit_slot(&it)->value);

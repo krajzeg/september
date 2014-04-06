@@ -346,4 +346,22 @@ void bpool_free(BlockPool *this) {
 	mem_unmanaged_free(this);
 }
 
+// ===============================================================
+//  Private objects
+// ===============================================================
 
+// Registers an object as a private value in a module, making sure it never gets GC'd.
+void module_register_private(SepModule *module, SepV value) {
+	// create or find the privates array
+	Slot *slot = props_find_prop(module->root, sepstr_for("<private>"));
+	SepArray *privates;
+	if (!slot) {
+		privates = array_create(1);
+		obj_add_field(module->root, "<private>", obj_to_sepv(privates));
+	} else {
+		privates = sepv_to_array(slot->value);
+	}
+
+	// store the value
+	array_push(privates, value);
+}
