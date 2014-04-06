@@ -29,10 +29,10 @@ typedef struct GarbageCollection {
 	struct ManagedMemory *memory;
 	// queue of objects to mark in the mark phase (treated as a circular buffer)
 	GenericArray mark_queue;
-	// the indices of the beginning and end of queued items in the mark_queue buffer
-	// the 'start' index is the first active item
-	// the 'end' index is the first free item
-	int queue_start, queue_end;
+	// the index of the first active item in the mark queue
+	uint32_t queue_start;
+	// the numbers of total items queued for marking
+	uint32_t queue_length;
 } GarbageCollection;
 
 // Performs a full collection from start to finish, both mark and sweep.

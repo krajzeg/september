@@ -36,12 +36,14 @@
 
 SepV gc_next_in_queue(GarbageCollection *this) {
 	// are we done yet?
-	if (this->queue_start == this->queue_end)
+	if (this->queue_length == 0)
 		return SEPV_NO_VALUE;
 
 	// no - get first object in queue
 	SepV object = *((SepV*)ga_get(&this->mark_queue, this->queue_start));
 	this->queue_start = (this->queue_start + 1) % ga_length(&this->mark_queue);
+	this->queue_length--;
+
 	return object;
 }
 
@@ -59,24 +61,23 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 		gc_mark_region(NULL);
 	}
 
-	if (used_block_header(ptr)->status.flags.marked) {
-		this->queue_end = this->queue_end * 2 / 2;
+	if (used_block_header(ptr)->status.flags.marked)
 		return;
-	}
-
 
 	// add to the queue buffer
 	uint32_t buffer_length = ga_length(&this->mark_queue);
-	bool buffer_full = (buffer_length == 0) || ((this->queue_end + 1) % buffer_length) == this->queue_start;
+	bool buffer_full = this->queue_length == buffer_length;
 	if (!buffer_full) {
 		// buffer not full yet, add at end
-		ga_set(&this->mark_queue, this->queue_end, &object);
-		this->queue_end = (this->queue_end + 1) % buffer_length;
+		uint32_t index = (this->queue_start + this->queue_length) % buffer_length;
+		ga_set(&this->mark_queue, index, &object);
+		this->queue_length++;
 	} else {
 		// buffer full - expand the buffer
-		// this does not insert at the end of the queue, but the order
+		// this does not always insert at the end of the queue, but the order
 		// doesn't really matter
 		ga_push(&this->mark_queue, &object);
+		this->queue_length++;
 	}
 }
 
@@ -174,9 +175,7 @@ void gc_mark_all(GarbageCollection *this) {
 	// collect GC roots from the VM
 	vm_queue_gc_roots(this);
 
-	int root_count = this->queue_end - this->queue_start;
-	if (root_count < 0)
-		root_count += ga_length(&this->mark_queue);
+	int root_count = this->queue_length;
 	log("mem", "Starting GC mark phase with %d roots.", root_count);
 
 	// mark all objects, collecting references from them
@@ -237,6 +236,9 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 			// mark this block as free
 			if (last_seen == BLK_FREE) {
 				// previous block was free - just enlarge it with the space from this block
+				int i;
+				for (i = 0; i < current_block_size; i++)
+					current_block[i] = 0xEFBEEFBEEFBEEFBEull;
 				last_free_block->size += current_block_size;
 			} else {
 				// previous block was not free - we'll become a new free block
@@ -246,13 +248,19 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 				last_seen = BLK_FREE;
 				last_free_block = (FreeBlockHeader*)current_block;
 				last_free_block->size = current_block_size;
+
+				int i;
+				for (i = 1; i < current_block_size; i++)
+					current_block[i] = 0xEFBEEFBEEFBEEFBEull;
 			}
 			// move to next block
 			current_block += current_block_size;
 
 		} else {
-			// this block is still in use - skip over it
+			// this block is still in use - unmark it and leave it alone
 			UsedBlockHeader *used_header = (UsedBlockHeader*)current_block;
+			// remove the mark
+			used_header->status.flags.marked = 0;
 			// update internal state
 			last_seen = BLK_IN_USE;
 			// move to next
@@ -287,7 +295,8 @@ GarbageCollection *gc_create() {
 
 	gc->memory = lsvm_globals.memory;
 	ga_init(&gc->mark_queue, 32, sizeof(SepV), &allocator_unmanaged);
-	gc->queue_start = gc->queue_end = 0;
+	gc->queue_start = 0;
+	gc->queue_length = 0;
 
 	return gc;
 }

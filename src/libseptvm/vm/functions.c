@@ -252,6 +252,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	// uninitialized pointers
 	built_in->parameters = NULL;
 	built_in->data = SEPV_NOTHING;
+	built_in->additional_pointer = NULL;
 
 	built_in->base.vt = &built_in_func_vtable;
 	built_in->base.lazy = false;
