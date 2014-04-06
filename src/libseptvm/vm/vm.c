@@ -505,13 +505,13 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 		or_propagate(argument_exc);
 
 	// initialize an execution frame
-	this->frame_depth++;
-	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth);
-	ExecutionFrame *frame = &this->frames[this->frame_depth];
+	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth+1);
+	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
 
 	if (!custom_scope_provided)
 		vm_initialize_scope(this, func, scope, frame);
 	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
+	this->frame_depth++;
 
 	// run to get result
 	SepV return_value = vm_run(this);
@@ -544,12 +544,12 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 		return lazy_value;
 
 	// it does - extract the function and set up a frame for it
-	this->frame_depth++;
-	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth);
+	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth+1);
 
 	SepFunc *func = sepv_to_func(lazy_value);
-	ExecutionFrame *frame = &this->frames[this->frame_depth];
+	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
 	vm_initialize_frame(this, frame, func, scope);
+	this->frame_depth++;
 
 	// run from that point until 'func' returns
 	SepV return_value = vm_run(this);
