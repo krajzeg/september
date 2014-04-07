@@ -520,8 +520,7 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 	SepV return_value = vm_run(this);
 
 	// register the return value in the parent frame to prevent it from being GC'd
-	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
-	frame_register(parent_frame, return_value);
+	gc_register(return_value);
 
 	return item_rvalue(return_value);
 }
@@ -558,8 +557,7 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 	SepV return_value = vm_run(this);
 
 	// register the return value in the parent frame to prevent it from being GC'd
-	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
-	frame_register(parent_frame, return_value);
+	gc_register(return_value);
 
 	// return its return value
 	return return_value;

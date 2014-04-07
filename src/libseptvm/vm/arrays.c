@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include "mem.h"
+#include "gc.h"
 #include "exceptions.h"
 #include "arrays.h"
 
@@ -45,9 +46,7 @@ SepArray *array_create(uint32_t initial_size) {
 	array->base.props.entries = NULL;
 
 	// register as GC root to avoid collection
-	ExecutionFrame *frame = vm_current_frame();
-	if (frame)
-		frame_register(frame, obj_to_sepv(array));
+	gc_register(obj_to_sepv(array));
 
 	// initialize property map (arrays don't usually hold
 	// properties, so make it as small as possible)

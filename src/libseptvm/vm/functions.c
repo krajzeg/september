@@ -154,16 +154,6 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 }
 
 // ===============================================================
-//  Registering functions on creation
-// ===============================================================
-
-void _sepfunc_register(SepFunc *this) {
-	ExecutionFrame *current_frame = vm_current_frame();
-	if (current_frame)
-		frame_register(current_frame, func_to_sepv(this));
-}
-
-// ===============================================================
 //  Built-in function v-table
 // ===============================================================
 
@@ -270,7 +260,7 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	built_in->implementation = implementation;
 
 	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)built_in);
+	gc_register(func_to_sepv(built_in));
 
 	// setup parameters	according to va list
 	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
@@ -404,7 +394,7 @@ InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	func->declaration_scope = declaration_scope;
 
 	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)func);
+	gc_register(func_to_sepv(func));
 
 	return func;
 }
@@ -509,7 +499,7 @@ BoundMethod *boundmethod_create(SepFunc *function, SepV this_pointer) {
 	bm->this_pointer = this_pointer;
 
 	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)bm);
+	gc_register(func_to_sepv(bm));
 
 	return bm;
 }

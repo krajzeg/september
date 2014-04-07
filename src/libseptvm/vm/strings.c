@@ -19,6 +19,7 @@
 
 #include "../common/debugging.h"
 #include "mem.h"
+#include "gc.h"
 #include "types.h"
 #include "objects.h"
 #include "strings.h"
@@ -82,9 +83,7 @@ SepString *sepstr_new(const char *c_string) {
 	sepstr_init(string, c_string);
 
 	// register it to avoid accidentally GC'ing it away
-	ExecutionFrame *frame = vm_current_frame();
-	if (frame)
-		frame_register(frame, str_to_sepv(string));
+	gc_register(str_to_sepv(string));
 
 	return string;
 }

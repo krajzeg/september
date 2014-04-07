@@ -22,6 +22,7 @@
 #include "functions.h"
 #include "objects.h"
 #include "arrays.h"
+#include "gc.h"
 #include "../vm/runtime.h"
 #include "../vm/support.h"
 
@@ -329,9 +330,7 @@ SepObj *obj_create() {
 	obj->props.entries = NULL;
 
 	// register in as a GC root in the current frame to prevent accidental freeing
-	ExecutionFrame *current_frame = vm_current_frame();
-	if (current_frame)
-		frame_register(current_frame, obj_to_sepv(obj));
+	gc_register(obj_to_sepv(obj));
 
 	// initialize property map (possible allocation here, so perform as late as possible)
 	props_init((PropertyMap*) obj, 2);

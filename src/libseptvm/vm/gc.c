@@ -31,6 +31,38 @@
 #define used_block_header(block) ((UsedBlockHeader*)((char*)(block) - ALLOCATION_UNIT))
 
 // ===============================================================
+//  Registering objects
+// ===============================================================
+
+// Registers an object to prevent it from being collected until the end of the current
+// GC context. Every VM execution frame is an implicit GC context, but you can declare
+// explicit ones with gc_start_context()/gc_end_context().
+// By default, all newly allocated SepObj, SepFunc and SepString are registered to the
+// current context - so you have to gc_release() them if you want them to be freed
+// before the context ends.
+void gc_register(SepV object) {
+	// try an execution-frame-based context
+	ExecutionFrame *frame = vm_current_frame();
+	if (frame)
+		frame_register(frame, object);
+}
+
+// Releases a previously registered object. Should be used in long-lived contexts (e.g.
+// C functions implementing a September loop) to release no longer needed objects for GC.
+void gc_release(SepV object) {
+	// try an execution-frame-based context
+	ExecutionFrame *frame = vm_current_frame();
+	if (frame)
+		frame_release(frame, object);
+}
+
+// Starts a new GC context in which you can protect objects from being collected.
+void gc_start_context() {}
+
+// Ends a previously started GC context.
+void gc_end_context() {}
+
+// ===============================================================
 //  Mark queue
 // ===============================================================
 
