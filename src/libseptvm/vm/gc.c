@@ -224,12 +224,16 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 				default: {}
 			}
 
-			// mark this block as free
-			if (last_seen == BLK_FREE) {
-				// previous block was free - just enlarge it with the space from this block
+			// fill freed memory with an identifiable pattern
+			debug_only(
 				int i;
 				for (i = 0; i < current_block_size; i++)
 					current_block[i] = 0xEFBEEFBEEFBEEFBEull;
+			);
+
+			// mark this block as free
+			if (last_seen == BLK_FREE) {
+				// previous block was free - just enlarge it with the space from this block
 				last_free_block->size += current_block_size;
 			} else {
 				// previous block was not free - we'll become a new free block
@@ -239,11 +243,8 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 				last_seen = BLK_FREE;
 				last_free_block = (FreeBlockHeader*)current_block;
 				last_free_block->size = current_block_size;
-
-				int i;
-				for (i = 1; i < current_block_size; i++)
-					current_block[i] = 0xEFBEEFBEEFBEEFBEull;
 			}
+
 			// move to next block
 			current_block += current_block_size;
 
