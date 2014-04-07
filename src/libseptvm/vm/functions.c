@@ -207,7 +207,8 @@ void _built_in_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
 		uint8_t p;
 		for (p = 0; p < func->parameter_count; p++) {
 			FuncParam *param = &func->parameters[p];
-			gc_add_to_queue(gc, str_to_sepv(param->name));
+			if (param->name)
+				gc_add_to_queue(gc, str_to_sepv(param->name));
 		}
 	}
 
@@ -262,10 +263,16 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 	// register to avoid accidental GC
 	gc_register(func_to_sepv(built_in));
 
-	// setup parameters	according to va list
+	// allocate parameters, and NULL everything (to avoid GC tripping over
+	// uninitialized pointers)
 	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
-
 	int i;
+	for (i = 0; i < parameters; i++) {
+		FuncParam *parameter = &built_in->parameters[i];
+		parameter->name = NULL;
+	}
+
+	// initialize the actual parameters
 	char *param_name;
 	for (i = 0; i < parameters; i++) {
 		FuncParam *parameter = &built_in->parameters[i];
