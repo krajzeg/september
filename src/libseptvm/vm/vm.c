@@ -428,6 +428,8 @@ ExecutionFrame *vm_current_frame() {
 void vm_queue_gc_roots(GarbageCollection *gc) {
 	// just one VM for now - this will have to change when concurrency support is added
 	SepVM *vm = vm_current();
+	if (!vm)
+		return;
 
 	// queue all items from the data stack
 	GenericArrayIterator sit = ga_iterate_over(&vm->data->array);

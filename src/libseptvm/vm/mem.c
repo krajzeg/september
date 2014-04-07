@@ -240,10 +240,15 @@ void *mem_allocate(size_t bytes) {
 		handle_out_of_memory();
 	}
 
-	// allocate from any memory chunk
-	void *allocation = _mem_allocate_from_any_chunk(manager, bytes);
-	if (allocation)
-		return allocation;
+	// defining SEP_GC_STRESS_TEST causes a full GC to happen before EVERY allocation
+	// to better test the correctness of its implementation
+	void *allocation;
+	#ifndef SEP_GC_STRESS_TEST
+		// allocate from any memory chunk
+		allocation = _mem_allocate_from_any_chunk(manager, bytes);
+		if (allocation)
+			return allocation;
+	#endif
 
 	// no free space in any chunk - make some space by launching GC and try again
 	gc_perform_full_gc();
