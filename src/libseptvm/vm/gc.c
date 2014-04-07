@@ -55,12 +55,6 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 
 	// already marked?
 	void *ptr = sepv_to_pointer(object);
-
-	// TODO: sanity check - remove later
-	if (*(((uint32_t*)ptr) - 1) > 1) {
-		gc_mark_region(NULL);
-	}
-
 	if (used_block_header(ptr)->status.flags.marked)
 		return;
 
@@ -90,12 +84,9 @@ void gc_mark_region(void *region) {
 	if (!region)
 		return;
 
-	// TODO: remove, for debugging only
-	if (*(((uint32_t*)region) - 1) > 1) {
-		gc_mark_region(NULL);
-	}
-
+	// checks if the address is correct by looking at the "supposed" header
 	assert(*(((uint32_t*)region) - 1) <= 1);
+
 	used_block_header(region)->status.flags.marked = 1;
 }
 
