@@ -571,4 +571,8 @@ void libseptvm_initialize() {
 	lsvm_globals.memory = mem_initialize(0x10000);
 	lsvm_globals.gc_contexts = ga_create(0, sizeof(GCContext*), &allocator_unmanaged);
 	lsvm_globals.debugged_module_names = mem_unmanaged_allocate(4096);
+
+	gc_start_context();
+	lsvm_globals.module_cache = obj_create_with_proto(SEPV_NOTHING);
+	gc_end_context();
 }

@@ -91,6 +91,10 @@ void gc_end_context() {
 
 // Queues all roots from explicit GC contexts.
 void gc_queue_gc_roots(GarbageCollection *gc) {
+	// add the module cache which is always available
+	gc_add_to_queue(gc, obj_to_sepv(lsvm_globals.module_cache));
+
+	// add all roots from GC contexts
 	GenericArrayIterator ctx_it = ga_iterate_over(lsvm_globals.gc_contexts);
 	while (!gait_end(&ctx_it)) {
 		GCContext *context = *((GCContext**)gait_current(&ctx_it));

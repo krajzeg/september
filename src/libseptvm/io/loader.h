@@ -64,6 +64,8 @@ typedef struct ModuleNativeCode {
  * a module.
  */
 typedef struct ModuleDefinition {
+	// the name of this module
+	SepString *name;
 	// the bytecode for the module, or NULL if there isn't any
 	ByteSource *bytecode;
 	// the native code for the module, or NULL if there isn't any

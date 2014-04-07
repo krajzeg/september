@@ -16,11 +16,11 @@
 #include <stdlib.h>
 
 #include "../vm/runtime.h"
-
 #include "../vm/vm.h"
 #include "../vm/gc.h"
 #include "../vm/types.h"
 #include "../vm/exceptions.h"
+#include "../vm/support.h"
 
 #include "decoder.h"
 #include "loader.h"
@@ -46,7 +46,7 @@ SepV load_module(ModuleDefinition *definition) {
 	gc_start_context();
 
 	// create the empty module
-	SepModule *module = module_create(&rt);
+	SepModule *module = module_create(definition->name->cstr);
 
 	ModuleNativeCode *native = definition->native;
 	ByteSource *bytecode = definition->bytecode;
@@ -102,6 +102,10 @@ SepV load_module(ModuleDefinition *definition) {
 			or_handle(EAny) { goto error_handler; }
 	}
 
+	// add the module to the module cache
+	obj_add_field(module->root, "<name>", str_to_sepv(definition->name));
+	obj_add_field(lsvm_globals.module_cache, definition->name->cstr, obj_to_sepv(module->root));
+
 	// end the GC context - any objects to be kept must be referenced by the module root after this point
 	gc_end_context();
 
@@ -134,6 +138,7 @@ SepV load_module_by_name(SepString *module_name) {
 		}
 
 	// load from the definition
+	definition->name = module_name;
 	result = load_module(definition);
 
 cleanup:

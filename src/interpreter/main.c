@@ -83,6 +83,7 @@ int run_program(const char *filename) {
 		return EXIT_NO_EXECUTION;
 	};
 	ModuleDefinition *definition = moduledef_create(bytecode, NULL);
+	definition->name = sepstr_for("<main>");
 
 	// load and run the module (run is implicit)
 	SepV result = load_module(definition);

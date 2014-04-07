@@ -34,11 +34,11 @@
 // ===============================================================
 
 // Creates a new module.
-SepModule *module_create(){
+SepModule *module_create(char *name){
 	// allocate and initialize
 	SepModule *module = mem_unmanaged_allocate(sizeof(SepModule));
 	module->runtime = &rt;
-	module->name = NULL;
+	module->name = name;
 	module->blocks = NULL;
 	module->constants = NULL;
 

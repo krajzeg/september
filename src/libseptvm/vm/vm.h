@@ -257,11 +257,14 @@ SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value);
 typedef struct LibSeptVMGlobals {
 	// the managed memory used by libseptvm
 	ManagedMemory *memory;
+	// the loaded September module cache
+	SepObj *module_cache;
 	// garbage collection contexts
 	GenericArray *gc_contexts;
 	// pointer to the function capable of getting the right VM for current thread
 	SepVM *(*vm_for_current_thread_func)();
-	// names of the modules for which debug logging is turned on
+
+	// names of the library modules for which debug logging is turned on
 	char *debugged_module_names;
 } LibSeptVMGlobals;
 

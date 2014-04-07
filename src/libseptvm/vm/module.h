@@ -59,7 +59,7 @@ typedef struct SepModule {
 } SepModule;
 
 // Creates a new, empty module.
-SepModule *module_create();
+SepModule *module_create(char *name);
 // Deinitializes and frees the memory taken by this module.
 void module_free(SepModule *this);
 
