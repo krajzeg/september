@@ -59,9 +59,12 @@ typedef struct SepModule {
 } SepModule;
 
 // Creates a new, empty module.
-SepModule *module_create();
+SepModule *module_create(char *name);
 // Deinitializes and frees the memory taken by this module.
 void module_free(SepModule *this);
+
+// Registers an object as a private value in a module, making sure it never gets GC'd.
+void module_register_private(SepModule *module, SepV value);
 
 // ===============================================================
 // Constant pools

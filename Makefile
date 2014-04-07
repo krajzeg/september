@@ -13,6 +13,14 @@ else
 endif
 
 # ==========================
+# Configuration
+# ==========================
+
+ifeq ($(GC_STRESS_TEST),1)
+	CFLAGS += -DSEP_GC_STRESS_TEST
+endif
+
+# ==========================
 # Global definitions
 # ==========================
 

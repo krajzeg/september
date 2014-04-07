@@ -251,12 +251,35 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope);
 SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value);
 
 // ===============================================================
+//  Globals used by LibSeptVM
+// ===============================================================
+
+typedef struct LibSeptVMGlobals {
+	// the managed memory used by libseptvm
+	ManagedMemory *memory;
+	// the loaded September module cache
+	SepObj *module_cache;
+	// garbage collection contexts
+	GenericArray *gc_contexts;
+	// pointer to the function capable of getting the right VM for current thread
+	SepVM *(*vm_for_current_thread_func)();
+
+	// names of the library modules for which debug logging is turned on
+	char *debugged_module_names;
+} LibSeptVMGlobals;
+
+// all the globals used by libseptvm in one place
+extern LibSeptVMGlobals lsvm_globals;
+
+// ===============================================================
 //  Initialization of the whole library
 // ===============================================================
 
 // Initializes a slave libseptvm (as used inside a module DLL/.so). This is needed
 // so that things like the memory manager can be shared with the master process.
-void libseptvm_initialize_slave(struct ManagedMemory *master_memory);
+void libseptvm_initialize_slave(LibSeptVMGlobals *parent_config);
+// Initializes the master libseptvm in the interpreter.
+void libseptvm_initialize();
 
 /*****************************************************************/
 

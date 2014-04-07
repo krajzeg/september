@@ -9,7 +9,7 @@ RM := del /q
 CP := copy
 MKDIR := mkdir
 RMDIR := rmdir /q
-CFLAGS := -g -Wall -Wfatal-errors -Werror -DSEP_LOGGING_ENABLED
+CFLAGS := -g -Wall -Wfatal-errors -Werror -DSEP_DEBUG
 PYTHON := python
 
 # ==========================

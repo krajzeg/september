@@ -4,7 +4,7 @@ PLATFORM := Unix
 # Toolchain
 # ==========================
 
-CFLAGS := -g -Wall -Wfatal-errors -Werror -DSEP_LOGGING_ENABLED -fPIC
+CFLAGS := -g -Wall -Wfatal-errors -Werror -DSEP_DEBUG -fPIC
 PYTHON := python3
 MKDIR := mkdir
 RMDIR := rmdir

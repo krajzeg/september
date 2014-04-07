@@ -3,17 +3,19 @@
 
 /***************************************************************/
 
-#ifdef SEP_LOGGING_ENABLED
+// A set of macros that have an effect only if debugging is turned on.
+
+#ifdef SEP_DEBUG
 #define log(module, format, ...) debug_log("[" module "]", format, __VA_ARGS__)
 #define log0(module, msg) debug_log("[" module "]", msg)
+#define debug_only(code) do { code } while(0);
 #else 
 #define log(module, format, ...)
 #define log0(module, msg)
+#define debug_only(code)
 #endif 
 
 /***************************************************************/
-
-extern char sep_debugged_modules[4096];
 
 void debug_module(const char *module);
 void debug_log(const char *module, const char *format, ...);

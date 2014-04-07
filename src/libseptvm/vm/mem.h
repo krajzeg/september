@@ -94,7 +94,7 @@ typedef struct UsedBlockHeader {
  */
 typedef struct MemoryChunk {
 	// the memory backing this memory chunk
-	alloc_unit_t *memory;
+	alloc_unit_t *memory, *memory_end;
 	// pointer to the first entry in the free block list
 	FreeBlockHeader *free_list;
 } MemoryChunk;
@@ -114,16 +114,10 @@ typedef struct ManagedMemory {
 
 // Initializes the memory manager. Memory will be allocated in increments of chunk_size,
 // and it has to be a power of two. The minimum chunk size is 1024 bytes.
-void mem_initialize(uint32_t chunk_size);
-// Initializes the memory subsystem in such a way that a ManagedMemory controlled
-// by someone outside our module (.dll/.so) can be used.
-void mem_initialize_from_master(struct ManagedMemory *master_memory);
+ManagedMemory *mem_initialize(uint32_t chunk_size);
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes);
-
-// the global memory pointer
-extern ManagedMemory *_managed_memory;
 
 // ===============================================================
 //  Generalizing allocation

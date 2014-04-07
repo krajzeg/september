@@ -20,6 +20,7 @@
 #include <stdarg.h>
 
 #include "mem.h"
+#include "gc.h"
 #include "arrays.h"
 #include "opcodes.h"
 #include "functions.h"
@@ -153,16 +154,6 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 }
 
 // ===============================================================
-//  Registering functions on creation
-// ===============================================================
-
-void _sepfunc_register(SepFunc *this) {
-	ExecutionFrame *current_frame = vm_current_frame();
-	if (current_frame)
-		frame_register(current_frame, func_to_sepv(this));
-}
-
-// ===============================================================
 //  Built-in function v-table
 // ===============================================================
 
@@ -207,6 +198,24 @@ SepV _built_in_get_this_pointer(SepFunc *this) {
 	return SEPV_NOTHING;
 }
 
+void _built_in_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	BuiltInFunc *func = (BuiltInFunc*)this;
+
+	// the parameter array is allocated dynamically, mark it and all parameter names in it
+	if (func->parameters) {
+		gc_mark_region(func->parameters);
+		uint8_t p;
+		for (p = 0; p < func->parameter_count; p++) {
+			FuncParam *param = &func->parameters[p];
+			if (param->name)
+				gc_add_to_queue(gc, str_to_sepv(param->name));
+		}
+	}
+
+	// additional data
+	gc_add_to_queue(gc, func->data);
+}
+
 // v-table for built-ins
 SepFuncVTable built_in_func_vtable = {
 	&_built_in_initialize_frame,
@@ -214,7 +223,8 @@ SepFuncVTable built_in_func_vtable = {
 	&_built_in_get_parameter_count,
 	&_built_in_get_parameters,
 	&_built_in_get_declaration_scope,
-	&_built_in_get_this_pointer
+	&_built_in_get_this_pointer,
+	&_built_in_mark_and_queue
 };
 
 // ===============================================================
@@ -237,15 +247,32 @@ bool parameter_extract_flag(char **parameter_name, const char *flag) {
 BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameters, va_list args) {
 	// allocate and setup basic properties
 	BuiltInFunc *built_in = mem_allocate(sizeof(BuiltInFunc));
+
+	// make sure all unallocated pointers are NULL to avoid GC tripping over
+	// uninitialized pointers
+	built_in->parameters = NULL;
+	built_in->data = SEPV_NOTHING;
+	built_in->additional_pointer = NULL;
+
 	built_in->base.vt = &built_in_func_vtable;
 	built_in->base.lazy = false;
 	built_in->base.module = NULL;
 	built_in->parameter_count = parameters;
-	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
 	built_in->implementation = implementation;
 
-	// setup parameters	according to va list
+	// register to avoid accidental GC
+	gc_register(func_to_sepv(built_in));
+
+	// allocate parameters, and NULL everything (to avoid GC tripping over
+	// uninitialized pointers)
+	built_in->parameters = mem_allocate(sizeof(FuncParam)*parameters);
 	int i;
+	for (i = 0; i < parameters; i++) {
+		FuncParam *parameter = &built_in->parameters[i];
+		parameter->name = NULL;
+	}
+
+	// initialize the actual parameters
 	char *param_name;
 	for (i = 0; i < parameters; i++) {
 		FuncParam *parameter = &built_in->parameters[i];
@@ -261,9 +288,6 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		// set the name (undecorated by now, the decoration got translated into flags)
 		parameter->name = sepstr_for(param_name);
 	}
-	
-	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)built_in);
 
 	// return
 	return built_in;
@@ -345,6 +369,12 @@ SepV _interpreted_get_this_pointer(SepFunc *this) {
 	return SEPV_NOTHING;
 }
 
+void _interpreted_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	InterpretedFunc *func = (InterpretedFunc*)this;
+	// we can reach our declaration scope
+	gc_add_to_queue(gc, func->declaration_scope);
+}
+
 // v-table for built-ins
 SepFuncVTable interpreted_func_vtable = {
 	&_interpreted_initialize_frame,
@@ -352,7 +382,8 @@ SepFuncVTable interpreted_func_vtable = {
 	&_interpreted_get_parameter_count,
 	&_interpreted_get_parameters,
 	&_interpreted_get_declaration_scope,
-	&_interpreted_get_this_pointer
+	&_interpreted_get_this_pointer,
+	&_interpreted_mark_and_queue
 };
 
 // ===============================================================
@@ -370,7 +401,7 @@ InterpretedFunc *ifunc_create(CodeBlock *block, SepV declaration_scope) {
 	func->declaration_scope = declaration_scope;
 
 	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)func);
+	gc_register(func_to_sepv(func));
 
 	return func;
 }
@@ -386,7 +417,8 @@ SepFuncVTable lazy_closure_vtable = {
 	&_interpreted_get_parameter_count,
 	&_interpreted_get_parameters,
 	&_interpreted_get_declaration_scope,
-	&_interpreted_get_this_pointer
+	&_interpreted_get_this_pointer,
+	&_interpreted_mark_and_queue
 };
 
 // Creates a new lazy closure for a given expression.
@@ -437,9 +469,17 @@ SepV _bm_get_declaration_scope(SepFunc *this) {
 	return original->vt->get_declaration_scope(original);
 }
 
+void _bm_mark_and_queue(SepFunc *this, GarbageCollection *gc) {
+	BoundMethod *method = (BoundMethod*)this;
+	// we can reach the 'this' object and our original function instance
+	gc_add_to_queue(gc, method->this_pointer);
+	gc_add_to_queue(gc, func_to_sepv(method->original_instance));
+}
+
 SepV _bm_get_this_pointer(SepFunc *this) {
 	return ((BoundMethod*)this)->this_pointer;
 }
+
 
 // v-table for bound methods
 SepFuncVTable bound_method_vtable = {
@@ -448,7 +488,8 @@ SepFuncVTable bound_method_vtable = {
 	&_bm_get_parameter_count,
 	&_bm_get_parameters,
 	&_bm_get_declaration_scope,
-	&_bm_get_this_pointer
+	&_bm_get_this_pointer,
+	&_bm_mark_and_queue
 };
 
 // ===============================================================
@@ -465,7 +506,7 @@ BoundMethod *boundmethod_create(SepFunc *function, SepV this_pointer) {
 	bm->this_pointer = this_pointer;
 
 	// register to avoid accidental GC
-	_sepfunc_register((SepFunc*)bm);
+	gc_register(func_to_sepv(bm));
 
 	return bm;
 }

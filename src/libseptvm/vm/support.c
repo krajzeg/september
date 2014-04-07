@@ -204,10 +204,10 @@ typedef struct EscapeData {
 
 SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
 	// retrieve data from the function
-	EscapeData *data = ((BuiltInFunc*)frame->function)->data;
+	BuiltInFunc *bfunc = (BuiltInFunc*)frame->function;
 
-	ExecutionFrame *escape_frame = data->original_frame;
-	SepItem return_value = item_rvalue(data->return_value);
+	ExecutionFrame *escape_frame = bfunc->additional_pointer;
+	SepItem return_value = item_rvalue(bfunc->data);
 
 	// drop frames until we reach the right scope
 	while (frame != NULL) {
@@ -229,12 +229,28 @@ SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem return_impl(SepObj *scope, ExecutionFrame *frame) {
 	// set the return value in the 'escape' structure
-	SepV return_value = param(scope, "return_value");
-	EscapeData *data = ((BuiltInFunc*)frame->function)->data;
-	data->return_value = return_value;
+	SepItem return_value = item_rvalue(param(scope, "return_value"));
 
-	// delegate to the standard escape functionality
-	return escape_impl(scope, frame);
+	// retrieve data from the function
+	BuiltInFunc *bfunc = (BuiltInFunc*)frame->function;
+
+	ExecutionFrame *escape_frame = bfunc->additional_pointer;
+	// drop frames until we reach the right scope
+	while (frame != NULL) {
+		// finish the frame
+		frame->finished = true;
+		frame->return_value = return_value;
+
+		// have we reached the frame we want to escape out of?
+		if (frame == escape_frame)
+			break;
+
+		// we go one frame up if not
+		frame = frame->prev_frame;
+	}
+
+	// return
+	return return_value;
 }
 
 BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
@@ -243,10 +259,8 @@ BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
 
 	// remember some stuff inside the function to be able to escape
 	// to the right place with the right value later
-	EscapeData *escape_data = mem_allocate(sizeof(EscapeData));
-	escape_data->original_frame = frame;
-	escape_data->return_value = value_returned;
-	function->data = escape_data;
+	function->additional_pointer = frame;
+	function->data = value_returned;
 
 	// return the function
 	return function;
@@ -258,9 +272,7 @@ BuiltInFunc *make_return_func(ExecutionFrame *frame) {
 
 	// remember some stuff inside the function to be able to escape
 	// to the right place, leave return value to be filled later
-	EscapeData *escape_data = mem_allocate(sizeof(EscapeData));
-	escape_data->original_frame = frame;
-	function->data = escape_data;
+	function->additional_pointer = frame;
 
 	// return the function
 	return function;

@@ -17,8 +17,11 @@
 #include "../vm/support.h"
 
 // ===============================================================
-//  Thread local storage
+//  Global variables
 // ===============================================================
+
+// All the globals
+LibSeptVMGlobals lsvm_globals = {NULL};
 
 // While a VM is running, a pointer to it is always stored here. Every thread can
 // only run one VM at a time, and each thread has its own VM.
@@ -70,22 +73,7 @@ void frame_register(ExecutionFrame *frame, SepV value) {
 // Releases a value previously held in the frame's GC root table,
 // making it eligible for garbage collection again.
 void frame_release(ExecutionFrame *frame, SepV value) {
-	GenericArray *roots = &frame->gc_roots;
-	GenericArrayIterator it = ga_iterate_over(roots);
-	while (!gait_end(&it)) {
-		SepV itv = *((SepV*)gait_current(&it));
-
-		if (itv == value) {
-			// remove the element
-			uint32_t index = gait_index(&it);
-			SepV value_from_end = *((SepV*)ga_pop(roots));
-			if (index < ga_length(roots))
-				ga_set(roots, index, &value_from_end);
-		}
-
-		// next element
-		gait_advance(&it);
-	}
+	ga_remove(&frame->gc_roots, &value);
 }
 
 // ===============================================================
@@ -397,17 +385,23 @@ void vm_free(SepVM *this) {
 //  Global access to VM instances
 // ===============================================================
 
+// Low-level implementation function for access to the thread-local.
+SepVM *_vm_for_current_thread() {
+	return _currently_running_vm;
+}
+
 // Returns the VM currently used running in this thread. Only one SepVM instance is
 // allowed per thread.
 SepVM *vm_current() {
-	return _currently_running_vm;
+	return lsvm_globals.vm_for_current_thread_func();
 }
 
 // Returns the current execution frame in the current thread.
 ExecutionFrame *vm_current_frame() {
-	if (!_currently_running_vm)
+	SepVM *current = lsvm_globals.vm_for_current_thread_func();
+	if (!current)
 		return NULL;
-	return &_currently_running_vm->frames[_currently_running_vm->frame_depth];
+	return &current->frames[current->frame_depth];
 }
 
 // ===============================================================
@@ -419,12 +413,15 @@ ExecutionFrame *vm_current_frame() {
 void vm_queue_gc_roots(GarbageCollection *gc) {
 	// just one VM for now - this will have to change when concurrency support is added
 	SepVM *vm = vm_current();
+	if (!vm)
+		return;
 
 	// queue all items from the data stack
 	GenericArrayIterator sit = ga_iterate_over(&vm->data->array);
 	while (!gait_end(&sit)) {
 		SepItem stack_item = *((SepItem*)gait_current(&sit));
 		gc_add_to_queue(gc, stack_item.value);
+		gait_advance(&sit);
 	}
 
 	// queue everything accessible from the execution frames
@@ -436,11 +433,11 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 		gc_add_to_queue(gc, frame->return_value.value);
 
 		// additional GC roots - objects allocated by this frame
-		GenericArrayIterator it = ga_iterate_over(&frame->gc_roots);
-		while (!gait_end(&it)) {
-			SepV value = *((SepV*)gait_current(&it));
+		GenericArrayIterator rit = ga_iterate_over(&frame->gc_roots);
+		while (!gait_end(&rit)) {
+			SepV value = *((SepV*)gait_current(&rit));
 			gc_add_to_queue(gc, value);
-			gait_advance(&it);
+			gait_advance(&rit);
 		}
 	}
 }
@@ -496,20 +493,19 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 		or_propagate(argument_exc);
 
 	// initialize an execution frame
-	this->frame_depth++;
-	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth);
-	ExecutionFrame *frame = &this->frames[this->frame_depth];
+	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth+1);
+	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
 
 	if (!custom_scope_provided)
 		vm_initialize_scope(this, func, scope, frame);
 	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
+	this->frame_depth++;
 
 	// run to get result
 	SepV return_value = vm_run(this);
 
 	// register the return value in the parent frame to prevent it from being GC'd
-	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
-	frame_register(parent_frame, return_value);
+	gc_register(return_value);
 
 	return item_rvalue(return_value);
 }
@@ -535,19 +531,18 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 		return lazy_value;
 
 	// it does - extract the function and set up a frame for it
-	this->frame_depth++;
-	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth);
+	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth+1);
 
 	SepFunc *func = sepv_to_func(lazy_value);
-	ExecutionFrame *frame = &this->frames[this->frame_depth];
+	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
 	vm_initialize_frame(this, frame, func, scope);
+	this->frame_depth++;
 
 	// run from that point until 'func' returns
 	SepV return_value = vm_run(this);
 
 	// register the return value in the parent frame to prevent it from being GC'd
-	ExecutionFrame *parent_frame = &this->frames[this->frame_depth];
-	frame_register(parent_frame, return_value);
+	gc_register(return_value);
 
 	// return its return value
 	return return_value;
@@ -560,13 +555,24 @@ SepV vm_resolve_as_literal(SepVM *this, SepV lazy_value) {
 	return vm_resolve_in(this, lazy_value, SEPV_LITERALS);
 }
 
-
 // ===============================================================
-//  Initialization of the whole library
+//  Master/slave configuration of the library
 // ===============================================================
 
 // Initializes a slave libseptvm (as used inside a module DLL/.so). This is needed
 // so that things like the memory manager can be shared with the master process.
-void libseptvm_initialize_slave(struct ManagedMemory *master_memory) {
-	mem_initialize_from_master(master_memory);
+void libseptvm_initialize_slave(LibSeptVMGlobals *parent_config) {
+	lsvm_globals = *parent_config;
+}
+
+// Initializes the master libseptvm in the interpreter.
+void libseptvm_initialize() {
+	lsvm_globals.vm_for_current_thread_func = &_vm_for_current_thread;
+	lsvm_globals.memory = mem_initialize(0x10000);
+	lsvm_globals.gc_contexts = ga_create(0, sizeof(GCContext*), &allocator_unmanaged);
+	lsvm_globals.debugged_module_names = mem_unmanaged_allocate(4096);
+
+	gc_start_context();
+	lsvm_globals.module_cache = obj_create_with_proto(SEPV_NOTHING);
+	gc_end_context();
 }

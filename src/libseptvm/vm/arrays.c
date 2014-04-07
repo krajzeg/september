@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include "mem.h"
+#include "gc.h"
 #include "exceptions.h"
 #include "arrays.h"
 
@@ -35,13 +36,21 @@ SepArray *array_create(uint32_t initial_size) {
 	// allocate
 	SepArray *array = mem_allocate(sizeof(SepArray));
 
-	// initialize property map (arrays don't usually hold
-	// properties, so make it as small as possible)
-	props_init((PropertyMap*)array, 1);
-
 	// prototypes and traits
 	array->base.prototypes = obj_to_sepv(rt.Array);
 	array->base.traits = ARRAY_TRAITS;
+
+	// make sure all unallocated pointers are NULL to make sure GC
+	// does not trip over some uninitialized pointers
+	array->array.start = NULL;
+	array->base.props.entries = NULL;
+
+	// register as GC root to avoid collection
+	gc_register(obj_to_sepv(array));
+
+	// initialize property map (arrays don't usually hold
+	// properties, so make it as small as possible)
+	props_init((PropertyMap*)array, 1);
 
 	// allocate the underlying dynamic array
 	ga_init(&array->array, initial_size, sizeof(SepV), &allocator_managed);

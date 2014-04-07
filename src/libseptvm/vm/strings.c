@@ -19,6 +19,7 @@
 
 #include "../common/debugging.h"
 #include "mem.h"
+#include "gc.h"
 #include "types.h"
 #include "objects.h"
 #include "strings.h"
@@ -70,6 +71,9 @@ SepString *sepstr_for(const char *c_string) {
 		if (!string_cache_slot)
 			string_cache_slot = field_create(SEPV_NOTHING);
 		props_accept_prop(rt.string_cache, string, string_cache_slot);
+	} else {
+		// if its not, prevent it from being GC'd
+		gc_register(str_to_sepv(string));
 	}
 
 	log("strcache", "Returning new string: '%s'", c_string);
@@ -82,9 +86,7 @@ SepString *sepstr_new(const char *c_string) {
 	sepstr_init(string, c_string);
 
 	// register it to avoid accidentally GC'ing it away
-	ExecutionFrame *frame = vm_current_frame();
-	if (frame)
-		frame_register(frame, str_to_sepv(string));
+	gc_register(str_to_sepv(string));
 
 	return string;
 }

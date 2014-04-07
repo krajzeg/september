@@ -83,6 +83,7 @@ int run_program(const char *filename) {
 		return EXIT_NO_EXECUTION;
 	};
 	ModuleDefinition *definition = moduledef_create(bytecode, NULL);
+	definition->name = sepstr_for("<main>");
 
 	// load and run the module (run is implicit)
 	SepV result = load_module(definition);
@@ -108,16 +109,22 @@ int main(int argc, char **argv) {
 
 	// == platform-specific initialization
 	platform_initialize(argc, argv);
-	mem_initialize(0x10000);
+	libseptvm_initialize();
+
+	/*debug_module("opcodes");
+	debug_module("mem");
+	debug_module("vm");*/
 	
 	// == initialize the runtime
-	initialize_module_loader(find_module_files);
-	SepV globals_v = load_runtime();
-	if (sepv_is_exception(globals_v)) {
-		report_exception(globals_v);
-		return EXIT_NO_EXECUTION;
-	}
-	initialize_runtime_references(globals_v);
+	gc_start_context();
+		initialize_module_loader(find_module_files);
+		SepV globals_v = load_runtime();
+		if (sepv_is_exception(globals_v)) {
+			report_exception(globals_v);
+			return EXIT_NO_EXECUTION;
+		}
+		initialize_runtime_references(globals_v);
+	gc_end_context();
 
 	// == load the module
 	return run_program(module_file_name);

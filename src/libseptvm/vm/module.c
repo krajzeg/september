@@ -34,11 +34,11 @@
 // ===============================================================
 
 // Creates a new module.
-SepModule *module_create(){
+SepModule *module_create(char *name){
 	// allocate and initialize
 	SepModule *module = mem_unmanaged_allocate(sizeof(SepModule));
 	module->runtime = &rt;
-	module->name = NULL;
+	module->name = name;
 	module->blocks = NULL;
 	module->constants = NULL;
 
@@ -157,7 +157,19 @@ SepV cpool_add_string(ConstantPool *this, const char *c_string) {
 	log("cpool", "Adding constant %d: '%s'.", this->constant_count, c_string);
 
 	size_t size = sepstr_allocation_size(c_string);
-	SepString *string = _cpool_alloc(this, size);
+
+	// we allocate 8 extra bytes for padding before the string itself
+	// this padding is required by the garbage collector and simulates
+	// a "used block" header the memory managed would use if this string
+	// was dynamically allocated
+	void *memory = _cpool_alloc(this, size + 8);
+	UsedBlockHeader *padding_block = memory;
+	padding_block->status.word = 0;
+	padding_block->status.flags.marked = 1;
+	padding_block->size = 0xCAFEBABE;
+
+	// time for the string itself
+	SepString *string = (SepString*)(memory + 8);
 	sepstr_init(string, c_string);
 
 	SepV *sepvs = (SepV*)this->data;
@@ -334,4 +346,22 @@ void bpool_free(BlockPool *this) {
 	mem_unmanaged_free(this);
 }
 
+// ===============================================================
+//  Private objects
+// ===============================================================
 
+// Registers an object as a private value in a module, making sure it never gets GC'd.
+void module_register_private(SepModule *module, SepV value) {
+	// create or find the privates array
+	Slot *slot = props_find_prop(module->root, sepstr_for("<private>"));
+	SepArray *privates;
+	if (!slot) {
+		privates = array_create(1);
+		obj_add_field(module->root, "<private>", obj_to_sepv(privates));
+	} else {
+		privates = sepv_to_array(slot->value);
+	}
+
+	// store the value
+	array_push(privates, value);
+}
