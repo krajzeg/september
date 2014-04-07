@@ -413,9 +413,10 @@ SepVM *vm_current() {
 
 // Returns the current execution frame in the current thread.
 ExecutionFrame *vm_current_frame() {
-	if (!_currently_running_vm)
+	SepVM *current = lsvm_globals.vm_for_current_thread_func();
+	if (!current)
 		return NULL;
-	return &_currently_running_vm->frames[_currently_running_vm->frame_depth];
+	return &current->frames[current->frame_depth];
 }
 
 // ===============================================================
