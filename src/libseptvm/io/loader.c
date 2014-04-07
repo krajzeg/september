@@ -18,6 +18,7 @@
 #include "../vm/runtime.h"
 
 #include "../vm/vm.h"
+#include "../vm/gc.h"
 #include "../vm/types.h"
 #include "../vm/exceptions.h"
 
@@ -40,6 +41,10 @@ void initialize_module_loader(ModuleFinderFunc find_module_func) {
 SepV load_module(ModuleDefinition *definition) {
 	SepError err = NO_ERROR;
 
+	// start a GC context to make sure objects newly allocated by our module
+	// don't disappear from under it
+	gc_start_context();
+
 	// create the empty module
 	SepModule *module = module_create(&rt);
 
@@ -50,7 +55,7 @@ SepV load_module(ModuleDefinition *definition) {
 	if (bytecode) {
 		BytecodeDecoder *decoder = decoder_create(bytecode);
 		decoder_read_pools(decoder, module, &err);
-			or_handle(EAny) { goto cleanup; }
+			or_handle(EAny) { goto error_handler; }
 	}
 
 	// execute early initialization, if any
@@ -58,13 +63,13 @@ SepV load_module(ModuleDefinition *definition) {
 		if (!native->initialize_slave_vm)
 			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
 		native->initialize_slave_vm(&lsvm_globals, &err)
-			or_handle(EAny) { goto cleanup; }
+			or_handle(EAny) { goto error_handler; }
 	}
 
 	if (native && native->early_initializer) {
 		ModuleInitFunc early_initialization = native->early_initializer;
 		early_initialization(module, &err);
-			or_handle(EAny) { goto cleanup; }
+			or_handle(EAny) { goto error_handler; }
 	}
 
 	// execute bytecode, if any
@@ -94,34 +99,47 @@ SepV load_module(ModuleDefinition *definition) {
 	if (native && native->late_initializer) {
 		ModuleInitFunc late_initialization = native->late_initializer;
 		late_initialization(module, &err);
-			or_handle(EAny) { goto cleanup; }
+			or_handle(EAny) { goto error_handler; }
 	}
+
+	// end the GC context - any objects to be kept must be referenced by the module root after this point
+	gc_end_context();
 
 	// return the ready module
 	return obj_to_sepv(module->root);
 
-cleanup:
-	if (module)
-		module_free(module);
+error_handler:
+	if (module) module_free(module);
+	gc_end_context();
+
 	return sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s.", err.message));
 }
 
 // Loads a module by its string name. Uses functionality delivered by the interpreter
 // to find the module.
 SepV load_module_by_name(SepString *module_name) {
+	// start a context for the module to ensure we have some control over GC even without a VM
+	gc_start_context();
+
 	SepError err = NO_ERROR;
+	SepV result = SEPV_NOTHING;
+
 	// find the module
-	ModuleDefinition *definition = _find_module(module_name, &err);
+	ModuleDefinition *definition = NULL;
+	definition = _find_module(module_name, &err);
 		or_handle(EAny) {
-			return sepv_exception(exc.EInternal,
+			result = sepv_exception(exc.EInternal,
 				sepstr_sprintf("Unable to load module '%s': %s", module_name->cstr, err.message));
+			goto cleanup;
 		}
 
 	// load from the definition
-	SepV result = load_module(definition);
+	result = load_module(definition);
 
-	// clean up
-	moduledef_free(definition);
+cleanup:
+	if (definition) moduledef_free(definition);
+	gc_end_context();
+
 	return result;
 }
 

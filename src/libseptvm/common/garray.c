@@ -132,6 +132,37 @@ uint32_t ga_length(GenericArray *this) {
 	return (this->end - this->start) / this->element_size;
 }
 
+// Finds an object in the array (memcmp is used for comparison) and returns its index, or -1 if the object is not found.
+int32_t ga_index_of(GenericArray *this, void *needed_ptr) {
+	GenericArrayIterator it = ga_iterate_over(this);
+	while (!gait_end(&it)) {
+		void *element_ptr = gait_current(&it);
+		if (memcmp(needed_ptr, element_ptr, this->element_size) == 0)
+			return gait_index(&it);
+		else
+			gait_advance(&it);
+	}
+
+	// nothing found
+	return -1;
+}
+
+// Removes the first occurence of an object from the array (memcmp is used for comparisons) if it is present.
+// Returns true if the object was present, false otherwise.
+bool ga_remove(GenericArray *this, void *value_ptr) {
+	int32_t index = ga_index_of(this, value_ptr);
+	if (index == -1)
+		return false;
+
+	// copy all elements following the one to be removed one index to the left
+	void *location = this->start + index * this->element_size;
+	memmove(location, location + this->element_size, this->end - location - this->element_size);
+	// shorten the array by one element
+	this->end -= this->element_size;
+	// we have removed something
+	return true;
+}
+
 // ===============================================================
 //  Iteration
 // ===============================================================

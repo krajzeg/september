@@ -41,6 +41,14 @@
 // current context - so you have to gc_release() them if you want them to be freed
 // before the context ends.
 void gc_register(SepV object) {
+	// do we have an active GC context?
+	uint32_t length;
+	if ((length = ga_length(lsvm_globals.gc_contexts))) {
+		GCContext *context = *((GCContext**)ga_get(lsvm_globals.gc_contexts, length-1));
+		ga_push(&context->context_roots, &object);
+		return;
+	}
+
 	// try an execution-frame-based context
 	ExecutionFrame *frame = vm_current_frame();
 	if (frame)
@@ -50,6 +58,14 @@ void gc_register(SepV object) {
 // Releases a previously registered object. Should be used in long-lived contexts (e.g.
 // C functions implementing a September loop) to release no longer needed objects for GC.
 void gc_release(SepV object) {
+	// do we have an active GC context?
+	uint32_t length;
+	if ((length = ga_length(lsvm_globals.gc_contexts))) {
+		GCContext *context = *((GCContext**)ga_get(lsvm_globals.gc_contexts, length-1));
+		ga_remove(&context->context_roots, &object);
+		return;
+	}
+
 	// try an execution-frame-based context
 	ExecutionFrame *frame = vm_current_frame();
 	if (frame)
@@ -57,10 +73,38 @@ void gc_release(SepV object) {
 }
 
 // Starts a new GC context in which you can protect objects from being collected.
-void gc_start_context() {}
+void gc_start_context() {
+	GenericArray *contexts = lsvm_globals.gc_contexts;
+
+	GCContext *context = (GCContext*)ga_create(1, sizeof(SepV), &allocator_unmanaged);
+	ga_push(contexts, &context);
+}
 
 // Ends a previously started GC context.
-void gc_end_context() {}
+void gc_end_context() {
+	GenericArray *contexts = lsvm_globals.gc_contexts;
+	assert(ga_length(contexts) > 0);
+
+	GCContext *last_context = *((GCContext**)ga_pop(contexts));
+	ga_free((GenericArray*)last_context);
+}
+
+// Queues all roots from explicit GC contexts.
+void gc_queue_gc_roots(GarbageCollection *gc) {
+	GenericArrayIterator ctx_it = ga_iterate_over(lsvm_globals.gc_contexts);
+	while (!gait_end(&ctx_it)) {
+		GCContext *context = *((GCContext**)gait_current(&ctx_it));
+
+		GenericArrayIterator root_it = ga_iterate_over(&context->context_roots);
+		while (!gait_end(&root_it)) {
+			SepV root = *((SepV*)gait_current(&root_it));
+			gc_add_to_queue(gc, root);
+			gait_advance(&root_it);
+		}
+
+		gait_advance(&ctx_it);
+	}
+}
 
 // ===============================================================
 //  Mark queue
@@ -197,6 +241,7 @@ void gc_mark_one_object(GarbageCollection *this, SepV object) {
 void gc_mark_all(GarbageCollection *this) {
 	// collect GC roots from the VM
 	vm_queue_gc_roots(this);
+	gc_queue_gc_roots(this);
 
 	int root_count = this->queue_length;
 	log("mem", "Starting GC mark phase with %d roots.", root_count);

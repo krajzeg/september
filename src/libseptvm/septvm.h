@@ -26,6 +26,7 @@
 #include "vm/exceptions.h"
 #include "vm/functions.h"
 #include "vm/mem.h"
+#include "vm/gc.h"
 #include "vm/module.h"
 #include "vm/objects.h"
 #include "vm/types.h"

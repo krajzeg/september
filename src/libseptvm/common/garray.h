@@ -40,6 +40,7 @@ typedef struct GenericArray {
 GenericArray *ga_create(uint32_t initial_capacity, size_t element_size, struct Allocator *allocator);
 // Initializes a new generic array in place.
 void ga_init(GenericArray *this, uint32_t initial_capacity, size_t element_size, struct Allocator *allocator);
+
 // Pushes a new value at the end of this array.
 void *ga_push(GenericArray *this, void *value_ptr);
 // Pops a value from the end of this array.
@@ -54,7 +55,11 @@ void ga_grow(GenericArray *this, uint32_t cells);
 void ga_clear(GenericArray *this);
 // Gets the length of this array.
 uint32_t ga_length(GenericArray *this);
-
+// Finds an object in the array (memcmp is used for comparison) and returns its index, or -1 if the object is not found.
+int32_t ga_index_of(GenericArray *this, void *value_ptr);
+// Removes the first occurence of an object from the array (memcmp is used for comparisons) if it is present.
+// Returns true if the object was present, false otherwise.
+bool ga_remove(GenericArray *this, void *value_ptr);
 
 // Frees just the internal entries table (for use with arrays created via ga_init). The memory for the array
 // itself has to be freed separately.

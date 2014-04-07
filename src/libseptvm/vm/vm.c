@@ -73,22 +73,7 @@ void frame_register(ExecutionFrame *frame, SepV value) {
 // Releases a value previously held in the frame's GC root table,
 // making it eligible for garbage collection again.
 void frame_release(ExecutionFrame *frame, SepV value) {
-	GenericArray *roots = &frame->gc_roots;
-	GenericArrayIterator it = ga_iterate_over(roots);
-	while (!gait_end(&it)) {
-		SepV itv = *((SepV*)gait_current(&it));
-
-		if (itv == value) {
-			// remove the element
-			uint32_t index = gait_index(&it);
-			SepV value_from_end = *((SepV*)ga_pop(roots));
-			if (index < ga_length(roots))
-				ga_set(roots, index, &value_from_end);
-		}
-
-		// next element
-		gait_advance(&it);
-	}
+	ga_remove(&frame->gc_roots, &value);
 }
 
 // ===============================================================
@@ -584,5 +569,6 @@ void libseptvm_initialize_slave(LibSeptVMGlobals *parent_config) {
 void libseptvm_initialize() {
 	lsvm_globals.vm_for_current_thread_func = &_vm_for_current_thread;
 	lsvm_globals.memory = mem_initialize(0x10000);
+	lsvm_globals.gc_contexts = ga_create(0, sizeof(GCContext*), &allocator_unmanaged);
 	lsvm_globals.debugged_module_names = mem_unmanaged_allocate(4096);
 }

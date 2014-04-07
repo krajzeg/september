@@ -71,6 +71,9 @@ SepString *sepstr_for(const char *c_string) {
 		if (!string_cache_slot)
 			string_cache_slot = field_create(SEPV_NOTHING);
 		props_accept_prop(rt.string_cache, string, string_cache_slot);
+	} else {
+		// if its not, prevent it from being GC'd
+		gc_register(str_to_sepv(string));
 	}
 
 	log("strcache", "Returning new string: '%s'", c_string);

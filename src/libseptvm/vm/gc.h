@@ -47,6 +47,12 @@ void gc_add_to_queue(GarbageCollection *this, SepV object);
 //  Registering objects
 // ===============================================================
 
+// A context is basically an array of registered objects protected from GC.
+typedef struct GCContext {
+	// the registered context roots
+	GenericArray context_roots;
+} GCContext;
+
 // Registers an object to prevent it from being collected until the end of the current
 // GC context. Every VM execution frame is an implicit GC context, but you can declare
 // explicit ones with gc_start_context()/gc_end_context().
