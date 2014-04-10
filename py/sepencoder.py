@@ -92,9 +92,9 @@ class ModuleFileOutput:
             self._write_byte(sign * 0x80 | 0x40 | ((int_value & 0x1f00) >> 8))
             self._write_byte(int_value & 0xff)
         else:
-            req_bytes = int(math.log(int_value, 256))
+            req_bytes = int(math.log(int_value, 256)) + 1
             self._write_byte(sign * 0x80 | 0x60 | req_bytes)
-            shift = 8 * (req_bytes-1)
+            shift = 8 * (req_bytes - 1)
             mask = 0xff << shift
             while mask != 0:
                 self._write_byte((int_value & mask) >> shift)
