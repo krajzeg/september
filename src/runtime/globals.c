@@ -210,15 +210,16 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	// loop!
 	SepV body_l = param(scope, "body");
 	while (condition == SEPV_TRUE) {
+		// release condition for GC
+		gc_release(condition);
 		// execute body
 		SepV result = vm_invoke_in_scope(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
 			or_propagate(result);
-
 		// break?
 		if (result == SEPV_BREAK) {
 			break;
 		}
-
+		gc_release(result);
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
 			or_propagate(condition);
@@ -304,6 +305,10 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 		if (result == SEPV_BREAK) {
 			break;
 		}
+
+		// release objects from this iteration of the loop to make them GC'able
+		gc_release(element);
+		gc_release(result);
 	}
 
 	// for doesn't return anything normally
