@@ -163,6 +163,15 @@ bool ga_remove(GenericArray *this, void *value_ptr) {
 	return true;
 }
 
+// Removes a single element from the given index.
+void ga_remove_at(GenericArray *this, uint32_t index) {
+	// copy following elements one step back
+	void *position = this->start + index * this->element_size;
+	memmove(position, position + this->element_size, this->end - position - this->element_size);
+	// shorten the array by one element
+	this->end -= this->element_size;
+}
+
 // ===============================================================
 //  Iteration
 // ===============================================================
@@ -186,6 +195,11 @@ uint32_t gait_index(GenericArrayIterator *this) {
 // Advances the iterator to the next element.
 void gait_advance(GenericArrayIterator *this) {
 	this->position += this->array->element_size;
+}
+
+// Removes the current element and advances to the next.
+void gait_remove_and_advance(GenericArrayIterator *this) {
+	ga_remove_at(this->array, gait_index(this));
 }
 
 // Returns true if we have reached past the last element in the array.

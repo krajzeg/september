@@ -100,11 +100,28 @@ typedef struct MemoryChunk {
 } MemoryChunk;
 
 /**
+ * Represents an indivisible chunk used for big allocations (bigger
+ * than half standard chunk size).
+ */
+typedef struct OutsizeChunk {
+	// pointer to the single block header for this entire chunk
+	UsedBlockHeader *header;
+	// the single block of memory represented by this chunk
+	void *block;
+	// the entire piece of memory backing this chunk (header + block)
+	alloc_unit_t *memory;
+	// the allocated size in bytes
+	size_t size;
+} OutsizeChunk;
+
+/**
  * Represents the entirety of managed memory.
  */
 typedef struct ManagedMemory {
-	// the array of memory chunks currently in use
+	// the array of standard memory chunks currently in use
 	GenericArray chunks;
+	// an array of big chunks used for allocations bigger than the standard chunk size
+	GenericArray outsize_chunks;
 	// the size used for all the chunks
 	uint32_t chunk_size;
 

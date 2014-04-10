@@ -60,6 +60,8 @@ int32_t ga_index_of(GenericArray *this, void *value_ptr);
 // Removes the first occurence of an object from the array (memcmp is used for comparisons) if it is present.
 // Returns true if the object was present, false otherwise.
 bool ga_remove(GenericArray *this, void *value_ptr);
+// Removes a single element from the given index.
+void ga_remove_at(GenericArray *this, uint32_t index);
 
 // Frees just the internal entries table (for use with arrays created via ga_init). The memory for the array
 // itself has to be freed separately.
@@ -89,6 +91,8 @@ void *gait_current(GenericArrayIterator *this);
 uint32_t gait_index(GenericArrayIterator *this);
 // Advances the iterator to the next element.
 void gait_advance(GenericArrayIterator *this);
+// Removes the current element and advances to the next.
+void gait_remove_and_advance(GenericArrayIterator *this);
 // Returns true if we have reached past the last element in the array.
 bool gait_end(GenericArrayIterator *this);
 

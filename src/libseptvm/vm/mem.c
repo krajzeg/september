@@ -179,6 +179,24 @@ void *_chunk_allocate(MemoryChunk *chunk, size_t bytes) {
 	}
 }
 
+OutsizeChunk *_outsize_chunk_create(size_t size) {
+	OutsizeChunk *chunk = mem_unmanaged_allocate(sizeof(OutsizeChunk));
+
+	size_t allocation_size = ((size / ALLOCATION_UNIT) + 2);
+	chunk->memory = mem_unmanaged_allocate(allocation_size * ALLOCATION_UNIT);
+	chunk->size = allocation_size * ALLOCATION_UNIT;
+
+	// initialize the header and block
+	chunk->header = (UsedBlockHeader*)chunk->memory;
+	chunk->block = (void*)(chunk->memory + 1);
+
+	chunk->header->size = allocation_size;
+	chunk->header->status.word = 0;
+
+	// return the chunk
+	return chunk;
+}
+
 // ===============================================================
 //  ManagedMemory internals
 // ===============================================================
@@ -189,6 +207,12 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 		MemoryChunk *chunk = _chunk_create(memory);
 		ga_push(&memory->chunks, &chunk);
 	}
+}
+
+void *_mem_allocate_outsize(ManagedMemory *memory, size_t size) {
+	OutsizeChunk *chunk = _outsize_chunk_create(size);
+	ga_push(&memory->outsize_chunks, &chunk);
+	return chunk->block;
 }
 
 void *_mem_allocate_from_any_chunk(ManagedMemory *manager, uint32_t bytes) {
@@ -210,7 +234,6 @@ void *_mem_allocate_from_any_chunk(ManagedMemory *manager, uint32_t bytes) {
 	return NULL;
 }
 
-
 // ===============================================================
 //  Managed memory public interface
 // ===============================================================
@@ -223,8 +246,10 @@ ManagedMemory *mem_initialize(uint32_t chunk_size) {
 	mem->total_allocated_bytes = 0;
 	mem->used_bytes = 0;
 
-	// add a chunk of memory for a good start
 	ga_init(&mem->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
+	ga_init(&mem->outsize_chunks, 0, sizeof(OutsizeChunk*), &allocator_unmanaged);
+
+	// add a chunk of memory for a good start
 	_mem_add_chunks(mem, 1);
 
 	return mem;
@@ -235,9 +260,12 @@ ManagedMemory *mem_initialize(uint32_t chunk_size) {
 void *mem_allocate(size_t bytes) {
 	ManagedMemory *manager = lsvm_globals.memory;
 
-	if (bytes > manager->chunk_size - 2 * ALLOCATION_UNIT) {
-		// TODO: allocations not fitting in a chunk not implemented yet
-		handle_out_of_memory();
+	// handle outsize allocations (bigger than chunk_size)
+	if (bytes > manager->chunk_size / 2) {
+		#ifdef SEP_GC_STRESS_TEST
+			gc_perform_full_gc();
+		#endif
+		return _mem_allocate_outsize(manager, bytes);
 	}
 
 	// defining SEP_GC_STRESS_TEST causes a full GC to happen before EVERY allocation

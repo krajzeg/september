@@ -1,0 +1,6 @@
+string := "a"
+while (string.length() < 1000000) {
+	string = string + string
+}
+
+print("Allocated a string of", string.length(), "characters successfully.")

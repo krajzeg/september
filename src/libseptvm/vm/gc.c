@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "../common/debugging.h"
 #include "gc.h"
@@ -165,6 +166,10 @@ void gc_mark_region(void *region) {
 		return;
 
 	// checks if the address is correct by looking at the "supposed" header
+	if (*(((uint32_t*)region) - 1) > 1) {
+		gc_mark_region(NULL);
+	}
+
 	assert(*(((uint32_t*)region) - 1) <= 1);
 
 	used_block_header(region)->status.flags.marked = 1;
@@ -259,7 +264,7 @@ void gc_mark_all(GarbageCollection *this) {
 }
 
 // ===============================================================
-//  Sweep phase
+//  Sweep phase - standard chunks
 // ===============================================================
 
 typedef enum MemoryBlockType {
@@ -346,9 +351,7 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 }
 
 
-void gc_sweep_all(GarbageCollection *this) {
-	log0("mem", "GC mark phase complete, starting the sweep phase.");
-
+void gc_sweep_standard_chunks(GarbageCollection *this) {
 	GenericArray *chunks = &this->memory->chunks;
 	GenericArrayIterator it = ga_iterate_over(chunks);
 	while (!gait_end(&it)) {
@@ -356,6 +359,48 @@ void gc_sweep_all(GarbageCollection *this) {
 		gc_sweep_chunk(this, chunk);
 		gait_advance(&it);
 	}
+}
+
+// ===============================================================
+//  Sweep phase - outsize chunks
+// ===============================================================
+
+bool gc_outsize_chunk_in_use(OutsizeChunk *outsize_chunk) {
+	return outsize_chunk->header->status.flags.marked;
+}
+
+void gc_free_outsize_chunk(OutsizeChunk *outsize_chunk) {
+	debug_only(
+		memset(outsize_chunk->memory, 0xEE, outsize_chunk->size);
+	);
+	mem_unmanaged_free(outsize_chunk->memory);
+	mem_unmanaged_free(outsize_chunk);
+}
+
+void gc_sweep_outsize_chunks(GarbageCollection *this) {
+	GenericArray *outsize_chunks = &this->memory->outsize_chunks;
+	GenericArrayIterator it = ga_iterate_over(outsize_chunks);
+	while (!gait_end(&it)) {
+		OutsizeChunk *chunk = *((OutsizeChunk**)gait_current(&it));
+
+		if (!gc_outsize_chunk_in_use(chunk)) {
+			gc_free_outsize_chunk(chunk);
+			gait_remove_and_advance(&it);
+		} else {
+			chunk->header->status.flags.marked = 0;
+			gait_advance(&it);
+		}
+	}
+}
+
+// ===============================================================
+//  Sweep phase - main
+// ===============================================================
+
+void gc_sweep_all(GarbageCollection *this) {
+	log0("mem", "GC mark phase complete, starting the sweep phase.");
+	gc_sweep_standard_chunks(this);
+	gc_sweep_outsize_chunks(this);
 }
 
 // ===============================================================
