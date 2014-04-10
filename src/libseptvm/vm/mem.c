@@ -30,7 +30,7 @@
 // ===============================================================
 
 // Allocate new memory, with the starting address aligned at
-// an even 'alignment' bytes.
+// a multiple of 'alignment'.
 void *aligned_alloc(size_t bytes, size_t alignment) {
 	uint8_t *memory = (uint8_t*) malloc(bytes + alignment);
 	if (memory == NULL)
@@ -138,6 +138,7 @@ MemoryChunk *_chunk_create(ManagedMemory *manager) {
 	MemoryChunk *chunk = mem_unmanaged_allocate(sizeof(MemoryChunk));
 	chunk->memory = mem_unmanaged_allocate(manager->chunk_size);
 	chunk->memory_end = chunk->memory + (manager->chunk_size / ALLOCATION_UNIT);
+	chunk->used = 0;
 
 	// initialize the free block list
 	// first the artificial head
@@ -165,7 +166,14 @@ void *_chunk_allocate(MemoryChunk *chunk, size_t bytes) {
 	while (true) {
 		if (free_block->size >= required_units) {
 			// we can satisfy the allocation from this block
-			return _free_block_allocate(free_block, previous, required_units);
+			void *allocation = _free_block_allocate(free_block, previous, required_units);
+
+			// update the chunk bookkeeping
+			// we get the size from the header as it might be larger than required
+			UsedBlockHeader *header = (UsedBlockHeader*)(allocation - ALLOCATION_UNIT);
+			chunk->used += header->size;
+
+			return allocation;
 		}
 
 		// not enough space here, next block
@@ -207,11 +215,17 @@ void _mem_add_chunks(ManagedMemory *memory, int how_many) {
 		MemoryChunk *chunk = _chunk_create(memory);
 		ga_push(&memory->chunks, &chunk);
 	}
+
+	memory->total_allocated_bytes += memory->chunk_size;
 }
 
 void *_mem_allocate_outsize(ManagedMemory *memory, size_t size) {
 	OutsizeChunk *chunk = _outsize_chunk_create(size);
 	ga_push(&memory->outsize_chunks, &chunk);
+
+	memory->outsize_allocated_bytes += size;
+	memory->total_allocated_bytes += size;
+
 	return chunk->block;
 }
 
@@ -244,7 +258,8 @@ ManagedMemory *mem_initialize(uint32_t chunk_size) {
 	ManagedMemory *mem = mem_unmanaged_allocate(sizeof(ManagedMemory));
 	mem->chunk_size = chunk_size;
 	mem->total_allocated_bytes = 0;
-	mem->used_bytes = 0;
+	mem->outsize_allocated_bytes = 0;
+	mem->allocation_limit_before_next_gc = mem->chunk_size * 2;
 
 	ga_init(&mem->chunks, 1, sizeof(MemoryChunk*), &allocator_unmanaged);
 	ga_init(&mem->outsize_chunks, 0, sizeof(OutsizeChunk*), &allocator_unmanaged);
@@ -259,9 +274,15 @@ ManagedMemory *mem_initialize(uint32_t chunk_size) {
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes) {
 	ManagedMemory *manager = lsvm_globals.memory;
+	void *allocation;
+
+	// should we trigger an allocation-size-based GC before this allocation?
+	if (manager->total_allocated_bytes > manager->allocation_limit_before_next_gc)
+		gc_perform_full_gc();
 
 	// handle outsize allocations (bigger than chunk_size)
-	if (bytes > manager->chunk_size / 2) {
+	bool outsize = bytes > manager->chunk_size;
+	if (outsize) {
 		#ifdef SEP_GC_STRESS_TEST
 			gc_perform_full_gc();
 		#endif
@@ -270,7 +291,6 @@ void *mem_allocate(size_t bytes) {
 
 	// defining SEP_GC_STRESS_TEST causes a full GC to happen before EVERY allocation
 	// to better test the correctness of its implementation
-	void *allocation;
 	#ifndef SEP_GC_STRESS_TEST
 		// allocate from any memory chunk
 		allocation = _mem_allocate_from_any_chunk(manager, bytes);
@@ -288,6 +308,62 @@ void *mem_allocate(size_t bytes) {
 	log("mem", "Not enough space to allocate %d bytes, allocating new chunk.", bytes);
 	_mem_add_chunks(manager, 1);
 	return _mem_allocate_from_any_chunk(manager, bytes); // cannot fail with a fresh chunk available
+}
+
+// Used for updating statistics and limits after a full GC is performed.
+void mem_update_statistics() {
+	uint64_t allocated = 0, outsize = 0;
+
+	ManagedMemory *memory = lsvm_globals.memory;
+
+	// count all standard chunks
+	allocated = ga_length(&memory->chunks) * memory->chunk_size;
+
+	// go through all outsized chunks
+	GenericArrayIterator osit = ga_iterate_over(&memory->outsize_chunks);
+	while (!gait_end(&osit)) {
+		OutsizeChunk *os_chunk = gait_current_as(&osit, OutsizeChunk*);
+		allocated += os_chunk->size;
+		outsize += os_chunk->size;
+		gait_advance(&osit);
+	}
+
+	// update stored stats
+	memory->total_allocated_bytes = allocated;
+	memory->outsize_allocated_bytes = outsize;
+	memory->allocation_limit_before_next_gc = allocated * 2;
+}
+
+// ===============================================================
+//  Memory management information
+// ===============================================================
+
+// Returns the total number of bytes of memory that are currently in use
+// (allocated and occupied by an active object).
+uint64_t mem_used_bytes(ManagedMemory *this) {
+	// outsize chunks are always used
+	uint64_t used = this->outsize_allocated_bytes;
+
+	// collect the usage numbers from chunks
+	GenericArrayIterator chit = ga_iterate_over(&this->chunks);
+	while (!gait_end(&chit)) {
+		MemoryChunk *chunk = gait_current_as(&chit, MemoryChunk*);
+		used += chunk->used * ALLOCATION_UNIT;
+		gait_advance(&chit);
+	}
+
+	return used;
+}
+
+// Returns the total number of bytes allocated by the memory manager
+// (including free space waiting for new objects and outsize allocations).
+uint64_t mem_allocated_bytes(ManagedMemory *this) {
+	return this->total_allocated_bytes;
+}
+
+// Returns the total number of bytes allocated in outsize blocks.
+uint64_t mem_allocated_outsize_chunks(ManagedMemory *this) {
+	return this->outsize_allocated_bytes;
 }
 
 // ===============================================================

@@ -96,6 +96,9 @@ void gait_remove_and_advance(GenericArrayIterator *this);
 // Returns true if we have reached past the last element in the array.
 bool gait_end(GenericArrayIterator *this);
 
+// Gets the current element under the iterator, cast to the chosen type.
+#define gait_current_as(iterator,type) (*((type*)gait_current(iterator)))
+
 /*****************************************************************/
 
 #endif

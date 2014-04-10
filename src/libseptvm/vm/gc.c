@@ -164,14 +164,8 @@ void gc_add_to_queue(GarbageCollection *this, SepV object) {
 void gc_mark_region(void *region) {
 	if (!region)
 		return;
-
 	// checks if the address is correct by looking at the "supposed" header
-	if (*(((uint32_t*)region) - 1) > 1) {
-		gc_mark_region(NULL);
-	}
-
 	assert(*(((uint32_t*)region) - 1) <= 1);
-
 	used_block_header(region)->status.flags.marked = 1;
 }
 
@@ -276,6 +270,7 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 	alloc_unit_t *memory_end = chunk->memory_end;
 	alloc_unit_t *next_free = memory + chunk->free_list->offset_to_next_free;
 	alloc_unit_t *current_block = memory + 1;
+	uint32_t units_still_in_use = 0;
 
 	FreeBlockHeader *last_free_block = chunk->free_list;
 	MemoryBlockType last_seen = BLK_IN_USE, current_block_type;
@@ -341,11 +336,13 @@ void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 			used_header->status.flags.marked = 0;
 			// update internal state
 			last_seen = BLK_IN_USE;
+			units_still_in_use += used_header->size;
 			// move to next
 			current_block += used_header->size;
 		}
 	}
-
+	// store chunk statistics
+	chunk->used = units_still_in_use;
 	// fix up the last free block - mark it as the tail in the free block linked list
 	last_free_block->offset_to_next_free = 0;
 }
@@ -427,13 +424,19 @@ void gc_free(GarbageCollection *this) {
 
 // Performs a full collection from start to finish, both mark and sweep.
 void gc_perform_full_gc() {
-	log0("mem", "Starting a full garbage collection.");
+	log("mem", "Starting a full GC, %llu/%llu bytes in use/allocated.",
+			mem_used_bytes(lsvm_globals.memory), mem_allocated_bytes(lsvm_globals.memory));
 
 	GarbageCollection *collection = gc_create();
 	gc_mark_all(collection);
 	gc_sweep_all(collection);
+
+	// update allocated/used tallies
+	mem_update_statistics();
+
 	gc_free(collection);
 
-	log0("mem", "Full garbage collection completed.");
+	log("mem", "GC complete, %llu/%llu bytes in use/allocated.",
+			mem_used_bytes(lsvm_globals.memory), mem_allocated_bytes(lsvm_globals.memory));
 }
 

@@ -97,6 +97,8 @@ typedef struct MemoryChunk {
 	alloc_unit_t *memory, *memory_end;
 	// pointer to the first entry in the free block list
 	FreeBlockHeader *free_list;
+	// total allocation units in use in this chunk
+	uint32_t used;
 } MemoryChunk;
 
 /**
@@ -125,8 +127,10 @@ typedef struct ManagedMemory {
 	// the size used for all the chunks
 	uint32_t chunk_size;
 
+	// statistics and limits
 	uint64_t total_allocated_bytes;
-	uint64_t used_bytes;
+	uint64_t outsize_allocated_bytes;
+	uint64_t allocation_limit_before_next_gc;
 } ManagedMemory;
 
 // Initializes the memory manager. Memory will be allocated in increments of chunk_size,
@@ -135,6 +139,22 @@ ManagedMemory *mem_initialize(uint32_t chunk_size);
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes);
+
+// Used for updating statistics and limits after a full GC is performed.
+void mem_update_statistics();
+
+// ===============================================================
+//  Memory management information
+// ===============================================================
+
+// Returns the total number of bytes of memory that are currently in use
+// (allocated and occupied by an active object).
+uint64_t mem_used_bytes(ManagedMemory *this);
+// Returns the total number of bytes allocated by the memory manager
+// (including free space waiting for new objects and outsize allocations).
+uint64_t mem_allocated_bytes(ManagedMemory *this);
+// Returns the total number of bytes allocated in outsize blocks.
+uint64_t mem_allocated_outsize_chunks(ManagedMemory *this);
 
 // ===============================================================
 //  Generalizing allocation
