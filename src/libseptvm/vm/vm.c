@@ -320,6 +320,10 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	root_func->base.vt->initialize_frame((SepFunc*)root_func, frame);
 }
 
+// Initializes a scope object for execution of a given function. This sets up
+// the prototype chain for the scope to include the 'syntax' object, the 'this'
+// pointer, and the declaration scope of the function. It also sets up the
+// 'locals' and 'this' properties.
 void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, ExecutionFrame *exec_frame) {
 	SepV exec_scope_v = obj_to_sepv(exec_scope);
 
@@ -345,10 +349,19 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, Executi
 	// add a 'return' function to the scope
 	BuiltInFunc *return_f = make_return_func(exec_frame);
 	obj_add_field(exec_scope, "return", func_to_sepv(return_f));
+
+	// store the scope in the frame
+	exec_frame->locals = exec_scope_v;
+}
+
+// Called instead of vm_initialize_scope when a custom scope object is to be used.
+void vm_set_scope(ExecutionFrame *exec_frame, SepV custom_scope) {
+	// just set the scope
+	exec_frame->locals = custom_scope;
 }
 
 // Initializes an execution frame for running a given function.
-void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV locals) {
+void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func) {
 	// setup the frame
 	frame->vm = this;
 	frame->function = func;
@@ -356,9 +369,6 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV
 	frame->return_value = item_rvalue(SEPV_NOTHING);
 	frame->finished = false;
 	frame->called_another_frame = false;
-
-	// set an execution scope
-	frame->locals = locals;
 
 	// frames are contiguous in memory, so the next frame is right after
 	frame->prev_frame = frame - 1;
@@ -485,21 +495,27 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 			sepstr_for("Attempted to call an object which is not callable."));
 	}
 
+	// initialize an execution frame
+	ExecutionFrame *callee_frame = &this->frames[this->frame_depth+1];
+	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth+1);
+	vm_initialize_frame(this, callee_frame, func);
+
+	// drop down to make sure newly allocated objects are registered
+	// as GC roots in the right frame (callee, not caller)
+	this->frame_depth++;
+
 	// create the execution scope
 	bool custom_scope_provided = custom_scope != SEPV_NO_VALUE;
 	SepObj *scope = custom_scope_provided ? sepv_to_obj(custom_scope) : obj_create();
-	ExecutionFrame *calling_frame = &this->frames[this->frame_depth];
+	ExecutionFrame *calling_frame = &this->frames[this->frame_depth-1];
 	SepV argument_exc = funcparam_pass_arguments(calling_frame, func, scope, args);
 		or_propagate(argument_exc);
 
-	// initialize an execution frame
-	log("vm", "(%d) New execution frame created (subcall from b-in).", this->frame_depth+1);
-	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
-
-	if (!custom_scope_provided)
-		vm_initialize_scope(this, func, scope, frame);
-	vm_initialize_frame(this, frame, func, obj_to_sepv(scope));
-	this->frame_depth++;
+	// prepare the scope for execution
+	if (custom_scope_provided)
+		vm_set_scope(callee_frame, custom_scope);
+	else
+		vm_initialize_scope(this, func, scope, callee_frame);
 
 	// run to get result
 	SepV return_value = vm_run(this);
@@ -534,8 +550,11 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 	log("vm", "(%d) New execution frame created (value resolve).", this->frame_depth+1);
 
 	SepFunc *func = sepv_to_func(lazy_value);
+
+	// initialize the execution frame
 	ExecutionFrame *frame = &this->frames[this->frame_depth+1];
-	vm_initialize_frame(this, frame, func, scope);
+	vm_initialize_frame(this, frame, func);
+	vm_set_scope(frame, scope);
 	this->frame_depth++;
 
 	// run from that point until 'func' returns

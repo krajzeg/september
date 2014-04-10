@@ -194,11 +194,12 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module);
 // pointer, and the declaration scope of the function. It also sets up the
 // 'locals' and 'this' properties.
 void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *exec_scope, ExecutionFrame *exec_frame);
+// Called instead of vm_initialize_scope when a custom scope object is to be used.
+void vm_set_scope(ExecutionFrame *exec_frame, SepV custom_scope);
 // Initializes an execution frame for running a given function.
-// It takes as arguments the frame to initialize, the function to run within the frame,
-// and the execution scope object. The scope object should have the proper prototype
-// chain already set up, using vm_initialize_scope() or other means.
-void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func, SepV scope);
+// It takes as arguments the frame to initialize and the function to run within the frame.
+// The execution scope should be set up separately afterwards using vm_initialize_scope/vm_set_scope.
+void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func);
 // Destroys a VM.
 void vm_free(SepVM *this);
 

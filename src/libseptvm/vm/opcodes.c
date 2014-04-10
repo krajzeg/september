@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include "opcodes.h"
+#include "gc.h"
 #include "types.h"
 #include "objects.h"
 #include "arrays.h"
@@ -72,18 +73,27 @@ void lazy_call_impl(ExecutionFrame *frame) {
 
 	log("opcodes", "lazy <%d args>", args->vt->argument_count(args));
 
+	// initialize a new frame for the function being called
+	vm_initialize_frame(frame->vm, frame->next_frame, func);
+
+	// temporarily switch the VM to the callee frame to make sure newly allocated objects
+	// registered as GC roots of the callee, not the caller
+	frame->vm->frame_depth++;
+
+	// create execution scope
 	SepObj *execution_scope = obj_create();
 	SepV argument_exception = funcparam_pass_arguments(frame, func, execution_scope, args);
 	if (sepv_is_exception(argument_exception)) {
 		frame_raise(frame, argument_exception);
 		return;
 	}
-
-	// initialize a new frame for the function being called
 	vm_initialize_scope(frame->vm, func, execution_scope, frame->next_frame);
-	vm_initialize_frame(frame->vm, frame->next_frame, func, obj_to_sepv(execution_scope));
 
-	// we're making a call, so let the VM know about that
+	// release GC roots
+	gc_release(func_to_sepv(func));
+
+	// restore VM to the proper state and raise the subcall flag
+	frame->vm->frame_depth--;
 	frame->called_another_frame = true;
 }
 
