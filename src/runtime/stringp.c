@@ -12,6 +12,7 @@
 //  Includes
 // ===============================================================
 
+#include <string.h>
 #include <septvm.h>
 
 // ===============================================================
@@ -35,6 +36,31 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(str_to_sepv(upper_str));
 }
 
+SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
+	return si_int(this->length);
+}
+
+// ===============================================================
+//  Operators
+// ===============================================================
+
+SepItem string_plus(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepString *this = target_as_str(scope, &err);
+		or_raise(exc.EWrongType);
+	SepString *other = param_as_str(scope, "other", &err);
+		or_raise(exc.EWrongType);
+
+	SepString *concatenated = sepstr_allocate(this->length + other->length);
+	memcpy(&concatenated->cstr, this->cstr, this->length);
+	memcpy(&concatenated->cstr + this->length, other->cstr, other->length);
+	concatenated->cstr[concatenated->length] = '\0';
+
+	return item_rvalue(str_to_sepv(concatenated));
+}
+
 // ===============================================================
 //  Creation of prototype
 // ===============================================================
@@ -42,8 +68,12 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_string_prototype() {
 	SepObj *String = make_class("String", NULL);
 
-	BuiltInFunc *upper = builtin_create(&string_upper, 0);
-	props_accept_prop(String, sepstr_for("upper"), method_create(func_to_sepv(upper)));
+	// === methods
+	obj_add_builtin_method(String, "length", &string_length, 0);
+	obj_add_builtin_method(String, "upper", &string_upper, 0);
+
+	// === operators
+	obj_add_builtin_method(String, "+", &string_plus, 1, "other");
 
 	return String;
 }

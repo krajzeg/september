@@ -115,6 +115,18 @@ SepString *sepstr_sprintf(const char *format, ...) {
 	return new_sepstr;
 }
 
+// Allocates a new uninitialized SepString* with a given maximum length.
+SepString *sepstr_allocate(uint32_t length) {
+	uint32_t size = sizeof(SepString) + length + 1;
+
+	SepString *string = mem_allocate(size);
+	string->length = length;
+	string->hash = 0;
+
+	return string;
+}
+
+
 SepV sepv_string(char *c_string) {
 	return str_to_sepv(sepstr_for(c_string));
 }

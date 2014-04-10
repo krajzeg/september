@@ -51,6 +51,10 @@ SepString *sepstr_for(const char *c_string);
 SepString *sepstr_new(const char *c_string);
 // Returns a new SepString obtained by running sprintf with the arguments provided.
 SepString *sepstr_sprintf(const char *format, ...);
+// Allocates a new SepString* with a given maximum length, but uninitialized contents.
+// Useful for built-ins that dynamically generate strings.
+SepString *sepstr_allocate(uint32_t length);
+
 // Returns a new string, wrapped in a SepV.
 SepV sepv_string(char *c_string);
 // Returns a new string, wrapped in a r-value SepItem.
