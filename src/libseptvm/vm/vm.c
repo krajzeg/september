@@ -369,6 +369,7 @@ void vm_initialize_frame(SepVM *this, ExecutionFrame *frame, SepFunc *func) {
 	frame->return_value = item_rvalue(SEPV_NOTHING);
 	frame->finished = false;
 	frame->called_another_frame = false;
+	frame->locals = SEPV_NOTHING; // for now
 
 	// frames are contiguous in memory, so the next frame is right after
 	frame->prev_frame = frame - 1;

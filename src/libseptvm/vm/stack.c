@@ -70,6 +70,16 @@ SepItem stack_top_item(SepStack *this) {
 	return *(SepItem*)ga_get(&this->array, length-1);
 }
 
+// Replaces the top item on the stack with another item.
+SepV stack_replace_top(SepStack *this, SepItem new_item) {
+	uint32_t length = ga_length(&this->array);
+	if (!length) {
+		return sepv_exception(exc.EInternal, sepstr_for("Internal error: stack underflow."));
+	}
+	ga_set(&this->array, length-1, &new_item);
+	return SEPV_NOTHING;
+}
+
 // === shortcuts
 
 // Pushes an rvalue (value without a slot) on the stack.

@@ -89,9 +89,6 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	}
 	vm_initialize_scope(frame->vm, func, execution_scope, frame->next_frame);
 
-	// release GC roots
-	gc_release(func_to_sepv(func));
-
 	// restore VM to the proper state and raise the subcall flag
 	frame->vm->frame_depth--;
 	frame->called_another_frame = true;
@@ -104,7 +101,10 @@ void push_locals_impl(ExecutionFrame *frame) {
 
 void fetch_prop_impl(ExecutionFrame *frame) {
 	// get the object to fetch from
-	SepV host = stack_pop_value(frame->data);
+	// we don't pop it yet to keep a live reference to it on the stack
+	// this will prevent it from being GC'd if a GC happens in the middle
+	// of this method
+	SepV host = stack_top_value(frame->data);
 
 	// get the property name
 	int16_t index = frame_read(frame);
@@ -118,8 +118,8 @@ void fetch_prop_impl(ExecutionFrame *frame) {
 		return;
 	}
 
-	// push it on the stack
-	stack_push_item(frame->data, property_value);
+	// replace the host with the fetched property on the stack
+	stack_replace_top(frame->data, property_value);
 }
 
 void store_impl(ExecutionFrame *frame) {

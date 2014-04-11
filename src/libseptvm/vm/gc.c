@@ -42,6 +42,13 @@
 // current context - so you have to gc_release() them if you want them to be freed
 // before the context ends.
 void gc_register(SepV object) {
+	// try an execution-frame-based context
+	ExecutionFrame *frame = vm_current_frame();
+	if (frame) {
+		frame_register(frame, object);
+		return;
+	}
+
 	// do we have an active GC context?
 	uint32_t length;
 	if ((length = ga_length(lsvm_globals.gc_contexts))) {
@@ -50,15 +57,20 @@ void gc_register(SepV object) {
 		return;
 	}
 
-	// try an execution-frame-based context
-	ExecutionFrame *frame = vm_current_frame();
-	if (frame)
-		frame_register(frame, object);
+	// no place to pin our object to - should never happen
+	assert(false);
 }
 
 // Releases a previously registered object. Should be used in long-lived contexts (e.g.
 // C functions implementing a September loop) to release no longer needed objects for GC.
 void gc_release(SepV object) {
+	// try an execution-frame-based context
+	ExecutionFrame *frame = vm_current_frame();
+	if (frame) {
+		frame_release(frame, object);
+		return;
+	}
+
 	// do we have an active GC context?
 	uint32_t length;
 	if ((length = ga_length(lsvm_globals.gc_contexts))) {
@@ -67,10 +79,8 @@ void gc_release(SepV object) {
 		return;
 	}
 
-	// try an execution-frame-based context
-	ExecutionFrame *frame = vm_current_frame();
-	if (frame)
-		frame_release(frame, object);
+	// no place to pin our object to - should never happen
+	assert(false);
 }
 
 // Starts a new GC context in which you can protect objects from being collected.
@@ -79,6 +89,8 @@ void gc_start_context() {
 
 	GCContext *context = (GCContext*)ga_create(1, sizeof(SepV), &allocator_unmanaged);
 	ga_push(contexts, &context);
+
+	log("mem", "Starting new GC context, %d contexts active.", ga_length(contexts));
 }
 
 // Ends a previously started GC context.
@@ -88,6 +100,8 @@ void gc_end_context() {
 
 	GCContext *last_context = *((GCContext**)ga_pop(contexts));
 	ga_free((GenericArray*)last_context);
+
+	log("mem", "Ending GC context, %d contexts active.", ga_length(contexts));
 }
 
 // Queues all roots from explicit GC contexts.

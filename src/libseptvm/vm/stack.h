@@ -49,6 +49,8 @@ void stack_push_item(SepStack *this, SepItem item);
 SepItem stack_pop_item(SepStack *this);
 // Returns the top item from the stack, with exception on empty stack.
 SepItem stack_top_item(SepStack *this);
+// Replaces the top item on the stack with another item. Returns exception on failure (empty stack).
+SepV stack_replace_top(SepStack *this, SepItem new_item);
 
 // === shortcuts
 

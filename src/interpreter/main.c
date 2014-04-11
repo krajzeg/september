@@ -111,8 +111,6 @@ int main(int argc, char **argv) {
 	platform_initialize(argc, argv);
 	libseptvm_initialize();
 	
-	debug_module("mem");
-
 	// == initialize the runtime
 	gc_start_context();
 		initialize_module_loader(find_module_files);
