@@ -31,6 +31,11 @@ FLAG_ENCODING = {
     F_POP_RESULT:     0x08,
 }
 
+### Reference types encoding
+REFERENCE_TYPE_ENCODING = {
+    REF_FUNCTION: 0x0
+}
+
 ### Bitmask for parameter type flags
 PARAM_FLAG_ENCODING = {
     P_LAZY_EVALUATED: 0x1,
@@ -102,12 +107,12 @@ class ModuleFileOutput:
                 shift -= 8
 
     def _write_ref(self, reference):
+        """Encodes a constant/code pool reference inside the file."""
         if reference.type == REF_CONSTANT:
             self._write_int(reference.index)
-        elif reference.type == REF_FUNCTION:
-            self._write_int(-reference.index)
         else:
-            raise Exception("Don't know how to write down reference of type %s." % reference.type)
+            code = (reference.index << 1) | REFERENCE_TYPE_ENCODING[reference.type]
+            self._write_int(-code)
 
     def _write_str(self, str_value):
         """Encodes a string inside the file.
@@ -186,4 +191,3 @@ class ModuleFileOutput:
     def file_footer(self):
         """Writes the file footer."""
         self._write_byte(0xff)
-

@@ -30,27 +30,54 @@
 #include "../common/debugging.h"
 
 // ===============================================================
+//  References
+// ===============================================================
+
+// Given a reference from bytecode, returns its type.
+PoolReferenceType decode_reference_type(CodeUnit reference) {
+	if (reference >= 0)
+		return PRT_CONSTANT;
+	else
+		return (-reference) & 0x1;
+}
+
+// Given a reference from bytecode, returns the index inside the pool that
+// it is referring to.
+uint32_t decode_reference_index(CodeUnit reference) {
+	if (reference > 0)
+		return reference;
+	else
+		return (-reference) >> 1;
+}
+
+// ===============================================================
 //  Instruction implementations
 // ===============================================================
 
 void push_const_impl(ExecutionFrame *frame) {
-	CodeUnit index = (CodeUnit)frame_read(frame);
-	log("opcodes", "push %d", index);
+	CodeUnit reference = (CodeUnit)frame_read(frame);
+	log("opcodes", "push %d", reference);
 
 	SepV value;
-	if (index > 0) {
-		// just a constant
-		value = frame_constant(frame, index);
-	} else {
-		// oh goody, an anonymous function!
-		CodeBlock *block = frame_block(frame, -index);
-		if (block == NULL) {
-			value = sepv_exception(exc.EInternal, sepstr_sprintf("Code block %d is out of bounds.", -index));
-		} else {
-			SepFunc *func = (SepFunc*)ifunc_create(block, frame->locals);
-			value = func_to_sepv(func);
+
+	PoolReferenceType ref_type = decode_reference_type(reference);
+	uint32_t ref_index = decode_reference_index(reference);
+	switch(ref_type) {
+		case PRT_CONSTANT:
+			value = frame_constant(frame, ref_index);
+			break;
+		case PRT_FUNCTION: {
+			CodeBlock *block = frame_block(frame, ref_index);
+			if (block == NULL) {
+				value = sepv_exception(exc.EInternal, sepstr_sprintf("Code block %d is out of bounds.", ref_index));
+			} else {
+				SepFunc *func = (SepFunc*)ifunc_create(block, frame->locals);
+				value = func_to_sepv(func);
+			}
+			break;
 		}
 	}
+
 	if (sepv_is_exception(value))
 		frame_raise(frame, value);
 	else
@@ -107,7 +134,8 @@ void fetch_prop_impl(ExecutionFrame *frame) {
 	SepV host = stack_top_value(frame->data);
 
 	// get the property name
-	int16_t index = frame_read(frame);
+	CodeUnit reference = frame_read(frame);
+	uint32_t index = decode_reference_index(reference);
 	SepString *property = sepv_to_str(frame_constant(frame, index));
 	log("opcodes", "fetchprop %d(%s)", index, property->cstr);
 
@@ -147,7 +175,8 @@ void create_field_impl(ExecutionFrame *frame) {
 	SepV host_v = stack_pop_value(frame->data);
 
 	// get the property name
-	int16_t index = frame_read(frame);
+	CodeUnit reference = frame_read(frame);
+	uint32_t index = decode_reference_index(reference);
 	SepString *property = sepv_to_str(frame_constant(frame, index));
 	log("opcodes", "createprop %d(%s)", index, property->cstr);
 

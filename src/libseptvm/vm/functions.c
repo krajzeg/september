@@ -79,16 +79,21 @@ SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *t
 
 		// default value?
 		if (this->flags.optional) {
-			CodeUnit ref = this->default_value_reference;
-			if (ref >= 0) {
-				// this is a constant - get from the constant pool of the function
-				default_value = cpool_constant(func->module->constants, ref);
-			} else {
-				// this is a lazy expression - call it in the function declaration scope
-				SepV scope = func->vt->get_declaration_scope(func);
-				CodeBlock *block = bpool_block(func->module->blocks, -ref);
-				SepFunc *default_value_l = (SepFunc*)lazy_create(block, scope);
-				default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
+			CodeUnit dv_reference = this->default_value_reference;
+			PoolReferenceType dv_type = decode_reference_type(dv_reference);
+			uint32_t dv_index = decode_reference_index(dv_reference);
+			switch (dv_type) {
+				case PRT_CONSTANT:
+					default_value = cpool_constant(func->module->constants, dv_index);
+					break;
+				case PRT_FUNCTION: {
+					// this is a lazy expression - call it in the function declaration scope
+					SepV scope = func->vt->get_declaration_scope(func);
+					CodeBlock *block = bpool_block(func->module->blocks, dv_index);
+					SepFunc *default_value_l = (SepFunc*)lazy_create(block, scope);
+					default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
+					break;
+				}
 			}
 		}
 

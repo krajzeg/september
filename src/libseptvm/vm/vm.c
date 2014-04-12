@@ -70,6 +70,7 @@ void frame_release(ExecutionFrame *frame, SepV value) {
 //  Bytecode argument source
 // ===============================================================
 
+
 argcount_t _bytecode_argument_count(ArgumentSource *_this) {
 	return ((BytecodeArgs*)_this)->argument_count;
 }
@@ -78,21 +79,28 @@ SepV _bytecode_next_argument(ArgumentSource *_this) {
 	ExecutionFrame *frame = ((BytecodeArgs*)_this)->source_frame;
 
 	// read the argument code
-	CodeUnit argument_code = frame_read(frame);
+	CodeUnit arg_reference = frame_read(frame);
 
 	// did we get a constant or a block?
-	if (argument_code > 0) {
-		// constant, that's easy!
-		return frame_constant(frame, argument_code);
-	} else {
-		// block - that's a lazy evaluated argument
-		CodeBlock *block = frame_block(frame, -argument_code);
-		if (!block) {
-			return sepv_exception(exc.EInternal,
-					sepstr_sprintf("Code block %d out of bounds.", -argument_code));
+	PoolReferenceType ref_type = decode_reference_type(arg_reference);
+	uint32_t ref_index = decode_reference_index(arg_reference);
+	switch(ref_type) {
+		case PRT_CONSTANT: {
+			// constant, that's easy!
+			return frame_constant(frame, ref_index);
 		}
-		SepFunc *argument_l = (SepFunc*)lazy_create(block, frame->locals);
-		return func_to_sepv(argument_l);
+		case PRT_FUNCTION: {
+			// block - that's a lazy evaluated argument
+			CodeBlock *block = frame_block(frame, ref_index);
+			if (!block) {
+				return sepv_exception(exc.EInternal,
+						sepstr_sprintf("Code block %d out of bounds.", ref_index));
+			}
+			SepFunc *argument_l = (SepFunc*)lazy_create(block, frame->locals);
+			return func_to_sepv(argument_l);
+		}
+		default:
+			return sepv_exception(exc.EInternal, sepstr_sprintf("Unrecognized reference type: %d", ref_type));
 	}
 }
 

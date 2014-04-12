@@ -18,6 +18,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include "opcodes.h"
 #include "types.h"
 #include "objects.h"
 
@@ -29,17 +30,6 @@ struct ArgumentSource;
 struct ExecutionFrame;
 struct SepFunc;
 struct SepModule;
-
-// ===============================================================
-//  Code units
-// ===============================================================
-
-/**
- * Instruction streams inside code blocks consist of code units.
- * Each code unit is either an encoded instruction to execute,
- * or the argument of such an instruction.
- */
-typedef int16_t CodeUnit;
 
 // ===============================================================
 //  Function parameters

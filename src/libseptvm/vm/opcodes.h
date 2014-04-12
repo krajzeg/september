@@ -1,5 +1,5 @@
-#ifndef _SEP_CODE_H
-#define _SEP_CODE_H
+#ifndef _SEP_OPCODES_H
+#define _SEP_OPCODES_H
 
 /*****************************************************************
  **
@@ -32,6 +32,13 @@ struct FuncParam;
 // ===============================================================
 
 /**
+ * Instruction streams inside code blocks consist of code units.
+ * Each code unit is either an encoded instruction to execute,
+ * or the argument of such an instruction.
+ */
+typedef int16_t CodeUnit;
+
+/**
  * Every operation supported by the VM is implemented by mutating
  * the execution frame.
  *
@@ -43,6 +50,30 @@ struct FuncParam;
  * pointer.
  */
 typedef void (*InstructionLogic)(struct ExecutionFrame *frame);
+
+// ===============================================================
+//  References
+// ===============================================================
+
+/**
+ * In September bytecode, opcode arguments are stored as references
+ * into either the constant pool or the function pool. Those references
+ * are simple integers that have to be decoded.
+ */
+
+/**
+ * All the possible reference types that can be stored in bytecode.
+ */
+typedef enum PoolReferenceType {
+	PRT_CONSTANT = -1,
+	PRT_FUNCTION = 0
+} PoolReferenceType;
+
+// Given a reference from bytecode, returns its type.
+PoolReferenceType decode_reference_type(CodeUnit reference);
+// Given a reference from bytecode, returns the index inside the pool that
+// it is referring to.
+uint32_t decode_reference_index(CodeUnit reference);
 
 // ===============================================================
 //  Instructions
