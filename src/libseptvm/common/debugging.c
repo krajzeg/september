@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "debugging.h"
-#include "../vm/vm.h"
+#include "../libmain.h"
 
 /**************************************************/
 

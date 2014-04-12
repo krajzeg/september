@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include "../libmain.h"
 #include "../vm/objects.h"
 #include "../vm/module.h"
 #include "../vm/vm.h"

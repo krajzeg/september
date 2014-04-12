@@ -18,6 +18,7 @@
 #include <math.h>
 
 #include "../common/debugging.h"
+#include "../libmain.h"
 #include "gc.h"
 #include "mem.h"
 #include "types.h"
