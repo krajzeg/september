@@ -209,16 +209,6 @@ OutsizeChunk *_outsize_chunk_create(size_t size) {
 //  ManagedMemory internals
 // ===============================================================
 
-void _mem_add_chunks(ManagedMemory *memory, int how_many) {
-	int i;
-	for (i = 0; i < how_many; i++) {
-		MemoryChunk *chunk = _chunk_create(memory);
-		ga_push(&memory->chunks, &chunk);
-	}
-
-	memory->total_allocated_bytes += memory->chunk_size;
-}
-
 void *_mem_allocate_outsize(ManagedMemory *memory, size_t size) {
 	OutsizeChunk *chunk = _outsize_chunk_create(size);
 	ga_push(&memory->outsize_chunks, &chunk);
@@ -252,12 +242,11 @@ void *_mem_allocate_from_any_chunk(ManagedMemory *manager, uint32_t bytes) {
 //  Managed memory public interface
 // ===============================================================
 
-// Initializes a new memory manager. Memory will be allocated in increments of chunk_size,
-// and it has to be a power of two. The minimum chunk size is 1024 bytes.
-ManagedMemory *mem_initialize(uint32_t chunk_size) {
+// Initializes a new memory manager.
+ManagedMemory *mem_initialize() {
 	ManagedMemory *mem = mem_unmanaged_allocate(sizeof(ManagedMemory));
-	mem->chunk_size = chunk_size;
-	mem->total_allocated_bytes = 0;
+	mem->chunk_size = MEM_DEFAULT_CHUNK_SIZE;
+	mem->total_allocated_bytes = MEM_DEFAULT_CHUNK_SIZE;
 	mem->outsize_allocated_bytes = 0;
 	mem->allocation_limit_before_next_gc = mem->chunk_size * 2;
 
@@ -265,9 +254,22 @@ ManagedMemory *mem_initialize(uint32_t chunk_size) {
 	ga_init(&mem->outsize_chunks, 0, sizeof(OutsizeChunk*), &allocator_unmanaged);
 
 	// add a chunk of memory for a good start
-	_mem_add_chunks(mem, 1);
+	MemoryChunk *chunk = _chunk_create(mem);
+	ga_push(&mem->chunks, &chunk);
 
 	return mem;
+}
+
+// Allocates a given number of new memory chunks for use by the memory manager.
+void mem_add_chunks(int how_many) {
+	ManagedMemory *memory = lsvm_globals.memory;
+	int i;
+	for (i = 0; i < how_many; i++) {
+		MemoryChunk *chunk = _chunk_create(memory);
+		ga_push(&memory->chunks, &chunk);
+	}
+
+	memory->total_allocated_bytes += memory->chunk_size;
 }
 
 // Allocates a new chunk of managed memory. Managed memory does not have
@@ -306,7 +308,7 @@ void *mem_allocate(size_t bytes) {
 
 	// still didn't work - we simply have to get a new chunk to satisfy the allocation
 	log("mem", "Not enough space to allocate %d bytes, allocating new chunk.", bytes);
-	_mem_add_chunks(manager, 1);
+	mem_add_chunks(1);
 	return _mem_allocate_from_any_chunk(manager, bytes); // cannot fail with a fresh chunk available
 }
 

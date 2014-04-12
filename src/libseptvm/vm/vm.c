@@ -588,7 +588,7 @@ void libseptvm_initialize_slave(LibSeptVMGlobals *parent_config) {
 // Initializes the master libseptvm in the interpreter.
 void libseptvm_initialize() {
 	lsvm_globals.vm_for_current_thread_func = &_vm_for_current_thread;
-	lsvm_globals.memory = mem_initialize(0x10000);
+	lsvm_globals.memory = mem_initialize();
 	lsvm_globals.gc_contexts = ga_create(0, sizeof(GCContext*), &allocator_unmanaged);
 	lsvm_globals.debugged_module_names = mem_unmanaged_allocate(4096);
 

@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "../common/debugging.h"
 #include "gc.h"
@@ -444,11 +445,21 @@ void gc_perform_full_gc() {
 	GarbageCollection *collection = gc_create();
 	gc_mark_all(collection);
 	gc_sweep_all(collection);
+	gc_free(collection);
 
 	// update allocated/used tallies
 	mem_update_statistics();
 
-	gc_free(collection);
+	// allocate additional space if needed
+	ManagedMemory *memory = lsvm_globals.memory;
+	uint64_t total_allocated_in_std_chunks = mem_allocated_bytes(memory) - mem_allocated_outsize_chunks(memory);
+	uint64_t total_free = mem_allocated_bytes(memory) - mem_used_bytes(memory);
+	uint64_t required_free = total_allocated_in_std_chunks / 100.0 * GC_MINIMUM_FREE_PERCENTAGE;
+	if (total_free < required_free) {
+		// we're below the minimum percentage
+		int new_blocks = ceil((required_free - total_free) / (float)memory->chunk_size);
+		mem_add_chunks(new_blocks);
+	}
 
 	log("mem", "GC complete, %llu/%llu bytes in use/allocated.",
 			mem_used_bytes(lsvm_globals.memory), mem_allocated_bytes(lsvm_globals.memory));

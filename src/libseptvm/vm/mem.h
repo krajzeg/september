@@ -33,6 +33,10 @@
 // The exit code used when we bail due to an out of memory error.
 #define EXIT_OUT_OF_MEMORY 16
 
+// The memory manager allocates memory from the OS in chunks.
+// This is the default chunk size used (in bytes).
+#define MEM_DEFAULT_CHUNK_SIZE 0x40000
+
 // ===============================================================
 //  Unmanaged memory
 // ===============================================================
@@ -133,13 +137,13 @@ typedef struct ManagedMemory {
 	uint64_t allocation_limit_before_next_gc;
 } ManagedMemory;
 
-// Initializes the memory manager. Memory will be allocated in increments of chunk_size,
-// and it has to be a power of two. The minimum chunk size is 1024 bytes.
-ManagedMemory *mem_initialize(uint32_t chunk_size);
+// Initializes the memory manager.
+ManagedMemory *mem_initialize();
 // Allocates a new chunk of managed memory. Managed memory does not have
 // to be freed - it will be freed automatically by the garbage collector.
 void *mem_allocate(size_t bytes);
-
+// Allocates a given number of new memory chunks for use by the memory manager.
+void mem_add_chunks(int how_many);
 // Used for updating statistics and limits after a full GC is performed.
 void mem_update_statistics();
 

@@ -20,6 +20,15 @@
 #include "mem.h"
 
 // ===============================================================
+//  Garbage collection constants
+// ===============================================================
+
+// the "ideal" proportion of free space after a GC completes
+// additional space will be allocated if there is less than GTFP%
+// free space in the chunks after a GC.
+#define GC_MINIMUM_FREE_PERCENTAGE 33
+
+// ===============================================================
 //  Garbage collection
 // ===============================================================
 

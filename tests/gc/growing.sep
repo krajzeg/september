@@ -1,0 +1,12 @@
+desired_length := 2000
+root := Object()
+count := 0
+object := root
+
+while (count < desired_length) {
+	object:next = Object()
+	object = object.next	
+	count = count + 1
+}
+
+print("Successfully allocated a", desired_length, "element linked list.")
