@@ -15,7 +15,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <math.h>
 
 #include "../common/debugging.h"
 #include "../libmain.h"
@@ -458,7 +457,8 @@ void gc_perform_full_gc() {
 	uint64_t required_free = total_allocated_in_std_chunks / 100.0 * GC_MINIMUM_FREE_PERCENTAGE;
 	if (total_free < required_free) {
 		// we're below the minimum percentage
-		int new_blocks = ceil((required_free - total_free) / (float)memory->chunk_size);
+		uint64_t chunk_size = memory->chunk_size;
+		int new_blocks = (required_free - total_free + chunk_size - 1) / chunk_size;
 		mem_add_chunks(new_blocks);
 	}
 
