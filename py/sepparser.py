@@ -135,6 +135,11 @@ def FunctionCall(call_target):
 def Arguments():
     return Node(Arguments)
 
+def NamedArg(name, expression):
+    node = Node(NamedArg, name, children_names=["expression"])
+    node.children = [expression]
+    return node
+
 def ComplexCall(*calls):
     node = Node(ComplexCall, "..!", ["calls"])
     node.children = list(calls)
@@ -270,8 +275,19 @@ class ArgumentListParser:
 
         # nope, let's parse the arguments
         while True:
-            argument = parser.expression(0)
-            target_node.children += [argument]
+            if parser.matches(lexer.Id, lexer.Operator(":")):
+                # this is a named argument
+                arg_name = parser.token.value
+                parser.advance()
+                parser.advance()
+                arg_value = parser.expression(0)
+                target_node.children += [NamedArg(arg_name, arg_value)]
+            else:
+                # standard positional argument
+                argument = parser.expression(0)
+                target_node.children += [argument]
+
+            # the list is closed here, or we will have more args after a comma
             if parser.token.raw == closing_token:
                 # end of argument list
                 parser.advance()
@@ -601,6 +617,23 @@ class Parser:
                 "Unexpected end of file, expected %s instead." % token_kind)
         if token.kind != token_kind:
             self.error("Expected %s but got %s instead." % (token_kind, token))
+
+
+    def matches(self, *tokens):
+        """Checks whether the token stream matches the given token types or tokens."""
+        if len(self.tokens) < len(tokens):
+            return False
+        # check all the specified tokens/token types
+        for expected, actual in zip(tokens, self.tokens):
+            if isinstance(expected, lexer.Token):
+                if expected.value != actual.value or expected.kind != actual.kind:
+                    return False
+            else:
+                if not actual.is_a(expected):
+                    return False
+        # everything matches
+        return True
+
 
     def advance(self, expected=None):
         """Advance one token ahead in the stream. Optionally,

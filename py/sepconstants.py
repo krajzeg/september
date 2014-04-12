@@ -27,3 +27,4 @@ P_OPTIONAL = "optional"
 ### Reference type
 REF_CONSTANT = "constant"
 REF_FUNCTION = "function"
+REF_ARGNAME = "argname"

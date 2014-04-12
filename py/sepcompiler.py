@@ -26,6 +26,43 @@ class CompilationError(Exception):
         super().__init__(message)
 
 ##############################################
+# Function arguments
+##############################################
+
+class NamedArg:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+
+def create_function_arguments(function, node):
+    args = []
+    for arg_node in node.child("args").children:
+        if arg_node.kind == parser.NamedArg:
+            arg_name = arg_node.value
+            arg_node = arg_node.child("expression")
+        else:
+            arg_name = None
+
+        if arg_node.kind == parser.Constant:
+            # add the constant as argument directly
+            arg_value = arg_node.value
+        elif arg_node.kind == parser.Block:
+            # create a new function that pushes that block on the stack
+            arg_value = function.compiler.create_expression_function(arg_node)
+        else:
+            # create a new function representing the expression used as
+            # argument
+            arg_value = function.compiler.create_expression_function(arg_node)
+
+        if arg_name:
+            args.append(NamedArg(arg_name, arg_value))
+        else:
+            args.append(arg_value)
+
+    return args
+
+##############################################
 # Emitters
 ##############################################
 
@@ -38,24 +75,6 @@ def emit_id(function, node):
 
 def emit_constant(function, node):
     function.add(PUSH, "", [], [node.value], [])
-
-
-def create_function_arguments(function, node):
-    args = []
-    for arg_node in node.child("args").children:
-        if arg_node.kind == parser.Constant:
-            # add the constant as argument directly
-            args.append(arg_node.value)
-        elif arg_node.kind == parser.Block:
-            # create a new function that pushes that block on the stack
-            block_func = function.compiler.create_expression_function(arg_node)
-            args.append(block_func)
-        else:
-            # create a new function representing the expression used as
-            # argument
-            lazy_func = function.compiler.create_expression_function(arg_node)
-            args.append(lazy_func)
-    return args
 
 
 def emit_call(function, node):
@@ -242,7 +261,7 @@ class ConstantCompiler:
     CONST_NODES = [
         parser.Id, parser.Constant,
         parser.BinaryOp, parser.UnaryOp,
-        parser.ComplexCall, parser.Subcall
+        parser.ComplexCall, parser.Subcall, parser.NamedArg
     ]
 
     def __init__(self, output):
@@ -303,6 +322,10 @@ class Reference:
     def function(cls, index):
         return cls(REF_FUNCTION, index)
 
+    @classmethod
+    def argument_name(cls, index):
+        return cls(REF_ARGNAME, index)
+
 
 class CompiledFunction:
     """Represents a single September function."""
@@ -323,7 +346,10 @@ class CompiledFunction:
         """Converts operation arguments into references into the constant
         or function pool.
         """
-        return [self.compiler.create_reference(arg) for arg in args]
+        refs = []
+        for arg in args:
+            refs += self.compiler.create_references(arg)
+        return refs
 
     def add(self, opcode, flags, pre_args, args, post_args):
         """Adds a new operation to the function."""
@@ -341,6 +367,12 @@ class CodeCompiler:
         self.constants = constants
         self.functions = []
 
+    def find_constant_index(self, constant):
+        try:
+            return self.constants[constant]
+        except KeyError:
+            raise CompilationError("Constant %s is not in the constant index." % constant)
+
     def create_main_function(self, body):
         """Creates the main function of a module using the provided Body node."""
         main_func = CompiledFunction(self, len(self.functions) + 1, [])
@@ -356,19 +388,16 @@ class CodeCompiler:
         expr_func = CompiledFunction(self, len(self.functions) + 1, [])
         return self.compile_function(expr_func, [expression])
 
-    def create_reference(self, value):
+    def create_references(self, thing):
         """Takes a function or a constant, and creates an indexed reference into
         the constant or function pool."""
-        if isinstance(value, CompiledFunction):
-            return Reference.function(value.index)
+        if isinstance(thing, NamedArg):
+            return ([Reference.argument_name(self.find_constant_index(thing.name))] +
+                self.create_references(thing.value))
+        if isinstance(thing, CompiledFunction):
+            return [Reference.function(thing.index)]
         else:
-            try:
-                index = self.constants[value]
-            except KeyError:
-                raise CompilationError(
-                    None,
-                    "Cannot create reference to '%s' - it's not in the constant index." % value)
-            return Reference.constant(index)
+            return [Reference.constant(self.find_constant_index(thing))]
 
     def compile_function(self, func, statements):
         """Compiles a previously created function, using the provided statements as its body."""
@@ -382,7 +411,7 @@ class CodeCompiler:
                     value = default_expr.value
                 else:
                     value = self.create_expression_function(default_expr)
-                parameter.default_value_ref = self.create_reference(value)
+                parameter.default_value_ref = self.create_references(value)[0]
 
         # compile the body
         for statement in statements:

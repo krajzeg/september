@@ -33,7 +33,8 @@ FLAG_ENCODING = {
 
 ### Reference types encoding
 REFERENCE_TYPE_ENCODING = {
-    REF_FUNCTION: 0x0
+    REF_FUNCTION: 0x0,
+    REF_ARGNAME: 0x1
 }
 
 ### Bitmask for parameter type flags
