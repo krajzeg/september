@@ -538,8 +538,8 @@ if __name__ == "__main__":
         ast = None
         try:
             ast = parser.parse(lexer.lex(code))
-        except parser.ParsingException as pe:
-            print_error(pe, pe.token.location if pe.token else None)
+        #except parser.ParsingException as pe:
+        #    print_error(pe, pe.token.location if pe.token else None)
         except lexer.LexerException as le:
             print_error(le, le.location)
 

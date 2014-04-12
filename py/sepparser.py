@@ -250,6 +250,37 @@ class ConstantParser(ContextlessParser):
         return Constant(token.value)
 
 
+class ArgumentListParser:
+    """Parses argument lists. Never invoked from the token stream, only
+    as part of more complex parsing structures.
+    """
+
+    @classmethod
+    def parse_argument_list(cls, parser, closing_token = ')'):
+        node = Arguments()
+        cls.parse_argument_list_into(parser, node, closing_token)
+        return node
+
+    @classmethod
+    def parse_argument_list_into(cls, parser, target_node, closing_token = ')'):
+        # empty list?
+        if parser.token.raw == closing_token:
+            parser.advance()
+            return
+
+        # nope, let's parse the arguments
+        while True:
+            argument = parser.expression(0)
+            target_node.children += [argument]
+            if parser.token.raw == closing_token:
+                # end of argument list
+                parser.advance()
+                return
+            else:
+                # more arguments have to be here, expect a comma
+                parser.advance(",")
+
+
 class FunctionCallParser(OperationParser):
     """Parses simple and complex call constructs."""
     TOKENS = ["{", "(", lexer.Id]
@@ -259,7 +290,7 @@ class FunctionCallParser(OperationParser):
         if token.kind == "{":
             return cls.parse_block(parser, token, left)
         elif token.kind == "(":
-            return cls.parse_argument_list(parser, token, left)
+            return cls.parse_parenthesised_list(parser, token, left)
         else: # identifier
             return cls.parse_identifier(parser, token, left)
 
@@ -289,7 +320,7 @@ class FunctionCallParser(OperationParser):
         return returned
 
     @classmethod
-    def parse_argument_list(cls, parser, _, left):
+    def parse_parenthesised_list(cls, parser, _, left):
         """Parses standard argument lists, e.g.: id(a,b,c),
         and more complex variants used in call chains.
         """
@@ -302,23 +333,10 @@ class FunctionCallParser(OperationParser):
         else:
             returned = host = FunctionCall(left)
 
-        # empty argument list?
-        parser.advance()
-        if parser.token.kind == ")":
-            parser.advance()
-            return returned
-
-        # nope, let's parse the arguments
-        while True:
-            argument = parser.expression(0)
-            host.child("args").children += [argument]
-            if parser.token.kind == ")":
-                # end of argument list
-                parser.advance(")")
-                return returned
-            else:
-                # more arguments have to be here, expect a comma
-                parser.advance(",")
+        # parse argument list
+        parser.advance("(")
+        ArgumentListParser.parse_argument_list_into(parser, host.child("args"))
+        return returned
 
     @classmethod
     def parse_identifier(cls, parser, token, left):
