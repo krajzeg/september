@@ -273,7 +273,7 @@ class Lexer:
 
     @staticmethod
     def matching_bracket(opening):
-        return opening.translate(str.maketrans("([{<", ")]}>"))
+        return opening.translate(str.maketrans("([{<", ")]}>"))[::-1]
 
 
 

@@ -1,0 +1,19 @@
+syntax:"[{}]" = |...items, :::properties| {
+	[[
+		array: items,
+		object: properties
+	]]
+}
+
+both := [{1, 2, 3, apples: 4, bananas: 5}]
+
+print("The array part should print 1,2,3.")
+for (item) in (both.array) {
+	print(item)
+}
+print("The object part should print 4,5.")
+print(both.object.apples)
+print(both.object.bananas)
+
+empty := [{}]
+print("Empty brackets should work, so this should be True, True: ", empty.array.is(Array), empty.object.is(Object))

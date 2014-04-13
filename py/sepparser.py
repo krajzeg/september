@@ -435,7 +435,7 @@ class BracketExpressionParser(ContextlessParser):
     @staticmethod
     def corresponding_closer(opener):
         open_text = opener.value
-        close_text = open_text.translate(str.maketrans("[{<", "]}>"))
+        close_text = open_text.translate(str.maketrans("[{<", "]}>"))[::-1]
         return lexer.CloseBracket(close_text)
 
     @classmethod
