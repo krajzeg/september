@@ -159,6 +159,7 @@ ArgumentSourceVT va_args_vt = {
 // Initializes a new VAArgs source in place.
 void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
 	this->base.vt = &va_args_vt;
+	this->argument_index = 0;
 	this->argument_count = arg_count;
 	this->current_arg.name = NULL; // no names for VAArgs
 
