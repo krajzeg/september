@@ -425,6 +425,31 @@ class UnaryOpParser(ContextlessParser):
         return UnaryOp(token.raw, parser.expression(cls.PRECEDENCE))
 
 
+class IndexOpParser(OperationParser):
+    """Parser for the indexing operator [], and similar operations using different bracket styles."""
+    TOKENS = [lexer.OpenBracket]
+
+    @classmethod
+    def op_parse(cls, parser, token, left):
+        # extract method name
+        closing_token = token.counterpart
+        method_name = token.value + closing_token.value
+
+        # create method reference
+        method = BinaryOp(".", left, Id(method_name))
+
+        # parse the call itself
+        call = FunctionCall(method)
+        parser.advance()
+        ArgumentListParser.parse_argument_list_into(parser, call.child("args"), closing_token=closing_token)
+        return call
+
+    @classmethod
+    def op_precedence(cls, token):
+        # all indexing operator have high precedence (on par with . and :)
+        return 95
+
+
 class BracketExpressionParser(ContextlessParser):
     """Parser for bracketed expression such as [[ an: object ]].
     Such expressions are parsed as a function call of a function based on the bracket types,
@@ -432,16 +457,10 @@ class BracketExpressionParser(ContextlessParser):
     """
     TOKENS = [lexer.OpenBracket]
 
-    @staticmethod
-    def corresponding_closer(opener):
-        open_text = opener.value
-        close_text = open_text.translate(str.maketrans("[{<", "]}>"))[::-1]
-        return lexer.CloseBracket(close_text)
-
     @classmethod
     def null_parse(cls, parser, token):
         # figure out what bracket this is
-        closing_token = cls.corresponding_closer(token)
+        closing_token = token.counterpart
         function_name = token.value + closing_token.value
 
         # parse it as a function call
@@ -566,7 +585,7 @@ class ParenthesisedExpressionParser(ContextlessParser):
 NULL_PARSERS = [IdParser, ConstantParser, BlockParser, UnaryOpParser,
                 ParenthesisedExpressionParser,
                 BracketExpressionParser]
-OP_PARSERS = [BinaryOpParser, FunctionCallParser]
+OP_PARSERS = [BinaryOpParser, FunctionCallParser, IndexOpParser]
 
 ##############################################
 # The parsing code itself
