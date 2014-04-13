@@ -37,8 +37,12 @@
 
 // Sets the value of the parameter in a given execution scope object. Signals problems
 // by returning an exception SepV.
-SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scope, SepV value) {
-	// resolve lazy closures
+SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scope, Argument *argument) {
+	// extract components of the argument
+	SepString *name = argument->name;
+	SepV value = argument->value;
+
+	// resolve any lazy closures if needed
 	if (sepv_is_lazy(value) && (!this->flags.lazy)) {
 		// a lazy argument and an eager parameter - trigger resolution
 			value = vm_resolve(frame->vm, value);
@@ -46,8 +50,42 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 				return value;
 	}
 
-	// pass value in the right manner
-	if (this->flags.sink) {
+	// did we arrive at this parameter by directly naming it in the call?
+	bool directly_named = argument->name && !sepstr_cmp(argument->name, this->name);
+	// pass value in the right manner for the parameter
+	if (this->flags.type == PT_STANDARD_PARAMETER || directly_named) {
+		// standard parameter, just set the value
+		// we also treat sink parameters this way if they were
+		// explicitly named in the call, eg. func(sink: [1,2,3])
+		if (props_find_prop(scope, this->name)) {
+			// duplicate parameter
+			if (this->flags.type != PT_STANDARD_PARAMETER) {
+				return sepv_exception(exc.EWrongArguments,
+						sepstr_sprintf("Values for sink parameter '%s' provided both implicitly and explicitly.", this->name->cstr));
+			} else {
+				return sepv_exception(exc.EWrongArguments,
+						sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
+			}
+		}
+		props_accept_prop(scope, this->name, field_create(value));
+	} else if (this->flags.type == PT_NAMED_SINK) {
+		// we have a ':::' named sink parameter - use an object
+		SepObj *sink_obj;
+		if (props_find_prop(scope, this->name)) {
+			// the sink object is present already
+			sink_obj = sepv_to_obj(props_get_prop(scope, this->name));
+		} else {
+			// make a new object and store it
+			sink_obj = obj_create();
+			props_accept_prop(scope, this->name, field_create(obj_to_sepv(sink_obj)));
+		}
+		// set the property on the sink object
+		if (props_find_prop(sink_obj, name)) {
+			return sepv_exception(exc.EWrongArguments,
+					sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
+		}
+		props_accept_prop(sink_obj, name, field_create(value));
+	} else if (this->flags.type == PT_POSITIONAL_SINK) {
 		// we have a '...' sink parameter - use an array
 		SepArray *sink_array;
 		if (props_find_prop(scope, this->name)) {
@@ -61,13 +99,6 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 		// push the value into the array representing the parameter
 		array_push(sink_array, value);
 	} else {
-		// standard parameter, just set the value
-		if (props_find_prop(scope, this->name)) {
-			// duplicate parameter
-			return sepv_exception(exc.EWrongArguments,
-					sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
-		}
-		props_accept_prop(scope, this->name, field_create(value));
 	}
 
 	// everything OK
@@ -103,10 +134,12 @@ SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *t
 			}
 		}
 
-		// sink parameters always have at least an empty array inside, even if no
-		// default value was given
-		if (default_value == SEPV_NO_VALUE && this->flags.sink) {
+		// sink parameters always have an implicit default value even if none was given
+		if (default_value == SEPV_NO_VALUE && this->flags.type == PT_POSITIONAL_SINK) {
 			default_value = obj_to_sepv(array_create(0));
+		}
+		if (default_value == SEPV_NO_VALUE && this->flags.type == PT_NAMED_SINK) {
+			default_value = obj_to_sepv(obj_create());
 		}
 
 		if (default_value != SEPV_NO_VALUE) {
@@ -144,14 +177,23 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 		if (argument->name) {
 			// named argument, find the right parameter
 			int p;
+			FuncParam *named_sink = NULL;
 			for (p = 0; p < param_count; p++) {
 				param = &parameters[p];
 				if (!sepstr_cmp(param->name, argument->name))
 					break;
+				if (param->flags.type == PT_NAMED_SINK)
+					named_sink = param;
 			}
 			if (p == param_count) {
-				return sepv_exception(exc.EWrongArguments,
+				// maybe we have a sink for named args?
+				if (named_sink) {
+					param = named_sink;
+				} else {
+					// ok, we have officially no way to handle this named argument
+					return sepv_exception(exc.EWrongArguments,
 						sepstr_sprintf("Named argument '%s' does not match any parameter.", argument->name->cstr));
+				}
 			}
 		} else {
 			// positional argument, find next positional parameter
@@ -159,13 +201,13 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 		}
 
 		// set the argument in scope
-		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, value);
+		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, argument);
 		if (sepv_is_exception(setting_exc))
 			return setting_exc;
 
 		// move to next positional parameter if needed
 		bool move_to_next = (!argument->name); // named arguments don't move us forward
-		move_to_next = move_to_next && (!param->flags.sink);   // sink parameters accept any number of values
+		move_to_next = move_to_next && param->flags.type == PT_STANDARD_PARAMETER; // sink parameters accept any number of values
 		if (move_to_next)
 			next_param_index++;
 
@@ -311,8 +353,17 @@ BuiltInFunc *builtin_create_va(BuiltInImplFunc implementation, uint8_t parameter
 		// get name from va_list
 		param_name = va_arg(args, char*);
 
-		// extract flag
-		parameter->flags.sink = parameter_extract_flag(&param_name, "...");
+		// extract parameter type
+		bool sink = parameter_extract_flag(&param_name, "...");
+		bool named_sink = parameter_extract_flag(&param_name, ":::");
+		if (named_sink)
+			parameter->flags.type = PT_NAMED_SINK;
+		else if (sink)
+			parameter->flags.type = PT_POSITIONAL_SINK;
+		else
+			parameter->flags.type = PT_STANDARD_PARAMETER;
+
+		// other flags
 		parameter->flags.lazy = parameter_extract_flag(&param_name, "?");
 		parameter->flags.optional = 0; // no way to make optional parameters in builtins for now
 

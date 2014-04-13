@@ -1,0 +1,18 @@
+Our inventory should have 1 apple, 2 bananas and 3 cucumbers.
+Apples: 1
+Bananas: 2
+Cucumbers: 3
+Let's try again by passing the argument explicitly.
+Apples: 1
+Bananas: 2
+Cucumbers: 3
+But we shouldn't be able to pass a parameter both explicitly and implicitly.
+And we aren't.
+Or pass the same argument twice.
+And we aren't.
+Mixing named sinks with positional arguments should work.
+Dactyls:  4
+Eggplants:  5
+Mixing named sinks with other named arguments should also work.
+Dactyls:  4
+Eggplants:  5

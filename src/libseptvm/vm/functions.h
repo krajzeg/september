@@ -35,13 +35,19 @@ struct SepModule;
 //  Function parameters
 // ===============================================================
 
+typedef enum ParamType {
+	PT_STANDARD_PARAMETER = 0,
+	PT_POSITIONAL_SINK = 1,
+	PT_NAMED_SINK = 2
+} ParamType;
+
 typedef struct FuncParam {
 	// undecorated parameter name
 	SepString *name;
 	// flags controlling how the parameter is passed
 	struct {
 		int lazy:1;
-		int sink:1;
+		ParamType type:2;
 		int optional:1;
 	} flags;
 	// if the parameter is optional, a reference to the default value

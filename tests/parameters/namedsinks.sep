@@ -1,0 +1,42 @@
+inventory := |:::counts| {
+	print("Apples:", counts.apples)
+	print("Bananas:", counts.bananas)
+	print("Cucumbers:", counts.cucumbers)
+}
+
+print("Our inventory should have 1 apple, 2 bananas and 3 cucumbers.")
+inventory(apples: 1, bananas: 2, cucumbers: 3)
+
+print("Let's try again by passing the argument explicitly.")
+counts := Object()
+counts:apples = 1
+counts:bananas = 2
+counts:cucumbers = 3
+inventory(counts: counts)
+
+print("But we shouldn't be able to pass a parameter both explicitly and implicitly.")
+try {
+	inventory(counts: counts, apples: 42)
+	print("But we are.")
+} catch (EWrongArguments) {
+	print("And we aren't.")
+}
+
+print("Or pass the same argument twice.")
+try {
+	inventory(apples: 2, apples:3, bananas:4, cucumbers: 5)
+	print("But we are.")
+} catch (EWrongArguments) {
+	print("And we aren't.")
+}
+
+mixed_inventory := |dactyls, :::others| {
+	print("Dactyls: ", dactyls)
+	print("Eggplants: ", others.eggplants)
+}
+print("Mixing named sinks with positional arguments should work.")
+mixed_inventory(eggplants: 5, 4)
+print("Mixing named sinks with other named arguments should also work.")
+mixed_inventory(eggplants: 5, dactyls: 4)
+
+

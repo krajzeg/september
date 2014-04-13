@@ -1,0 +1,16 @@
+x := 0
+
+crazy := |normal, ?lazy, ?...lazy_sink, ?:::lazy_named| {
+	print("X before execution:", x)
+	print("Normal parameter:", normal)
+	print("Lazy parameter:", lazy.resolve())
+	print("Lazy sink contents:")
+	for (x) in (lazy_sink) {
+		print(x.resolve())
+	}
+	print("Lazy named:", lazy_named.named_operation.resolve())
+	print("X after execution:", x)
+}
+
+print("Should print: 0 1 2 6 10 50 50.")
+crazy(named_operation: x = x * 5, 1, x = x + 2, x = x * 3, x = x + 4)
