@@ -13,10 +13,10 @@ This is a **very early version** of the language. From the work done so far, it 
 The majority of the effort right now goes to making the virtual machine fully featured, leaving the standard library for later. This is the roadmap to version 0.2:
 
 * ☑ implement a simple mark-and-sweep garbage collector 
-* ☐ implement all basic features related to functions and function calls
+* ☑ implement all basic features related to functions and function calls
 	* ☑ "sink" arguments (`|...things|`)
 	* ☑ optional arguments (`|reverse = False|`)
-	* ☐ named arguments in calls (`people.sort(reverse: True)`) 
+	* ☑ named arguments in calls (`people.sort(reverse: True)`) 
 * ☐ allow for writing and importing modules
 * ☐ get the basic class system with constructors, fields and methods working
 * ☐ indexing operator (`a[2]`)

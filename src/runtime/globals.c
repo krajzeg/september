@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-avocado"
+#define SEPTEMBER_VERSION "0.1-awlbird"
 
 // ===============================================================
 //  Prototype creation methods
