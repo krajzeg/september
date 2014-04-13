@@ -1,0 +1,9 @@
+print("Should print 1, 2, 3.")
+for (element) in ([1,2,3]) {
+	print(element)
+}
+
+print("Should not print anything.")
+for (element) in ([]) {
+	print(element)
+}

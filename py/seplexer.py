@@ -94,6 +94,8 @@ StrLiteral = token_type("str", str_literal_init)
 StatementEnd = token_type(";")
 Comment = token_type("comment")
 EndOfFile = token_type("end of file")
+OpenBracket = token_type("openbracket")
+CloseBracket = token_type("closebracket")
 
 ##############################################
 # Regex mappings
@@ -106,6 +108,8 @@ TOKENS = {
     r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
     r'[?&^+*/%:.!<>=-]+|\|\|':    Operator,
     r';':                         StatementEnd,
+    r'\[[[{<]*':                  OpenBracket,
+    r'[}>\]]*]':                  CloseBracket,
     r'\(':                        token_type("("),
     r'\)':                        token_type(")"),
     r'\{':                        token_type("{"),
@@ -120,12 +124,17 @@ WHITESPACE = r"\s+"
 
 # noinspection PyUnresolvedReferences
 ASI_STATEMENT_ENDING_TOKENS = [
-    Id.kind, IntLiteral.kind, FloatLiteral.kind, StrLiteral.kind,
+    Id.kind, IntLiteral.kind, FloatLiteral.kind, StrLiteral.kind, CloseBracket.kind,
     ")", "}"
 ]
 ASI_TRIGGER_TOKENS = ["}"]
 # noinspection PyUnresolvedReferences
 ASI_DISABLING_TOKENS = [Operator.kind]
+
+# noinspection PyUnresolvedReferences
+OPEN_TOKENS = ["(", "{", OpenBracket.kind]
+# noinspection PyUnresolvedReferences
+CLOSE_TOKENS = [")", "}", CloseBracket.kind]
 
 ##############################################
 # The lexer code
@@ -147,6 +156,7 @@ class Lexer:
         self.line = 1
         self.column = 1
         self.results = []
+        self.bracket_context = []
 
         # scan all the input, if possible
         while self.stream != "":
@@ -173,9 +183,24 @@ class Lexer:
             if token.kind in ASI_TRIGGER_TOKENS or asi_triggered:
                 self.inject_semicolon_if_needed(token)
 
+            # update the bracket context
+            if token.kind in OPEN_TOKENS:
+                self.bracket_context.append(token.value)
+            elif token.kind in CLOSE_TOKENS:
+                # check for "matchedness" of brackets
+                if not self.bracket_context:
+                    self.error("Parenthesis/bracket closed, but it was never opened.")
+                expected_closer = self.matching_bracket(self.bracket_context[-1])
+                if token.value != expected_closer:
+                    print(self.bracket_context)
+                    self.error("Mismatched brackets: expected %s, got %s." % (expected_closer, token.value))
+                # everything in order
+                self.bracket_context.pop()
+
             # append the token and remove it from the character stream
             self.append(token)
             self.consume(token.raw)
+
 
         # one more possible ASI at end of file
         self.inject_semicolon_if_needed(EndOfFile(""))
@@ -211,7 +236,6 @@ class Lexer:
             token.location = (self.line, self.column)
             self.results.append(token)
 
-
     def inject_semicolon_if_needed(self, following_token):
         """Handles automatic semicolon insertion. If the last token was
         something that could end a statement, and the next token is
@@ -220,9 +244,13 @@ class Lexer:
         """
         if not self.results:
             return
-        if (self.results[-1].kind in ASI_STATEMENT_ENDING_TOKENS and
-           following_token.kind not in ASI_DISABLING_TOKENS):
-            self.append(StatementEnd(";"))
+        if not self.results[-1].kind in ASI_STATEMENT_ENDING_TOKENS:
+            return
+        if following_token.kind in ASI_DISABLING_TOKENS:
+            return
+        if self.bracket_context and self.bracket_context[-1] != "{":
+            return
+        self.append(StatementEnd(";"))
 
 
     def consume(self, string):
@@ -241,6 +269,12 @@ class Lexer:
     def error(self, text):
         """Raises a lexing exception with the current line-column position."""
         raise LexerException(text, (self.line, self.column))
+
+
+    @staticmethod
+    def matching_bracket(opening):
+        return opening.translate(str.maketrans("([{<", ")]}>"))[::-1]
+
 
 
 def lex(string):

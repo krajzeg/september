@@ -1,0 +1,8 @@
+The array part should print 1,2,3.
+1
+2
+3
+The object part should print 4,5.
+4
+5
+Empty brackets should work, so this should be True, True:  <True> <True>

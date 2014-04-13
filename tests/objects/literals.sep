@@ -1,0 +1,8 @@
+fruit := [[
+	apples: 2, 
+	bananas: 3
+]]
+print("We have", fruit.apples, "apples and", fruit.bananas, "bananas.")
+
+empty := [[]]
+print("We also have an empty object, which means this should be true:", empty.is(Object))

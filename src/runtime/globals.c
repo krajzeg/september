@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-awlbird"
+#define SEPTEMBER_VERSION "0.1-axon"
 
 // ===============================================================
 //  Prototype creation methods
@@ -434,6 +434,22 @@ SepObj *create_try_statement_prototype() {
 }
 
 // ===============================================================
+//  Bracket expression
+// ===============================================================
+
+// [...] bracket expression, array "literal".
+SepItem bracket_expr_array(SepObj *scope, ExecutionFrame *frame) {
+	SepV array = param(scope, "<items>");
+	return item_rvalue(array);
+}
+
+// [[ ... ]] bracket expression, object "literal".
+SepItem bracket_expr_object(SepObj *scope, ExecutionFrame *frame) {
+	SepV object = param(scope, "<properties>");
+	return item_rvalue(object);
+}
+
+// ===============================================================
 //  Runtime initialization
 // ===============================================================
 
@@ -484,6 +500,10 @@ SepObj *create_globals() {
 
 	proto_TryStatement = create_try_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
+
+	// array and object literals
+	obj_add_builtin_func(obj_Syntax, "[]", &bracket_expr_array, 1, "...<items>");
+	obj_add_builtin_func(obj_Syntax, "[[]]", &bracket_expr_object, 1, ":::<properties>");
 
 	// built-in functions are initialized
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");

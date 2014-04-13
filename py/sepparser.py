@@ -267,9 +267,13 @@ class ArgumentListParser:
         return node
 
     @classmethod
-    def parse_argument_list_into(cls, parser, target_node, closing_token = ')'):
+    def parse_argument_list_into(cls, parser, target_node, closing_token = None):
+        # closing token
+        if closing_token is None:
+            closing_token = ")"
+
         # empty list?
-        if parser.token.raw == closing_token:
+        if parser.matches(closing_token):
             parser.advance()
             return
 
@@ -288,7 +292,7 @@ class ArgumentListParser:
                 target_node.children += [argument]
 
             # the list is closed here, or we will have more args after a comma
-            if parser.token.raw == closing_token:
+            if parser.matches(closing_token):
                 # end of argument list
                 parser.advance()
                 return
@@ -420,6 +424,35 @@ class UnaryOpParser(ContextlessParser):
         parser.advance()
         return UnaryOp(token.raw, parser.expression(cls.PRECEDENCE))
 
+
+class BracketExpressionParser(ContextlessParser):
+    """Parser for bracketed expression such as [[ an: object ]].
+    Such expressions are parsed as a function call of a function based on the bracket types,
+    e.g. "[[]]", with arguments taken from inside the brackets.
+    """
+    TOKENS = [lexer.OpenBracket]
+
+    @staticmethod
+    def corresponding_closer(opener):
+        open_text = opener.value
+        close_text = open_text.translate(str.maketrans("[{<", "]}>"))[::-1]
+        return lexer.CloseBracket(close_text)
+
+    @classmethod
+    def null_parse(cls, parser, token):
+        # figure out what bracket this is
+        closing_token = cls.corresponding_closer(token)
+        function_name = token.value + closing_token.value
+
+        # parse it as a function call
+        call = FunctionCall(Id(function_name))
+        parser.advance()
+        ArgumentListParser.parse_argument_list_into(parser, call.child("args"), closing_token=closing_token)
+
+        # return the resulting call
+        return call
+
+
 class ParameterListParser(ContextlessParser):
     """Parses block argument lists. Only invoked by BlockParser,
     never directly based on the token stream.
@@ -531,7 +564,8 @@ class ParenthesisedExpressionParser(ContextlessParser):
 ##############################################
 
 NULL_PARSERS = [IdParser, ConstantParser, BlockParser, UnaryOpParser,
-                ParenthesisedExpressionParser]
+                ParenthesisedExpressionParser,
+                BracketExpressionParser]
 OP_PARSERS = [BinaryOpParser, FunctionCallParser]
 
 ##############################################
