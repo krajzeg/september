@@ -1,0 +1,26 @@
+testTriangle := |a,b,c=5| {
+	if (a*a + b*b == c*c) {
+		print(a, b, c, "specifies a right triangle.")
+	} else {
+		print(a, b, c, "does not specify a right triangle.")
+	}
+}
+
+print("Trying a jumbled up order.")
+testTriangle(c:5, a:3, b:4)
+print("Mixing positional, named and default arguments.")
+testTriangle(b:4, 3)
+
+print("Duplicate arguments should cause exceptions (two tests).")
+try {
+	testTriangle(5, 4, a:3)
+	print("But they don't.")
+} catch (EWrongArguments) {
+	print("And they do.");
+}
+try {
+	testTriangle(a:5, a:4, a:3)
+	print("But they don't if you use only named args.")
+} catch (EWrongArguments) {
+	print("And they do again.");
+}

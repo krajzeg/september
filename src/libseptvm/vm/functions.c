@@ -62,6 +62,11 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 		array_push(sink_array, value);
 	} else {
 		// standard parameter, just set the value
+		if (props_find_prop(scope, this->name)) {
+			// duplicate parameter
+			return sepv_exception(exc.EWrongArguments,
+					sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
+		}
 		props_accept_prop(scope, this->name, field_create(value));
 	}
 
@@ -74,7 +79,6 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *this, SepObj *scope) {
 	if (!props_find_prop(scope, this->name)) {
 		// parameter missing
-
 		SepV default_value = SEPV_NO_VALUE;
 
 		// default value?
@@ -129,32 +133,49 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 	argcount_t param_count = func->vt->get_parameter_count(func);
 
 	// put arguments into the execution scope
-	argcount_t param_index = 0;
+	argcount_t next_param_index = 0;
 	Argument *argument = arguments->vt->get_next_argument(arguments);
 	while (argument) {
 		SepV value = argument->value;
 		if (sepv_is_exception(value))
 			return value;
 
-		// next positional argument
-		FuncParam *param = &parameters[param_index];
+		FuncParam *param;
+		if (argument->name) {
+			// named argument, find the right parameter
+			int p;
+			for (p = 0; p < param_count; p++) {
+				param = &parameters[p];
+				if (!sepstr_cmp(param->name, argument->name))
+					break;
+			}
+			if (p == param_count) {
+				return sepv_exception(exc.EWrongArguments,
+						sepstr_sprintf("Named argument '%s' does not match any parameter.", argument->name->cstr));
+			}
+		} else {
+			// positional argument, find next positional parameter
+			param = &parameters[next_param_index];
+		}
 
 		// set the argument in scope
 		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, value);
 		if (sepv_is_exception(setting_exc))
 			return setting_exc;
 
-		// move to next positional parameter (unless this is the sink)
-		if (!param->flags.sink)
-			param_index++;
+		// move to next positional parameter if needed
+		bool move_to_next = (!argument->name); // named arguments don't move us forward
+		move_to_next = move_to_next && (!param->flags.sink);   // sink parameters accept any number of values
+		if (move_to_next)
+			next_param_index++;
 
 		// next argument
 		argument = arguments->vt->get_next_argument(arguments);
 	}
 
 	// finalize and validate parameters
-	for (param_index = 0; param_index < param_count; param_index++) {
-		FuncParam *param = &parameters[param_index];
+	for (next_param_index = 0; next_param_index < param_count; next_param_index++) {
+		FuncParam *param = &parameters[next_param_index];
 		SepV result = funcparam_finalize_value(frame, func, param, scope);
 			or_propagate_sepv(result);
 	}

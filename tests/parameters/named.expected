@@ -1,0 +1,7 @@
+Trying a jumbled up order.
+3 4 5 specifies a right triangle.
+Mixing positional, named and default arguments.
+3 4 5 specifies a right triangle.
+Duplicate arguments should cause exceptions (two tests).
+And they do.
+And they do again.
