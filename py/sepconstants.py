@@ -22,6 +22,7 @@ F_POP_RESULT = "v"
 ### Parameter flags
 P_LAZY_EVALUATED = "lazy"
 P_SINK = "sink"
+P_NAMED_SINK = "named sink"
 P_OPTIONAL = "optional"
 
 ### Reference type

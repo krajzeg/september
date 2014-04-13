@@ -425,6 +425,14 @@ class ParameterListParser(ContextlessParser):
     never directly based on the token stream.
     """
 
+    @staticmethod
+    def extract_flag(flag_string, flag_sigil, flags, flag):
+        if flag_sigil in flag_string:
+            flags.add(flag)
+            return flag_string.replace(flag_sigil, "")
+        else:
+            return flag_string
+
     @classmethod
     def parse_parameter_flags(cls, parser):
         flags = set()
@@ -432,14 +440,10 @@ class ParameterListParser(ContextlessParser):
         # preceding the parameter name
         if parser.token.is_a(lexer.Operator):
             flag_string = parser.token.value
-            # lazy?
-            if "?" in flag_string:
-                flag_string = flag_string.replace("?", "")
-                flags.add(P_LAZY_EVALUATED)
-            # sink?
-            if "..." in flag_string:
-                flag_string = flag_string.replace("...", "")
-                flags.add(P_SINK)
+            # flags
+            flag_string = cls.extract_flag(flag_string, "?", flags, P_LAZY_EVALUATED)
+            flag_string = cls.extract_flag(flag_string, "...", flags, P_SINK)
+            flag_string = cls.extract_flag(flag_string, ":::", flags, P_NAMED_SINK)
             # did we miss anything?
             if flag_string != "":
                 parser.error("Unrecognized parameter flags: %s" %

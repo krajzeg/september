@@ -469,6 +469,8 @@ class StringOutput:
         param_names = []
         for param in params:
             param_string = param.value
+            if P_NAMED_SINK in param.flags:
+                param_string = ":::" + param_string
             if P_SINK in param.flags:
                 param_string = "..." + param_string
             if P_LAZY_EVALUATED in param.flags:
