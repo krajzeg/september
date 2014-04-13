@@ -113,6 +113,8 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	SepObj *execution_scope = obj_create();
 	SepV argument_exception = funcparam_pass_arguments(frame, func, execution_scope, args);
 	if (sepv_is_exception(argument_exception)) {
+		// we have to drop frame_depth back to the right level first
+		frame->vm->frame_depth--;
 		frame_raise(frame, argument_exception);
 		return;
 	}

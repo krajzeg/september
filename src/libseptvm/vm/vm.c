@@ -270,6 +270,8 @@ SepV vm_run(SepVM *this) {
 				// clear data from the stack
 				while (frames_to_unwind > 0) {
 					SepV stack_value = stack_pop_value(this->data);
+					if (sepv_is_exception(stack_value))
+						return stack_value;
 					if (stack_value == SEPV_UNWIND_MARKER)
 						frames_to_unwind--;
 				}
@@ -286,8 +288,13 @@ SepV vm_run(SepVM *this) {
 			// unwind the stack (usually it will be just the unwind marker, but in
 			// case of a 'break' or 'return' it might be more items)
 			SepV stack_value = stack_pop_value(this->data);
-			while (stack_value != SEPV_UNWIND_MARKER)
+			while (stack_value != SEPV_UNWIND_MARKER) {
+				if (sepv_is_exception(stack_value)) {
+					// something went horribly wrong
+					return stack_value;
+				}
 				stack_value = stack_pop_value(this->data);
+			}
 
 			// push the return value on the data stack for its parent
 			if (this->frame_depth >= starting_depth) {
@@ -526,7 +533,11 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 	SepObj *scope = custom_scope_provided ? sepv_to_obj(custom_scope) : obj_create();
 	ExecutionFrame *calling_frame = &this->frames[this->frame_depth-1];
 	SepV argument_exc = funcparam_pass_arguments(calling_frame, func, scope, args);
-		or_propagate(argument_exc);
+	if (sepv_is_exception(argument_exc)) {
+		// drop back to the right frame depth before throwing exception
+		this->frame_depth--;
+		return item_rvalue(argument_exc);
+	}
 
 	// prepare the scope for execution
 	if (custom_scope_provided)
