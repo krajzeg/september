@@ -70,42 +70,60 @@ void frame_release(ExecutionFrame *frame, SepV value) {
 //  Bytecode argument source
 // ===============================================================
 
+Argument *_bytecode_next_argument(ArgumentSource *_this) {
+	BytecodeArgs *this = (BytecodeArgs*)_this;
+	ExecutionFrame *frame = this->source_frame;
 
-argcount_t _bytecode_argument_count(ArgumentSource *_this) {
-	return ((BytecodeArgs*)_this)->argument_count;
-}
+	// are we done?
+	if (this->argument_index >= this->argument_count)
+		return NULL;
 
-SepV _bytecode_next_argument(ArgumentSource *_this) {
-	ExecutionFrame *frame = ((BytecodeArgs*)_this)->source_frame;
-
-	// read the argument code
+	// nope, read the next reference
 	CodeUnit arg_reference = frame_read(frame);
-
-	// did we get a constant or a block?
 	PoolReferenceType ref_type = decode_reference_type(arg_reference);
 	uint32_t ref_index = decode_reference_index(arg_reference);
+	this->argument_index++;
+
+	// handle named arguments
+	if (ref_type == PRT_ARGUMENT_NAME) {
+		this->current_arg.name = sepv_to_str(frame_constant(frame, ref_index));
+		// skip to next reference to get the value for the name
+		arg_reference = frame_read(frame);
+		ref_type = decode_reference_type(arg_reference);
+		ref_index = decode_reference_index(arg_reference);
+		this->argument_index++;
+	} else {
+		this->current_arg.name = NULL;
+	}
+
+	// argument value - did we get a constant or a block?
 	switch(ref_type) {
 		case PRT_CONSTANT: {
 			// constant, that's easy!
-			return frame_constant(frame, ref_index);
+			this->current_arg.value = frame_constant(frame, ref_index);
+			break;
 		}
 		case PRT_FUNCTION: {
 			// block - that's a lazy evaluated argument
 			CodeBlock *block = frame_block(frame, ref_index);
 			if (!block) {
-				return sepv_exception(exc.EInternal,
+				this->current_arg.value = sepv_exception(exc.EInternal,
 						sepstr_sprintf("Code block %d out of bounds.", ref_index));
+				return &this->current_arg;
 			}
 			SepFunc *argument_l = (SepFunc*)lazy_create(block, frame->locals);
-			return func_to_sepv(argument_l);
+			this->current_arg.value = func_to_sepv(argument_l);
+			break;
 		}
 		default:
-			return sepv_exception(exc.EInternal, sepstr_sprintf("Unrecognized reference type: %d", ref_type));
+			this->current_arg.value = sepv_exception(exc.EInternal, sepstr_sprintf("Unrecognized reference type: %d", ref_type));
 	}
+
+	// return a pointer into our own structure
+	return &this->current_arg;
 }
 
 ArgumentSourceVT bytecode_args_vt = {
-	&_bytecode_argument_count,
 	&_bytecode_next_argument
 };
 
@@ -113,6 +131,7 @@ ArgumentSourceVT bytecode_args_vt = {
 void bytecodeargs_init(BytecodeArgs *this, ExecutionFrame *frame) {
 	this->base.vt = &bytecode_args_vt;
 	this->source_frame = frame;
+	this->argument_index = 0;
 	this->argument_count = (argcount_t)frame_read(frame);
 }
 
@@ -120,16 +139,20 @@ void bytecodeargs_init(BytecodeArgs *this, ExecutionFrame *frame) {
 //  va_list argument source
 // ===============================================================
 
-argcount_t _va_argument_count(ArgumentSource *_this) {
-	return ((VAArgs*)_this)->argument_count;
-}
+Argument *_va_next_argument(ArgumentSource *_this) {
+	VAArgs *this = (VAArgs*)_this;
 
-SepV _va_next_argument(ArgumentSource *_this) {
-	return va_arg(((VAArgs*)_this)->c_arg_list, SepV);
+	// keep track of the count
+	if (this->argument_index >= this->argument_count)
+		return NULL;
+	this->argument_index++;
+
+	// return next SepV from the va_list
+	this->current_arg.value = va_arg(this->c_arg_list, SepV);
+	return &this->current_arg;
 }
 
 ArgumentSourceVT va_args_vt = {
-	&_va_argument_count,
 	&_va_next_argument
 };
 
@@ -137,6 +160,8 @@ ArgumentSourceVT va_args_vt = {
 void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
 	this->base.vt = &va_args_vt;
 	this->argument_count = arg_count;
+	this->current_arg.name = NULL; // no names for VAArgs
+
 	va_copy(this->c_arg_list, args);
 }
 
@@ -144,17 +169,15 @@ void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
 //  Array-based argument source
 // ===============================================================
 
-argcount_t _arrayargs_argument_count(ArgumentSource *_this) {
-	return array_length(((ArrayArgs*)_this)->array);
-}
-
-SepV _arrayargs_next_argument(ArgumentSource *_this) {
+Argument *_arrayargs_next_argument(ArgumentSource *_this) {
 	ArrayArgs *this = (ArrayArgs*)_this;
-	return arrayit_next(&this->iterator);
+	if (arrayit_end(&this->iterator))
+		return NULL;
+	this->current_arg.value = arrayit_next(&this->iterator);
+	return &this->current_arg;
 }
 
 ArgumentSourceVT array_args_vt = {
-	&_arrayargs_argument_count,
 	&_arrayargs_next_argument
 };
 
@@ -163,6 +186,7 @@ void arrayargs_init(ArrayArgs *this, SepArray *array) {
 	this->base.vt = &array_args_vt;
 	this->array = array;
 	this->iterator = array_iterate_over(array);
+	this->current_arg.name = NULL; // no named arguments yet
 }
 
 // ===============================================================

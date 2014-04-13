@@ -76,6 +76,8 @@ void push_const_impl(ExecutionFrame *frame) {
 			}
 			break;
 		}
+		default:
+			frame_raise(frame, sepv_exception(exc.EInternal, sepstr_new("Only constants or functions can be PUSHed.")));
 	}
 
 	if (sepv_is_exception(value))
@@ -98,7 +100,7 @@ void lazy_call_impl(ExecutionFrame *frame) {
 	ArgumentSource *args = (ArgumentSource*)(&bcargs);
 	bytecodeargs_init(&bcargs, frame);
 
-	log("opcodes", "lazy <%d args>", args->vt->argument_count(args));
+	log0("opcodes", "lazy <? args>");
 
 	// initialize a new frame for the function being called
 	vm_initialize_frame(frame->vm, frame->next_frame, func);

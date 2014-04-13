@@ -66,7 +66,8 @@ typedef void (*InstructionLogic)(struct ExecutionFrame *frame);
  */
 typedef enum PoolReferenceType {
 	PRT_CONSTANT = -1,
-	PRT_FUNCTION = 0
+	PRT_FUNCTION = 0,
+	PRT_ARGUMENT_NAME = 1
 } PoolReferenceType;
 
 // Given a reference from bytecode, returns its type.

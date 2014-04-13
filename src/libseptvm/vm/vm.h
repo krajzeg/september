@@ -43,6 +43,17 @@ struct ExecutionFrame;
 // ===============================================================
 
 /**
+ * Represents a single argument passed through a function call.
+ */
+typedef struct Argument {
+	// the name that was provided for the argument, or NULL for
+	// positional arguments
+	SepString *name;
+	// the value of the argument
+	SepV value;
+} Argument;
+
+/**
  * An argument source is a place from which arguments for a function
  * call are gathered. There are 3 ways to do it:
  * - opcode LAZY - arguments come from bytecode
@@ -57,10 +68,9 @@ typedef struct ArgumentSource {
 
 typedef uint8_t argcount_t;
 typedef struct ArgumentSourceVT {
-	// gets the total number of arguments to pass
-	argcount_t (*argument_count)(ArgumentSource *);
 	// returns an argument and advances the source to the next one
-	SepV (*get_next_argument)(ArgumentSource *);
+	// once we run out of arguments, this function returns NULL
+	Argument *(*get_next_argument)(ArgumentSource *);
 } ArgumentSourceVT;
 
 
@@ -71,8 +81,10 @@ typedef struct BytecodeArgs {
 	struct ArgumentSource base;
 	// source for arguments
 	struct ExecutionFrame *source_frame;
-	// stored argument count
-	argcount_t argument_count;
+	// stored argument index and count
+	argcount_t argument_index, argument_count;
+	// a place for the argument that get_next_argument returns
+	Argument current_arg;
 } BytecodeArgs;
 
 // Initializes a new bytecode source in place.
@@ -83,10 +95,12 @@ void bytecodeargs_init(BytecodeArgs *this, struct ExecutionFrame *frame);
  */
 typedef struct VAArgs {
 	struct ArgumentSource base;
-	// stored argument count
-	argcount_t argument_count;
+	// stored argument index and count
+	argcount_t argument_index, argument_count;
 	// a started va_list with the arguments as SepVs
 	va_list c_arg_list;
+	// a place for the argument that get_next_argument returns
+	Argument current_arg;
 } VAArgs;
 
 // Initializes a new VAArgs source in place.
@@ -101,6 +115,8 @@ typedef struct ArrayArgs {
 	SepArray *array;
 	// iterator for going over the elements
 	SepArrayIterator iterator;
+	// a place for the argument that get_next_argument returns
+	Argument current_arg;
 } ArrayArgs;
 
 // Initializes a new ArrayArgs source in place.

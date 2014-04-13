@@ -94,6 +94,8 @@ SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *t
 					default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
 					break;
 				}
+				default:
+					return sepv_exception(exc.EInternal, sepstr_new("Default value references can only be constants or functions."));
 			}
 		}
 
@@ -123,28 +125,31 @@ SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *t
 // Any problems found will be reported as an exception SepV in the return value.
 SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scope, ArgumentSource *arguments) {
 	// grab the argument count
-	argcount_t arg_count = arguments->vt->argument_count(arguments);
-
 	FuncParam *parameters = func->vt->get_parameters(func);
 	argcount_t param_count = func->vt->get_parameter_count(func);
 
 	// put arguments into the execution scope
-	argcount_t arg_index = 0, param_index = 0;
-	for (; arg_index < arg_count; arg_index++) {
-		SepV argument = arguments->vt->get_next_argument(arguments);
-		if (sepv_is_exception(argument))
-			return argument;
+	argcount_t param_index = 0;
+	Argument *argument = arguments->vt->get_next_argument(arguments);
+	while (argument) {
+		SepV value = argument->value;
+		if (sepv_is_exception(value))
+			return value;
 
+		// next positional argument
 		FuncParam *param = &parameters[param_index];
 
 		// set the argument in scope
-		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, argument);
+		SepV setting_exc = funcparam_set_in_scope(frame, param, scope, value);
 		if (sepv_is_exception(setting_exc))
 			return setting_exc;
 
-		// next parameter (unless this is the sink)
+		// move to next positional parameter (unless this is the sink)
 		if (!param->flags.sink)
 			param_index++;
+
+		// next argument
+		argument = arguments->vt->get_next_argument(arguments);
 	}
 
 	// finalize and validate parameters
