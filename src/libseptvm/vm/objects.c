@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include "types.h"
 #include "mem.h"
@@ -94,6 +95,8 @@ Slot *method_create(SepV initial_value) {
 //  Property maps - private implementation
 // ===============================================================
 
+void _props_resize(PropertyMap *this, int new_capacity);
+
 PropertyEntry *_props_find_entry(PropertyMap *this, SepString *name,
 		PropertyEntry **previous) {
 	// find the correct first entry for the bucket
@@ -119,21 +122,71 @@ PropertyEntry *_props_find_entry(PropertyMap *this, SepString *name,
 	return &this->entries[this->overflow];
 }
 
+// Internal implementation for accepting a new property.
+Slot *_props_accept_prop_internal(void *map, SepString *name, Slot *slot, bool allow_resizing) {
+	PropertyMap *this = (PropertyMap*) map;
+	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
+
+	// is it already here?
+	if (entry->name) {
+		// yes, simply reassign the slot
+		entry->slot = *slot;
+		return &entry->slot;
+	} else {
+		// no, this is an empty entry to be filled
+		entry->name = name;
+		entry->next_entry = 0;
+		entry->slot = *slot;
+
+		// calculate the index from pointers
+		uint32_t index = entry - this->entries;
+
+		// link up with the previous entry in bucket if there is one
+		if (prev)
+			prev->next_entry = index;
+
+		// did we use up overflow space?
+		if (index == this->overflow) {
+			this->overflow++;
+
+			// did we run out of overflow space?
+			if (this->overflow == this->capacity * 2) {
+				// yes- we'd like to resize
+				if (allow_resizing) {
+					_props_resize(this, (int)(this->capacity * PROPERTY_MAP_GROWTH_FACTOR) + 1);
+				} else {
+					return NULL; // resizing disallowed
+				}
+			}
+		}
+
+		// find the slot again, it might have moved due to resizing
+		return props_find_prop(this, name);
+	}
+}
+
 // Resize the entire property map to a bigger size
 void _props_resize(PropertyMap *this, int new_capacity) {
-
 	// allocate a temporary map to handle the transfer
 	PropertyMap temp;
 	props_init(&temp, new_capacity);
 
 	// reinsert existing entries into the temporary table
+	// NO ALLOCATIONS are allowed during this process, as it could
+	// cause the 'temp.entries' table to be freed before its copied
+	// to 'this->entries'.
 	PropertyIterator it = props_iterate_over(this);
 	while (!propit_end(&it)) {
-		props_accept_prop(&temp, propit_name(&it), propit_slot(&it));
+		bool accepted = _props_accept_prop_internal(&temp, propit_name(&it), propit_slot(&it), false);
+		if (!accepted) {
+			// abort mission - we have to try an even bigger size
+			_props_resize(this, new_capacity * PROPERTY_MAP_GROWTH_FACTOR + 1);
+			return;
+		}
 		propit_next(&it);
 	}
 
-	// copy data from temporary map to here, taking over the entry table
+	// copy data from temporary map to here, taking over the "entries" table
 	this->overflow = temp.overflow;
 	this->capacity = temp.capacity;
 	this->entries = temp.entries;
@@ -166,42 +219,8 @@ void props_init(void *map, int initial_capacity) {
 
 // Adds a new property to the map.
 Slot *props_accept_prop(void *map, SepString *name, Slot *slot) {
-	PropertyMap *this = (PropertyMap*) map;
-	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
-
-	// is it already here?
-	if (entry->name) {
-		// yes, simply reassign the slot
-		entry->slot = *slot;
-		return &entry->slot;
-	} else {
-		// no, this is an empty entry to be filled
-		entry->name = name;
-		entry->next_entry = 0;
-		entry->slot = *slot;
-
-		// calculate the index from pointers
-		uint32_t index = entry - this->entries;
-
-		// link up with the previous entry in bucket if there is one
-		if (prev)
-			prev->next_entry = index;
-
-		// did we use up overflow space?
-		if (index == this->overflow) {
-			this->overflow++;
-
-			// did we run out of overflow space?
-			if (this->overflow == this->capacity * 2) {
-				// yes - resize to a bigger size
-				_props_resize(this,
-						(int)(this->capacity * PROPERTY_MAP_GROWTH_FACTOR) + 1);
-			}
-		}
-
-		// find the slot again, it might have moved due to resizing
-		return props_find_prop(this, name);
-	}
+	// delegate to the internal version
+	return _props_accept_prop_internal(map, name, slot, true);
 }
 
 SepV props_get_prop(void *map, SepString *name) {
