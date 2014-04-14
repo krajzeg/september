@@ -64,7 +64,6 @@ void module_free(SepModule *this) {
 
 	bpool_free(this->blocks);
 	cpool_free(this->constants);
-	mem_unmanaged_free(this->name);
 	mem_unmanaged_free(this);
 }
 
