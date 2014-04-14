@@ -51,6 +51,29 @@ SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // ===============================================================
+//  Indexing/slicing
+// ===============================================================
+
+SepItem array_index(SepObj *scope, ExecutionFrame *frame) {
+	SepArray *this = sepv_to_array(target(scope));
+	SepV index_v = param(scope, "index");
+	if (!sepv_is_int(index_v))
+		raise(exc.EWrongType, "Only integer indices are supported at this point.");
+
+	// determine the actual index
+	SepInt index_i = sepv_to_int(index_v);
+	uint32_t index;
+	if (index_i < 0) {
+		index = array_length(this) + index_i;
+	} else {
+		index = index_i;
+	}
+
+	// return the value
+	return item_rvalue(array_get(this, index));
+}
+
+// ===============================================================
 //  Putting the prototype together
 // ===============================================================
 
@@ -63,6 +86,7 @@ SepObj *create_array_prototype() {
 	SepObj *Array = make_class("Array", NULL);
 	obj_add_field(Array, "<ArrayIterator>", obj_to_sepv(ArrayIterator));
 	obj_add_builtin_method(Array, "iterator", array_iterator, 0);
+	obj_add_builtin_method(Array, "[]", array_index, 1, "index");
 
 	return Array;
 }

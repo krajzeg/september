@@ -1,0 +1,3 @@
+array := [1,2,3]
+print("Let's print 1 2 3 from the array:", array[0], array[1], array[2])
+print("Now, let's do it backwards:", array[-1], array[-2], array[-3])
