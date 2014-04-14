@@ -123,7 +123,7 @@ void *_free_block_allocate(FreeBlockHeader *block, FreeBlockHeader *previous, ui
 	} else {
 		// not the whole block, just carve out space at the end
 		block->size -= units;
-		allocated = (UsedBlockHeader*)((alloc_unit_t*)block + block->size);
+		allocated = (UsedBlockHeader*)(((alloc_unit_t*)block) + block->size);
 	}
 
 	// initialize the new block to a freshly born state
@@ -163,6 +163,10 @@ void *_chunk_allocate(MemoryChunk *chunk, size_t bytes) {
 
 	// look through the free list
 	FreeBlockHeader *previous = chunk->free_list;
+	if (!chunk->free_list->offset_to_next_free) {
+		// no free blocks whatsoever!
+		return NULL;
+	}
 	FreeBlockHeader *free_block = (FreeBlockHeader*)((alloc_unit_t*)previous + previous->offset_to_next_free);
 	while (true) {
 		if (free_block->size >= required_units) {

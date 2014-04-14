@@ -283,9 +283,17 @@ typedef enum MemoryBlockType {
 void gc_sweep_chunk(GarbageCollection *this, MemoryChunk *chunk) {
 	alloc_unit_t *memory = chunk->memory;
 	alloc_unit_t *memory_end = chunk->memory_end;
-	alloc_unit_t *next_free = memory + chunk->free_list->offset_to_next_free;
 	alloc_unit_t *current_block = memory + 1;
 	uint32_t units_still_in_use = 0;
+
+	// calculate the address of the first free block (if there is one)
+	alloc_unit_t *next_free;
+	if (chunk->free_list->offset_to_next_free)
+		next_free = memory + chunk->free_list->offset_to_next_free;
+	else {
+		// no free blocks right now!
+		next_free = NULL;
+	}
 
 	FreeBlockHeader *last_free_block = chunk->free_list;
 	MemoryBlockType last_seen = BLK_IN_USE, current_block_type;
