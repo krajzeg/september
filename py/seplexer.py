@@ -86,6 +86,10 @@ def str_literal_init(token):
         string = string.replace(escape_sequence, result)
     token.value = string
 
+def bracket_init(token):
+    closing = token.value.translate(str.maketrans("({[<", ")}]>"))[::-1]
+    token.counterpart = CloseBracket(closing)
+
 Id = token_type("id")
 Operator = token_type("operator")
 IntLiteral = token_type("int", int_literal_init)
@@ -94,7 +98,7 @@ StrLiteral = token_type("str", str_literal_init)
 StatementEnd = token_type(";")
 Comment = token_type("comment")
 EndOfFile = token_type("end of file")
-OpenBracket = token_type("openbracket")
+OpenBracket = token_type("openbracket", bracket_init)
 CloseBracket = token_type("closebracket")
 
 ##############################################
@@ -190,9 +194,8 @@ class Lexer:
                 # check for "matchedness" of brackets
                 if not self.bracket_context:
                     self.error("Parenthesis/bracket closed, but it was never opened.")
-                expected_closer = self.matching_bracket(self.bracket_context[-1])
+                expected_closer = self.matching_closer(self.bracket_context[-1])
                 if token.value != expected_closer:
-                    print(self.bracket_context)
                     self.error("Mismatched brackets: expected %s, got %s." % (expected_closer, token.value))
                 # everything in order
                 self.bracket_context.pop()
@@ -272,7 +275,7 @@ class Lexer:
 
 
     @staticmethod
-    def matching_bracket(opening):
+    def matching_closer(opening):
         return opening.translate(str.maketrans("([{<", ")]}>"))[::-1]
 
 
