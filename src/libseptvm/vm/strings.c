@@ -66,7 +66,7 @@ SepString *sepstr_for(const char *c_string) {
 	// strings might be used before the string_cache is initialized
 	// but if it is, intern the string
 	if (rt.string_cache) {
-		props_add_prop(rt.string_cache, string, &field_slot_vtable, SEPV_NOTHING);
+		props_add_prop(rt.string_cache, string, &st_field, SEPV_NOTHING);
 	} else {
 		// if its not, prevent it from being GC'd
 		gc_register(str_to_sepv(string));

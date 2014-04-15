@@ -31,7 +31,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	return property_value;
 }
 
-SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotVTable *slot_type, SepV value) {
+SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_type, SepV value) {
 	SepError err = NO_ERROR;
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(exc.EWrongType);
@@ -52,12 +52,12 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotVTable *slot_
 
 // The ':' field creation operator, valid for all objects.
 SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, &field_slot_vtable, SEPV_NOTHING);
+	return insert_slot_impl(scope, frame, &st_field, SEPV_NOTHING);
 }
 
 // The '::' method creation operator, valid for all objects.
 SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, &method_slot_vtable, SEPV_NOTHING);
+	return insert_slot_impl(scope, frame, &st_method, SEPV_NOTHING);
 }
 
 // ===============================================================

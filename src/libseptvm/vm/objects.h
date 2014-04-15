@@ -28,7 +28,7 @@
 
 struct SepObj;
 struct Slot;
-struct SlotVTable;
+struct SlotType;
 struct PropertyEntry;
 struct PropertyMap;
 struct SepFunc;
@@ -48,10 +48,10 @@ struct SepFunc;
  * Every slot points to a v-table with two methods that control how
  * values are stored and retrieved.
  */
-typedef struct SlotVTable {
+typedef struct SlotType {
 	SepV (*retrieve)(struct Slot *slot, SepV context);
 	SepV (*store)(struct Slot *slot, SepV context, SepV newValue);
-} SlotVTable;
+} SlotType;
 
 /**
  * The slot structure.
@@ -59,14 +59,14 @@ typedef struct SlotVTable {
 typedef struct Slot {
 	// defines the behavior of this slot (as a field,
 	// a method, etc.)
-	SlotVTable *vt;
+	SlotType *vt;
 	// the value stored in the slot (or in the case of
 	// custom slots, the slot object)
 	SepV value;
 } Slot;
 
 // Create a new slot with specified behavior and initial value
-Slot *slot_create(SlotVTable *behavior,
+Slot *slot_create(SlotType *behavior,
 		SepV initial_value);
 
 // Creates a new 'field'-type slot.
@@ -79,8 +79,8 @@ Slot *method_create(SepV initial_value);
 #define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
 
 // Built-in slot types
-extern SlotVTable field_slot_vtable;
-extern SlotVTable method_slot_vtable;
+extern SlotType st_field;
+extern SlotType st_method;
 
 // ===============================================================
 //  Property maps
@@ -128,7 +128,7 @@ void props_init(void *this,
 // inside the map. Should be preferred to props_accept_prop since
 // it avoids new memory allocations.
 Slot *props_add_prop(void *this, SepString *name,
-		SlotVTable *slot_type, SepV initial_value);
+		SlotType *slot_type, SepV initial_value);
 // Copies an existing slot into the map and returns the new slot stored
 // inside the map. The original can be thrown away.
 Slot *props_accept_prop(void *this, SepString *name,

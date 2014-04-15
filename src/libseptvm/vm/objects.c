@@ -37,12 +37,12 @@
 //  Slots
 // ===============================================================
 
-void slot_init(Slot *slot, SlotVTable *behavior, SepV initial_value) {
+void slot_init(Slot *slot, SlotType *behavior, SepV initial_value) {
 	slot->vt = behavior;
 	slot->value = initial_value;
 }
 
-Slot *slot_create(SlotVTable *behavior, SepV initial_value) {
+Slot *slot_create(SlotType *behavior, SepV initial_value) {
 	Slot *slot = (Slot*) mem_unmanaged_allocate(sizeof(Slot)); // TODO: really should be managed
 	slot->vt = behavior;
 	slot->value = initial_value;
@@ -62,10 +62,10 @@ SepV field_retrieve(Slot *slot, SepV context) {
 	return slot->value;
 }
 
-SlotVTable field_slot_vtable = { &field_retrieve, &field_store };
+SlotType st_field = { &field_retrieve, &field_store };
 
 Slot *field_create(SepV initial_value) {
-	return slot_create(&field_slot_vtable, initial_value);
+	return slot_create(&st_field, initial_value);
 }
 
 // ===============================================================
@@ -90,10 +90,10 @@ SepV method_retrieve(Slot *slot, SepV context) {
 	return func_to_sepv(bound);
 }
 
-SlotVTable method_slot_vtable = { &method_retrieve, &method_store };
+SlotType st_method = { &method_retrieve, &method_store };
 
 Slot *method_create(SepV initial_value) {
-	return slot_create(&method_slot_vtable, initial_value);
+	return slot_create(&st_method, initial_value);
 }
 
 // ===============================================================
@@ -231,7 +231,7 @@ Slot *props_accept_prop(void *map, SepString *name, Slot *slot) {
 // Adds a new property to the map and returns the new slot stored
 // inside the map. Should be preferred to props_accept_prop since
 // it avoids new memory allocations.
-Slot *props_add_prop(void *map, SepString *name, SlotVTable *slot_type, SepV initial_value) {
+Slot *props_add_prop(void *map, SepString *name, SlotType *slot_type, SepV initial_value) {
 	Slot source_slot;
 	slot_init(&source_slot, slot_type, initial_value);
 	return _props_accept_prop_internal(map, name, &source_slot, true);
@@ -276,7 +276,7 @@ bool props_prop_exists(void *map, SepString *name) {
 void props_add_field(void *map, const char *name, SepV value) {
 	PropertyMap *this = (PropertyMap*) map;
 	SepString *s_name = sepstr_for(name);
-	props_add_prop(this, s_name, &field_slot_vtable, value);
+	props_add_prop(this, s_name, &st_field, value);
 }
 
 // Finds the hash table entry based on a raw hash and key string. Low-level

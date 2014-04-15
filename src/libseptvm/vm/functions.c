@@ -67,7 +67,7 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 						sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
 			}
 		}
-		props_add_prop(scope, this->name, &field_slot_vtable, value);
+		props_add_prop(scope, this->name, &st_field, value);
 	} else if (this->flags.type == PT_NAMED_SINK) {
 		// we have a ':::' named sink parameter - use an object
 		SepObj *sink_obj;
@@ -77,14 +77,14 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 		} else {
 			// make a new object and store it
 			sink_obj = obj_create();
-			props_add_prop(scope, this->name, &field_slot_vtable, obj_to_sepv(sink_obj));
+			props_add_prop(scope, this->name, &st_field, obj_to_sepv(sink_obj));
 		}
 		// set the property on the sink object
 		if (props_find_prop(sink_obj, name)) {
 			return sepv_exception(exc.EWrongArguments,
 					sepstr_sprintf("Parameter '%s' was passed more than once in a function call.", this->name->cstr));
 		}
-		props_add_prop(sink_obj, name, &field_slot_vtable, value);
+		props_add_prop(sink_obj, name, &st_field, value);
 	} else if (this->flags.type == PT_POSITIONAL_SINK) {
 		// we have a '...' sink parameter - use an array
 		SepArray *sink_array;
@@ -94,7 +94,7 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *this, SepObj *scop
 		} else {
 			// new array
 			sink_array = array_create(1);
-			props_add_prop(scope, this->name, &field_slot_vtable, obj_to_sepv(sink_array));
+			props_add_prop(scope, this->name, &st_field, obj_to_sepv(sink_array));
 		}
 		// push the value into the array representing the parameter
 		array_push(sink_array, value);
@@ -144,7 +144,7 @@ SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *t
 
 		if (default_value != SEPV_NO_VALUE) {
 			// we have arrived at some default value to assign
-			props_add_prop(scope, this->name, &field_slot_vtable, default_value);
+			props_add_prop(scope, this->name, &st_field, default_value);
 			return SEPV_NOTHING;
 		} else {
 			// no default value to be found, that's an error

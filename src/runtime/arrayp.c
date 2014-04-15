@@ -80,7 +80,7 @@ SepV _array_index_slot_store(Slot *slot, SepV context, SepV new_value) {
 }
 
 // The v-table for the array index slot.
-SlotVTable array_index_slot_vt = {
+SlotType array_index_slot_vt = {
 	&_array_index_slot_retrieve,
 	&_array_index_slot_store
 };

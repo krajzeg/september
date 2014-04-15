@@ -201,7 +201,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	}
 
 	// it doesn't, so let's create it
-	Slot *slot = props_add_prop(host, property, &field_slot_vtable, SEPV_NOTHING);
+	Slot *slot = props_add_prop(host, property, &st_field, SEPV_NOTHING);
 
 	// push it on the stack
 	SepItem property_item = item_lvalue(slot, SEPV_NOTHING);
