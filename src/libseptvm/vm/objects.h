@@ -78,6 +78,10 @@ Slot *method_create(SepV initial_value);
 #define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))
 #define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
 
+// Built-in slot types
+extern SlotVTable field_slot_vtable;
+extern SlotVTable method_slot_vtable;
+
 // ===============================================================
 //  Property maps
 // ===============================================================
@@ -121,7 +125,12 @@ void props_init(void *this,
 		int initial_capacity);
 
 // Adds a new property to the map and returns the new slot stored
-// inside the map.
+// inside the map. Should be preferred to props_accept_prop since
+// it avoids new memory allocations.
+Slot *props_add_prop(void *this, SepString *name,
+		SlotVTable *slot_type, SepV initial_value);
+// Copies an existing slot into the map and returns the new slot stored
+// inside the map. The original can be thrown away.
 Slot *props_accept_prop(void *this, SepString *name,
 		Slot *slot);
 // Sets the value of a property, which must already exist in the map.

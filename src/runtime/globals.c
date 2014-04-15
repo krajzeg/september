@@ -276,7 +276,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepObj *for_body_scope = obj_create_with_proto(frame->prev_frame->locals);
 	obj_add_escape(for_body_scope, "break", frame, SEPV_BREAK);
 	obj_add_escape(for_body_scope, "continue", frame, SEPV_NOTHING);
-	props_accept_prop(for_body_scope, variable_name, field_create(SEPV_NOTHING));
+	props_add_prop(for_body_scope, variable_name, &field_slot_vtable, SEPV_NOTHING);
 	SepV for_body_scope_v = obj_to_sepv(for_body_scope);
 
 	// actually start the loop

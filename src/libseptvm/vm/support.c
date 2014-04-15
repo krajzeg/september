@@ -77,7 +77,7 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err) {
 
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents) {
-	props_accept_prop(obj, sepstr_for(name), field_create(contents));
+	props_add_prop(obj, sepstr_for(name), &field_slot_vtable, contents);
 }
 
 // Adds a new built-in method to a given object.
@@ -89,7 +89,7 @@ void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_for(name), method_create(func_to_sepv(builtin)));
+	props_add_prop(obj, sepstr_for(name), &method_slot_vtable, func_to_sepv(builtin));
 }
 
 // Adds a new built-in free function (as opposed to a method) to a given object.
@@ -101,7 +101,7 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_for(name), field_create(func_to_sepv(builtin)));
+	props_add_prop(obj, sepstr_for(name), &field_slot_vtable, func_to_sepv(builtin));
 }
 
 // Adds a new prototype to the object.
@@ -187,7 +187,7 @@ SepObj *make_class(char *name, SepObj *parent) {
 
 	// copy properties from the Class master object
 	SepV call_v = property(obj_to_sepv(rt.Cls), "<call>");
-	props_accept_prop(cls, sepstr_for("<call>"), method_create(call_v));
+	props_add_prop(cls, sepstr_for("<call>"), &method_slot_vtable, call_v);
 
 	// return the class
 	return cls;

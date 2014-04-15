@@ -31,7 +31,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	return property_value;
 }
 
-SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, Slot *slot) {
+SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotVTable *slot_type, SepV value) {
 	SepError err = NO_ERROR;
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(exc.EWrongType);
@@ -45,22 +45,19 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, Slot *slot) {
 	if (props_find_prop(host, property_name))
 		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", property_name->cstr);
 
-	// create the field
-	props_accept_prop(host, property_name, slot);
-
-	// return the actual slot entry from within the object
-	slot = props_find_prop(host, property_name);
+	// create the slot
+	Slot *slot = props_add_prop(host, property_name, slot_type, value);
 	return item_lvalue(slot, SEPV_NOTHING);
 }
 
 // The ':' field creation operator, valid for all objects.
 SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, field_create(SEPV_NOTHING));
+	return insert_slot_impl(scope, frame, &field_slot_vtable, SEPV_NOTHING);
 }
 
 // The '::' method creation operator, valid for all objects.
 SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, method_create(SEPV_NOTHING));
+	return insert_slot_impl(scope, frame, &method_slot_vtable, SEPV_NOTHING);
 }
 
 // ===============================================================
