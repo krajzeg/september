@@ -30,6 +30,7 @@ struct SepVM;
 struct SepArray;
 struct GarbageCollection;
 struct ExecutionFrame;
+struct ArgumentSource;
 
 // ===============================================================
 //  Constants
@@ -37,90 +38,6 @@ struct ExecutionFrame;
 
 // the maximum call depth allowed - the number of execution frames per VM
 #define VM_FRAME_COUNT 1024
-
-// ===============================================================
-//  Argument sources
-// ===============================================================
-
-/**
- * Represents a single argument passed through a function call.
- */
-typedef struct Argument {
-	// the name that was provided for the argument, or NULL for
-	// positional arguments
-	SepString *name;
-	// the value of the argument
-	SepV value;
-} Argument;
-
-/**
- * An argument source is a place from which arguments for a function
- * call are gathered. There are 3 ways to do it:
- * - opcode LAZY - arguments come from bytecode
- * - vm_subcall_va - arguments come from a C vararg list
- * - vm_subcall_array - arguments come from a SepArray
- * Hence, a polymorphic iterator interface for getting them was needed.
- */
-struct ArgumentSourceVT;
-typedef struct ArgumentSource {
-	struct ArgumentSourceVT *vt;
-} ArgumentSource;
-
-typedef uint8_t argcount_t;
-typedef struct ArgumentSourceVT {
-	// returns an argument and advances the source to the next one
-	// once we run out of arguments, this function returns NULL
-	Argument *(*get_next_argument)(ArgumentSource *);
-} ArgumentSourceVT;
-
-
-/**
- * Argument source for getting arguments stored in bytecode.
- */
-typedef struct BytecodeArgs {
-	struct ArgumentSource base;
-	// source for arguments
-	struct ExecutionFrame *source_frame;
-	// stored argument index and count
-	argcount_t argument_index, argument_count;
-	// a place for the argument that get_next_argument returns
-	Argument current_arg;
-} BytecodeArgs;
-
-// Initializes a new bytecode source in place.
-void bytecodeargs_init(BytecodeArgs *this, struct ExecutionFrame *frame);
-
-/**
- * Argument source for getting arguments from a C vararg function.
- */
-typedef struct VAArgs {
-	struct ArgumentSource base;
-	// stored argument index and count
-	argcount_t argument_index, argument_count;
-	// a started va_list with the arguments as SepVs
-	va_list c_arg_list;
-	// a place for the argument that get_next_argument returns
-	Argument current_arg;
-} VAArgs;
-
-// Initializes a new VAArgs source in place.
-void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args);
-
-/**
- * Argument source for arguments in a SepArray.
- */
-typedef struct ArrayArgs {
-	struct ArgumentSource base;
-	// the array
-	SepArray *array;
-	// iterator for going over the elements
-	SepArrayIterator iterator;
-	// a place for the argument that get_next_argument returns
-	Argument current_arg;
-} ArrayArgs;
-
-// Initializes a new ArrayArgs source in place.
-void arrayargs_init(ArrayArgs *this, SepArray *args);
 
 // ===============================================================
 //  Execution frame
@@ -250,7 +167,7 @@ SepItem vm_invoke(SepVM *this, SepV callable, uint8_t argument_count, ...);
 SepItem vm_invoke_in_scope(SepVM *this, SepV callable, SepV execution_scope, uint8_t argument_count, ...);
 // Makes a subcall from within a built-in function. The result of the subcall is then returned.
 // An argument source with the arguments of this call has to be provided.
-SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, ArgumentSource *args);
+SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, struct ArgumentSource *args);
 
 // ===============================================================
 // Resolving lazy values
