@@ -333,7 +333,19 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 	GenericArrayIterator sit = ga_iterate_over(&vm->data->array);
 	while (!gait_end(&sit)) {
 		SepItem stack_item = *((SepItem*)gait_current(&sit));
+
+		// the value gets added regardless of slot type
 		gc_add_to_queue(gc, stack_item.value);
+
+		// l-values hold additional references
+		if (stack_item.type == SIT_ARTIFICIAL_LVALUE) {
+			gc_add_to_queue(gc, slot_to_sepv(stack_item.slot));
+		} else if (stack_item.type == SIT_PROPERTY_LVALUE) {
+			gc_add_to_queue(gc, stack_item.property.owner);
+			gc_add_to_queue(gc, stack_item.property.source);
+		}
+
+		// next!
 		gait_advance(&sit);
 	}
 

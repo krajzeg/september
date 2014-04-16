@@ -79,16 +79,22 @@ SepV _array_index_slot_store(Slot *slot, SepV owner, SepV host, SepV new_value) 
 	return array_set(this->array, this->index, new_value);
 }
 
+// Queue dependent objects during GC.
+void _array_index_slot_mark_and_queue(Slot *slot, GarbageCollection *gc) {
+	ArrayIndexSlot *this = (ArrayIndexSlot*)slot;
+	gc_add_to_queue(gc, obj_to_sepv(this->array));
+}
+
 // The v-table for the array index slot.
 SlotType array_index_slot_vt = {
 	&_array_index_slot_retrieve,
-	&_array_index_slot_store
+	&_array_index_slot_store,
+	&_array_index_slot_mark_and_queue
 };
 
 // Creates a new "array index" slot capable of writing values to the array.
 ArrayIndexSlot *array_index_slot_create(SepArray *array, uint32_t index) {
-	// TODO: this really should be managed memory once we can manage slots
-	ArrayIndexSlot *slot = mem_unmanaged_allocate(sizeof(ArrayIndexSlot));
+	ArrayIndexSlot *slot = mem_allocate(sizeof(ArrayIndexSlot));
 	slot->base.vt = &array_index_slot_vt;
 	slot->array = array;
 	slot->index = index;

@@ -12,6 +12,7 @@
 // ===============================================================
 //  Includes
 // ===============================================================
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,10 +44,9 @@ void slot_init(Slot *slot, SlotType *behavior, SepV initial_value) {
 }
 
 Slot *slot_create(SlotType *behavior, SepV initial_value) {
-	Slot *slot = (Slot*) mem_unmanaged_allocate(sizeof(Slot)); // TODO: really should be managed
+	Slot *slot = mem_allocate(sizeof(Slot));
 	slot->vt = behavior;
 	slot->value = initial_value;
-
 	return slot;
 }
 
@@ -72,7 +72,7 @@ SepV field_store(Slot *slot, SepV owner, SepV host, SepV value) {
 	return slot->value = value;
 }
 
-SlotType st_field = { &field_retrieve, &field_store };
+SlotType st_field = { &field_retrieve, &field_store, NULL };
 
 // ===============================================================
 //  Methods
@@ -96,7 +96,7 @@ SepV method_store(Slot *slot, SepV owner, SepV host, SepV value) {
 	return slot->value = value;
 }
 
-SlotType st_method = { &method_retrieve, &method_store };
+SlotType st_method = { &method_retrieve, &method_store, NULL };
 
 // ===============================================================
 //  Property maps - private implementation

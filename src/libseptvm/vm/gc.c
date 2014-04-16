@@ -231,6 +231,13 @@ void gc_mark_and_queue_func(GarbageCollection *this, SepFunc *func) {
 	func->vt->mark_and_queue(func, this);
 }
 
+void gc_mark_and_queue_slot(GarbageCollection *this, Slot *slot) {
+	gc_add_to_queue(this, slot->value);
+	// artificial slots can have special needs
+	if (slot->vt->mark_and_queue)
+		slot->vt->mark_and_queue(slot, this);
+}
+
 // Marks any value passed in as a SepV and queues all other objects
 // reachable from it for marking.
 void gc_mark_one_object(GarbageCollection *this, SepV object) {

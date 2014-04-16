@@ -32,6 +32,7 @@ struct SlotType;
 struct PropertyEntry;
 struct PropertyMap;
 struct SepFunc;
+struct GarbageCollection;
 
 // ===============================================================
 //  Slots
@@ -49,8 +50,14 @@ struct SepFunc;
  * values are stored and retrieved.
  */
 typedef struct SlotType {
+	// retrieves the value from the slot, taking the slot's owner
+	// and the host object into account
 	SepV (*retrieve)(struct Slot *slot, SepV owner, SepV host);
+	// stores a new value into the slot
 	SepV (*store)(struct Slot *slot, SepV owner, SepV host, SepV newValue);
+	// optional - marks and queues any dependent objects during GC
+	// NULL if not required
+	void (*mark_and_queue)(struct Slot *slot, struct GarbageCollection *gc);
 } SlotType;
 
 /**
