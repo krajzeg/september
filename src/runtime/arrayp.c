@@ -68,13 +68,13 @@ typedef struct ArrayIndexSlot {
 } ArrayIndexSlot;
 
 // Retrieve a value from an array index.
-SepV _array_index_slot_retrieve(Slot *slot, SepV context) {
+SepV _array_index_slot_retrieve(Slot *slot, SepV owner, SepV host) {
 	ArrayIndexSlot *this = (ArrayIndexSlot*)slot;
 	return array_get(this->array, this->index);
 }
 
 // Set a value inside an array element.
-SepV _array_index_slot_store(Slot *slot, SepV context, SepV new_value) {
+SepV _array_index_slot_store(Slot *slot, SepV owner, SepV host, SepV new_value) {
 	ArrayIndexSlot *this = (ArrayIndexSlot*)slot;
 	return array_set(this->array, this->index, new_value);
 }

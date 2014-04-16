@@ -50,16 +50,26 @@ Slot *slot_create(SlotType *behavior, SepV initial_value) {
 	return slot;
 }
 
+// Retrieves a value from any type of slot.
+SepV slot_retrieve(Slot *slot, SepV owner, SepV host) {
+	return slot->vt->retrieve(slot, owner, host);
+}
+
+// Stores a value in any type of slot.
+SepV slot_store(Slot *slot, SepV owner, SepV host, SepV new_value) {
+	return slot->vt->store(slot, owner, host, new_value);
+}
+
 // ===============================================================
 //  Fields
 // ===============================================================
 
-SepV field_store(Slot *slot, SepV context, SepV value) {
-	return slot->value = value;
+SepV field_retrieve(Slot *slot, SepV owner, SepV host) {
+	return slot->value;
 }
 
-SepV field_retrieve(Slot *slot, SepV context) {
-	return slot->value;
+SepV field_store(Slot *slot, SepV owner, SepV host, SepV value) {
+	return slot->value = value;
 }
 
 SlotType st_field = { &field_retrieve, &field_store };
@@ -72,11 +82,7 @@ Slot *field_create(SepV initial_value) {
 //  Methods
 // ===============================================================
 
-SepV method_store(Slot *slot, SepV context, SepV value) {
-	return slot->value = value;
-}
-
-SepV method_retrieve(Slot *slot, SepV context) {
+SepV method_retrieve(Slot *slot, SepV owner, SepV host) {
 	SepV method_v = slot->value;
 
 	// if the value inside is not a function, do nothing special
@@ -86,8 +92,12 @@ SepV method_retrieve(Slot *slot, SepV context) {
 	// if it is a function, bind it permanently to the host
 	// so the 'this' pointer is correct when it is invoked
 	SepFunc *func = sepv_to_func(method_v);
-	SepFunc *bound = (SepFunc*) boundmethod_create(func, context);
+	SepFunc *bound = (SepFunc*) boundmethod_create(func, host);
 	return func_to_sepv(bound);
+}
+
+SepV method_store(Slot *slot, SepV owner, SepV host, SepV value) {
+	return slot->value = value;
 }
 
 SlotType st_method = { &method_retrieve, &method_store };
@@ -240,11 +250,12 @@ Slot *props_add_prop(void *map, SepString *name, SlotType *slot_type, SepV initi
 SepV props_get_prop(void *map, SepString *name) {
 	PropertyMap *this = (PropertyMap*) map;
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
-	if (entry->name)
-		return entry->slot.vt->retrieve(&entry->slot,
-				obj_to_sepv((SepObj* )this));
-	else
+	if (entry->name) {
+		SepV host = obj_to_sepv((SepObj*)this);
+		return slot_retrieve(&entry->slot, host, host);
+	} else {
 		return SEPV_NOTHING;
+	}
 }
 
 // Finds the slot corresponding to a named property.
@@ -260,11 +271,12 @@ Slot *props_find_prop(void *map, SepString *name) {
 SepV props_set_prop(void *map, SepString *name, SepV value) {
 	PropertyMap *this = (PropertyMap*) map;
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
-	if (entry->name)
-		return entry->slot.vt->store(&entry->slot, obj_to_sepv((SepObj* )this),
-				value);
-	else
+	if (entry->name) {
+		SepV host = obj_to_sepv((SepObj*)this);
+		return slot_store(&entry->slot, host, host, value);
+	} else {
 		return SEPV_NOTHING; // this will have to be an exception in the future
+	}
 }
 
 bool props_prop_exists(void *map, SepString *name) {
@@ -338,7 +350,8 @@ Slot *propit_slot(PropertyIterator *current) {
 // The value of the property.
 SepV propit_value(PropertyIterator *current) {
 	Slot *slot = &(current->entry->slot);
-	return slot->vt->retrieve(slot, obj_to_sepv((SepObj* )current->map));
+	SepV host = obj_to_sepv((SepObj*)current->map);
+	return slot_retrieve(slot, host, host);
 }
 
 // ===============================================================
@@ -496,7 +509,8 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 	SepV owner;
 	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
-		return item_property_lvalue(owner, sepv, slot, slot->vt->retrieve(slot, sepv));
+		SepV value = slot_retrieve(slot, owner, sepv);
+		return item_property_lvalue(owner, sepv, slot, value);
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				property->cstr);
@@ -505,15 +519,29 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 }
 
 // Gets the value of a property from an arbitrary SepV, using
+// proper lookup procedure. If the property is found, returns
+// it in the SepV. If the property is absent, SEPV_NO_VALUE will
+// be returned as a marker. If you prefer an exception, use
+// sepv_get().
+SepV sepv_lenient_get(SepV sepv, SepString *property) {
+	SepV owner;
+	Slot *slot = sepv_lookup(sepv, property, &owner);
+	if (slot) {
+		return slot_retrieve(slot, owner, sepv);
+	} else {
+		return SEPV_NOTHING;
+	};
+}
+
+// Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV sepv, SepString *property) {
-	Slot *slot = sepv_lookup(sepv, property, NULL);
-	if (slot) {
-		return slot->vt->retrieve(slot, sepv);
+	SepV value = sepv_lenient_get(sepv, property);
+	if (value == SEPV_NO_VALUE) {
+		return sepv_exception(exc.EMissingProperty,
+				sepstr_sprintf("Property '%s' does not exist.", property->cstr));
 	} else {
-		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
-				property->cstr);
-		return sepv_exception(exc.EMissingProperty, message);
+		return value;
 	}
 }
 
@@ -527,11 +555,10 @@ SepFunc *sepv_call_target(SepV value) {
 	if (sepv_is_func(value))
 		return sepv_to_func(value);
 
-	Slot *call_slot = sepv_lookup(value, sepstr_for("<call>"), NULL);
-	if (!call_slot)
+	if (!property_exists(value, "<call>"))
 		return NULL;
 
 	// recurse into the <call> property
-	SepV call_property = call_slot->vt->retrieve(call_slot, value);
+	SepV call_property = property(value, "<call>");
 	return sepv_call_target(call_property);
 }

@@ -160,18 +160,23 @@ void store_impl(ExecutionFrame *frame) {
 	// get the value
 	SepV value = stack_pop_value(frame->data);
 	// get the slot to set stuff in
-	Slot *slot = stack_pop_item(frame->data).slot;
-	if (!slot) {
+	SepItem item = stack_pop_item(frame->data);
+	if (!item_is_lvalue(item)) {
 		frame_raise(frame,
 				sepv_exception(exc.ECannotAssign, sepstr_for("Attempted assignment to an r-value.")));
 		return;
 	}
 
 	// store the value in the slot specified
-	slot->vt->store(slot, SEPV_NOTHING, value);
+	SepV result;
+	if (item.type == SIT_PROPERTY_LVALUE) {
+		result = slot_store(item.slot, item.property.owner, item.property.source, value);
+	} else if (item.type == SIT_ARTIFICIAL_LVALUE) {
+		result = slot_store(item.slot, SEPV_NO_VALUE, SEPV_NO_VALUE, value);
+	}
 
 	// return the value to the stack (as an rvalue)
-	stack_push_rvalue(frame->data, value);
+	stack_push_rvalue(frame->data, result);
 }
 
 void create_field_impl(ExecutionFrame *frame) {

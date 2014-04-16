@@ -49,8 +49,8 @@ struct SepFunc;
  * values are stored and retrieved.
  */
 typedef struct SlotType {
-	SepV (*retrieve)(struct Slot *slot, SepV context);
-	SepV (*store)(struct Slot *slot, SepV context, SepV newValue);
+	SepV (*retrieve)(struct Slot *slot, SepV owner, SepV host);
+	SepV (*store)(struct Slot *slot, SepV owner, SepV host, SepV newValue);
 } SlotType;
 
 /**
@@ -68,19 +68,27 @@ typedef struct Slot {
 // Create a new slot with specified behavior and initial value
 Slot *slot_create(SlotType *behavior,
 		SepV initial_value);
-
-// Creates a new 'field'-type slot.
-Slot *field_create(SepV initial_value);
-// Creates a new 'method'-type slot.
-Slot *method_create(SepV initial_value);
+// Retrieves a value from any type of slot.
+SepV slot_retrieve(Slot *slot, SepV owner, SepV host);
+// Stores a value in any type of slot.
+SepV slot_store(Slot *slot, SepV owner, SepV host, SepV new_value);
 
 // Convert slots to SepV and back
 #define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))
 #define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
 
+// ===============================================================
+//  Specific slot types
+// ===============================================================
+
 // Built-in slot types
 extern SlotType st_field;
 extern SlotType st_method;
+
+// Creates a new 'field'-type slot.
+Slot *field_create(SepV initial_value);
+// Creates a new 'method'-type slot.
+Slot *method_create(SepV initial_value);
 
 // ===============================================================
 //  Property maps
@@ -245,6 +253,10 @@ SepItem sepv_get_item(SepV object, SepString *property);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV object, SepString *property);
+// A variant of sepv_get() that returns SEPV_NO_VALUE when the property
+// is missing, instead of throwing exceptions.
+SepV sepv_lenient_get(SepV sepv, SepString *property);
+
 // Takes a SepV that will be called, and returns the proper SepFunc*
 // that will implement that call. For SepVs that are functions, this
 // will be the function itself. For objects, the special "<call>"
