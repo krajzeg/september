@@ -74,10 +74,6 @@ SepV field_store(Slot *slot, SepV owner, SepV host, SepV value) {
 
 SlotType st_field = { &field_retrieve, &field_store };
 
-Slot *field_create(SepV initial_value) {
-	return slot_create(&st_field, initial_value);
-}
-
 // ===============================================================
 //  Methods
 // ===============================================================
@@ -101,10 +97,6 @@ SepV method_store(Slot *slot, SepV owner, SepV host, SepV value) {
 }
 
 SlotType st_method = { &method_retrieve, &method_store };
-
-Slot *method_create(SepV initial_value) {
-	return slot_create(&st_method, initial_value);
-}
 
 // ===============================================================
 //  Property maps - private implementation
@@ -442,10 +434,11 @@ SepV sepv_prototypes(SepV sepv) {
 // 'owner' of the slot (i.e. the prototype in which the property
 // was finally found) into the memory being pointed to.
 Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
-	// handle the Literals special
+	// handle the Literals in a special way
 	if (sepv == SEPV_LITERALS) {
-		// just return the name of the requested property back
-		return field_create(str_to_sepv(property));
+		// return the property name itself, wrapped in a fake slot
+		*owner_ptr = SEPV_NO_VALUE;
+		return slot_create(&st_field, str_to_sepv(property));
 	}
 
 	// if we are an object, we might have this property ourselves
@@ -510,7 +503,14 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
 		SepV value = slot_retrieve(slot, owner, sepv);
-		return item_property_lvalue(owner, sepv, slot, value);
+		if (owner != SEPV_NO_VALUE) {
+			// just a normal property
+			return item_property_lvalue(owner, sepv, slot, value);
+		} else {
+			// SEPV_NO_VALUE in the owner means that
+			// this is an artificially-created slot
+			return item_artificial_lvalue(slot, value);
+		}
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				property->cstr);

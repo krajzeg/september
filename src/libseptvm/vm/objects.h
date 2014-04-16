@@ -85,11 +85,6 @@ SepV slot_store(Slot *slot, SepV owner, SepV host, SepV new_value);
 extern SlotType st_field;
 extern SlotType st_method;
 
-// Creates a new 'field'-type slot.
-Slot *field_create(SepV initial_value);
-// Creates a new 'method'-type slot.
-Slot *method_create(SepV initial_value);
-
 // ===============================================================
 //  Property maps
 // ===============================================================
