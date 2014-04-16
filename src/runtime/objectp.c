@@ -33,6 +33,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_type, SepV value) {
 	SepError err = NO_ERROR;
+	SepV host_v = target(scope);
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(exc.EWrongType);
 	SepV property_name_lv = param(scope, "property_name");
@@ -47,7 +48,7 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_ty
 
 	// create the slot
 	Slot *slot = props_add_prop(host, property_name, slot_type, value);
-	return item_lvalue(slot, SEPV_NOTHING);
+	return item_property_lvalue(host_v, host_v, slot, SEPV_NOTHING);
 }
 
 // The ':' field creation operator, valid for all objects.
@@ -85,7 +86,7 @@ SepItem object_instantiate(SepObj *scope, ExecutionFrame *frame) {
 // Checks whether the object belongs to a class given as parameter.
 SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
-	Slot *cls_slot = sepv_lookup(target, sepstr_for("<class>"));
+	Slot *cls_slot = sepv_lookup(target, sepstr_for("<class>"), NULL);
 	if (cls_slot) {
 		// is it the thing we're looking for?
 		SepV desired_class = param(scope, "desired_class");
@@ -98,7 +99,7 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 				return si_bool(true);
 
 			// nope, let's see if we have a further superclass
-			Slot *pc_slot = sepv_lookup(actual_class, sepstr_for("<superclass>"));
+			Slot *pc_slot = sepv_lookup(actual_class, sepstr_for("<superclass>"), NULL);
 			if (pc_slot) {
 				// yes, we do - look there
 				actual_class = pc_slot->vt->retrieve(pc_slot, actual_class);

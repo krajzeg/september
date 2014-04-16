@@ -143,7 +143,7 @@ SepV property(SepV host, char *name) {
 
 // Checks whether a named property exists on a host object (including prototype lookup).
 bool property_exists(SepV host, char *name) {
-	Slot *slot = sepv_lookup(host, sepstr_for(name));
+	Slot *slot = sepv_lookup(host, sepstr_for(name), NULL);
 	return (slot != NULL);
 }
 
@@ -286,7 +286,7 @@ SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
 	SepError err = NO_ERROR;
 
 	// look for the class
-	Slot *class_slot = sepv_lookup(sepv, sepstr_for("<class>"));
+	Slot *class_slot = sepv_lookup(sepv, sepstr_for("<class>"), NULL);
 	if (class_slot) {
 		// retrieve the name of the class
 		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);

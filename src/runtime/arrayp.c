@@ -120,7 +120,7 @@ SepItem array_index(SepObj *scope, ExecutionFrame *frame) {
 	Slot *slot = (Slot*)array_index_slot_create(this, index);
 
 	// return an l-value so assigning to indices works
-	return item_lvalue(slot, value);
+	return item_artificial_lvalue(slot, value);
 }
 
 // ===============================================================

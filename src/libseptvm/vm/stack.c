@@ -84,15 +84,9 @@ SepV stack_replace_top(SepStack *this, SepItem new_item) {
 
 // Pushes an rvalue (value without a slot) on the stack.
 void stack_push_rvalue(SepStack *this, SepV value) {
-	SepItem item = {NULL, value};
-	stack_push_item(this, item);
+	stack_push_item(this, item_rvalue(value));
 }
 
-// Pushes a new item on the stack by joining a slot and its value.
-void stack_push_lvalue(SepStack *this, Slot *origin, SepV value) {
-	SepItem item = {origin, value};
-	stack_push_item(this, item);
-}
 // Pops just the value from the top of the stack.
 SepV stack_pop_value(SepStack *this) {
 	SepItem item = stack_pop_item(this);
@@ -104,36 +98,3 @@ SepV stack_top_value(SepStack *this) {
 	SepItem item = stack_top_item(this);
 	return item.value;
 }
-
-// === function calls
-
-// Starts a new argument list on the stack. Once it is started, you MUST
-// add the specified number of arguments through stack_next_argument, then
-// close the list with stack_end_argument_list before the stack can operate
-// normally again.
-void stack_start_argument_list(SepStack *this, uint8_t argument_count) {
-	// reserve some space
-	uint32_t end_index = ga_length(&this->array);
-	ga_grow(&this->array, argument_count+1);
-
-	// put END_ARGUMENTS at the right place on the stack
-	SepItem argument_list_marker = {NULL, SEPV_END_ARGUMENTS};
-	ga_set(&this->array, end_index, &argument_list_marker);
-
-	// the next argument to be added will be the 0th
-	this->arglist_index = 0;
-}
-
-// Adds the next argument to a started argument list.
-void stack_next_argument(SepStack *this, SepItem argument_value) {
-	uint32_t index = ga_length(&this->array) - 1 - this->arglist_index;
-	ga_set(&this->array, index, &argument_value);
-}
-
-// Finalizes the argument list being built on the stack.
-void stack_end_argument_list(SepStack *this) {
-	// nothing in this implementation, but might be
-	// needed later
-}
-
-

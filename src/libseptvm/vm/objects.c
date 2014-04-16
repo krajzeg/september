@@ -425,7 +425,10 @@ SepV sepv_prototypes(SepV sepv) {
 
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing found.
-Slot *sepv_lookup(SepV sepv, SepString *property) {
+// If the 'owner_ptr' is non-NULL, it will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) into the memory being pointed to.
+Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
 	// handle the Literals special
 	if (sepv == SEPV_LITERALS) {
 		// just return the name of the requested property back
@@ -438,6 +441,8 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 		Slot *local_slot = props_find_prop(obj, property);
 		if (local_slot) {
 			// found it - local values always take priority
+			if (owner_ptr)
+				*owner_ptr = sepv;
 			return local_slot;
 		}
 	}
@@ -463,9 +468,8 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 				// skip cyclical references
 				if (prototype == sepv)
 					continue;
-				// look inside
-				Slot *proto_slot = sepv_lookup(array_get(prototypes, index),
-						property);
+				// look inside (pass the owner ptr so the owner gets written by the recursive call)
+				Slot *proto_slot = sepv_lookup(prototype, property, owner_ptr);
 				if (proto_slot)
 					return proto_slot;
 			}
@@ -473,23 +477,26 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 			return NULL;
 		} else {
 			// a single prototype, recurse into it (if its not a cycle)
+			// the 'owner_ptr' is passed to make sure the owner is stored
+			// by the recursive call
 			if (proto != sepv)
-				return sepv_lookup(proto, property);
+				return sepv_lookup(proto, property, owner_ptr);
 			else
 				return NULL;
 		}
 	} else {
 		// single non-object prototype, strange but legal
-		return sepv_lookup(proto, property);
+		return sepv_lookup(proto, property, owner_ptr);
 	}
 }
 
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure.
 SepItem sepv_get_item(SepV sepv, SepString *property) {
-	Slot *slot = sepv_lookup(sepv, property);
+	SepV owner;
+	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
-		return item_lvalue(slot, slot->vt->retrieve(slot, sepv));
+		return item_property_lvalue(owner, sepv, slot, slot->vt->retrieve(slot, sepv));
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				property->cstr);
@@ -500,7 +507,7 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV sepv, SepString *property) {
-	Slot *slot = sepv_lookup(sepv, property);
+	Slot *slot = sepv_lookup(sepv, property, NULL);
 	if (slot) {
 		return slot->vt->retrieve(slot, sepv);
 	} else {
@@ -520,7 +527,7 @@ SepFunc *sepv_call_target(SepV value) {
 	if (sepv_is_func(value))
 		return sepv_to_func(value);
 
-	Slot *call_slot = sepv_lookup(value, sepstr_for("<call>"));
+	Slot *call_slot = sepv_lookup(value, sepstr_for("<call>"), NULL);
 	if (!call_slot)
 		return NULL;
 

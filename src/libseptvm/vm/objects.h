@@ -235,7 +235,10 @@ SepItem si_obj(void *object);
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing is found. For
 // primitive types, lookup starts with their prototype.
-Slot *sepv_lookup(SepV object, SepString *property);
+// If 'owner_ptr' is non-NULL, we will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) through this pointer.
+Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure, and returning a stack item (slot + its value).
 SepItem sepv_get_item(SepV object, SepString *property);

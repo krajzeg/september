@@ -160,7 +160,7 @@ void store_impl(ExecutionFrame *frame) {
 	// get the value
 	SepV value = stack_pop_value(frame->data);
 	// get the slot to set stuff in
-	Slot *slot = stack_pop_item(frame->data).origin;
+	Slot *slot = stack_pop_item(frame->data).slot;
 	if (!slot) {
 		frame_raise(frame,
 				sepv_exception(exc.ECannotAssign, sepstr_for("Attempted assignment to an r-value.")));
@@ -204,7 +204,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	Slot *slot = props_add_prop(host, property, &st_field, SEPV_NOTHING);
 
 	// push it on the stack
-	SepItem property_item = item_lvalue(slot, SEPV_NOTHING);
+	SepItem property_item = item_property_lvalue(host_v, host_v, slot, SEPV_NOTHING);
 	stack_push_item(frame->data, property_item);
 }
 

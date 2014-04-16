@@ -128,8 +128,7 @@ SepV sepv_string(char *c_string) {
 }
 
 SepItem si_string(char *c_string) {
-	SepItem si = {NULL, str_to_sepv(sepstr_for(c_string))};
-	return si;
+	return item_rvalue(str_to_sepv(sepstr_for(c_string)));
 }
 
 void sepstr_init(SepString *this, const char *c_string) {
