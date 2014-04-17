@@ -1,0 +1,3 @@
+Direct access via a string index: crunchy apples.
+Indirect access with a variable name: juicy oranges.
+After modifying the values through indexing, we have: rotten apples.

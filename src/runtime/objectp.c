@@ -31,6 +31,16 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	return property_value;
 }
 
+// Indexing - very similar to the '.' operator, but the property name is eager.
+SepItem object_op_index(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepV host_v = target(scope);
+	SepString *property_name = cast_as_named_str("Property name", param(scope, "property_name"), &err);
+		or_raise(exc.EWrongType);
+	return sepv_get_item(host_v, property_name);
+}
+
+// Base function used to implement ':' and '::'.
 SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_type, SepV value) {
 	SepError err = NO_ERROR;
 	SepV host_v = target(scope);
@@ -125,6 +135,7 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
 	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
+	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
 
 	// add common methods
 	obj_add_builtin_method(Object, "resolve", object_resolve, 0);
