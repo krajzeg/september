@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-axon"
+#define SEPTEMBER_VERSION "0.1-aye"
 
 // ===============================================================
 //  Prototype creation methods

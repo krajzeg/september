@@ -18,9 +18,9 @@ The majority of the effort right now goes to making the virtual machine fully fe
 	* ☑ optional arguments (`|reverse = False|`)
 	* ☑ named arguments in calls (`people.sort(reverse: True)`) 
 * ☑ array/object "literals" (`[1, 2, 3]`, `[[x:1, y:2]]`)
+* ☑ indexing operator (`a[2]`)
 * ☐ allow for writing and importing modules
 * ☐ get the basic class system with constructors, fields and methods working
-* ☐ indexing operator (`a[2]`)
 
 Once those things are done, the next step will be making the language capable of implementing its own parser/compiler by writing the most basic parts of the standard library.
 
