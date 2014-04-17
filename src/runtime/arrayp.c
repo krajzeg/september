@@ -25,10 +25,15 @@ SepItem array_iterator(SepObj *scope, ExecutionFrame *frame) {
 
 	SepV iterator_proto_v = property(obj_to_sepv(this), "<ArrayIterator>");
 	SepObj *iterator_obj = obj_create_with_proto(iterator_proto_v);
-	SepArrayIterator *iterator = mem_unmanaged_allocate(sizeof(SepArrayIterator));
-	*iterator = array_iterate_over(this);
-	iterator_obj->data = iterator;
 
+	// add a reference to the array to prevent it from being GC'd while we iterate
+	obj_add_field(iterator_obj, "<array>", obj_to_sepv(this));
+
+	// create the C iterator and store as auxillary data
+	iterator_obj->data = mem_allocate(sizeof(SepArrayIterator));
+	*((SepArrayIterator*)iterator_obj->data) = array_iterate_over(this);
+
+	// return the iterator object
 	return si_obj(iterator_obj);
 }
 

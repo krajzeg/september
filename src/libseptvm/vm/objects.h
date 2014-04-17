@@ -226,8 +226,10 @@ typedef struct SepObj {
 	// a set of flags describing the object
 	ObjectTraits traits;
 
-	// a space for additional data in the form of a C struct
-	// usually used by C methods of a prototype
+	// a space for arbitrary additional data used by the C side
+	// if this pointer is non-null, it must be:
+	// a) allocated from managed memory
+	// b) not hold any references for GC or other outside pointers
 	void *data;
 } SepObj;
 

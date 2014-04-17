@@ -356,14 +356,14 @@ SepObj *obj_create() {
 
 	SepObj *obj = mem_allocate(sizeof(SepObj));
 
-	// set up traits
+	// set up default values
 	obj->traits = DEFAULT_TRAITS;
-	// default prototype is runtime.Object - Object class
 	obj->prototypes = obj_to_sepv(rt.Object);
 
 	// make sure all unallocated pointers are NULL to avoid GC
 	// tripping over uninitialized pointers and going berserk on
 	// random memory
+	obj->data = NULL;
 	obj->props.entries = NULL;
 
 	// register in as a GC root in the current frame to prevent accidental freeing

@@ -190,6 +190,9 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	// mark the property map region
 	gc_mark_region(object->props.entries);
 
+	// mark auxillary C data, if we hold any
+	gc_mark_region(object->data);
+
 	// queue property values
 	if (object->props.entries) {
 		PropertyIterator it = props_iterate_over(object);
