@@ -31,8 +31,19 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	return property_value;
 }
 
-SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, Slot *slot) {
+// Indexing - very similar to the '.' operator, but the property name is eager.
+SepItem object_op_index(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
+	SepV host_v = target(scope);
+	SepString *property_name = cast_as_named_str("Property name", param(scope, "property_name"), &err);
+		or_raise(exc.EWrongType);
+	return sepv_get_item(host_v, property_name);
+}
+
+// Base function used to implement ':' and '::'.
+SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_type, SepV value) {
+	SepError err = NO_ERROR;
+	SepV host_v = target(scope);
 	SepObj *host = target_as_obj(scope, &err);
 		or_raise(exc.EWrongType);
 	SepV property_name_lv = param(scope, "property_name");
@@ -45,22 +56,19 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, Slot *slot) {
 	if (props_find_prop(host, property_name))
 		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", property_name->cstr);
 
-	// create the field
-	props_accept_prop(host, property_name, slot);
-
-	// return the actual slot entry from within the object
-	slot = props_find_prop(host, property_name);
-	return item_lvalue(slot, SEPV_NOTHING);
+	// create the slot
+	Slot *slot = props_add_prop(host, property_name, slot_type, value);
+	return item_property_lvalue(host_v, host_v, property_name, slot, SEPV_NOTHING);
 }
 
 // The ':' field creation operator, valid for all objects.
 SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, field_create(SEPV_NOTHING));
+	return insert_slot_impl(scope, frame, &st_field, SEPV_NOTHING);
 }
 
 // The '::' method creation operator, valid for all objects.
 SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
-	return insert_slot_impl(scope, frame, method_create(SEPV_NOTHING));
+	return insert_slot_impl(scope, frame, &st_method, SEPV_NOTHING);
 }
 
 // ===============================================================
@@ -88,11 +96,10 @@ SepItem object_instantiate(SepObj *scope, ExecutionFrame *frame) {
 // Checks whether the object belongs to a class given as parameter.
 SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
-	Slot *cls_slot = sepv_lookup(target, sepstr_for("<class>"));
-	if (cls_slot) {
+	SepV actual_class = sepv_lenient_get(target, sepstr_for("<class>"));
+	if (actual_class != SEPV_NO_VALUE) {
 		// is it the thing we're looking for?
 		SepV desired_class = param(scope, "desired_class");
-		SepV actual_class = cls_slot->vt->retrieve(cls_slot, target);
 
 		// loop over all superclasses
 		while (true) {
@@ -101,13 +108,8 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 				return si_bool(true);
 
 			// nope, let's see if we have a further superclass
-			Slot *pc_slot = sepv_lookup(actual_class, sepstr_for("<superclass>"));
-			if (pc_slot) {
-				// yes, we do - look there
-				actual_class = pc_slot->vt->retrieve(pc_slot, actual_class);
-				if (actual_class == SEPV_NOTHING)
-					return si_bool(false);
-			} else {
+			actual_class = sepv_lenient_get(actual_class, sepstr_for("<superclass>"));
+			if (actual_class == SEPV_NO_VALUE || actual_class == SEPV_NOTHING) {
 				// no, we don't - we haven't found the desired class anywhere
 				// in the inheritance chain
 				return si_bool(false);
@@ -117,13 +119,6 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 		// no class slot, no inheritance, no being anything
 		return si_bool(false);
 	}
-}
-
-SepItem object_debug_string(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-	SepString *debug_str = sepv_debug_string(target(scope), &err);
-		or_raise(exc.EWrongType);
-	return item_rvalue(str_to_sepv(debug_str));
 }
 
 // ===============================================================
@@ -140,9 +135,9 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
 	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
+	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
 
 	// add common methods
-	obj_add_builtin_method(Object, "debugString", object_debug_string, 0);
 	obj_add_builtin_method(Object, "resolve", object_resolve, 0);
 	obj_add_builtin_method(Object, "instantiate", object_instantiate, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");

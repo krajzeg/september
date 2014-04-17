@@ -10,6 +10,8 @@
 #include "exceptions.h"
 #include "arrays.h"
 #include "opcodes.h"
+#include "funcparams.h"
+#include "functions.h"
 #include "vm.h"
 
 #include "../libmain.h"
@@ -64,130 +66,6 @@ void frame_register(ExecutionFrame *frame, SepV value) {
 // making it eligible for garbage collection again.
 void frame_release(ExecutionFrame *frame, SepV value) {
 	ga_remove(&frame->gc_roots, &value);
-}
-
-// ===============================================================
-//  Bytecode argument source
-// ===============================================================
-
-Argument *_bytecode_next_argument(ArgumentSource *_this) {
-	BytecodeArgs *this = (BytecodeArgs*)_this;
-	ExecutionFrame *frame = this->source_frame;
-
-	// are we done?
-	if (this->argument_index >= this->argument_count)
-		return NULL;
-
-	// nope, read the next reference
-	CodeUnit arg_reference = frame_read(frame);
-	PoolReferenceType ref_type = decode_reference_type(arg_reference);
-	uint32_t ref_index = decode_reference_index(arg_reference);
-	this->argument_index++;
-
-	// handle named arguments
-	if (ref_type == PRT_ARGUMENT_NAME) {
-		this->current_arg.name = sepv_to_str(frame_constant(frame, ref_index));
-		// skip to next reference to get the value for the name
-		arg_reference = frame_read(frame);
-		ref_type = decode_reference_type(arg_reference);
-		ref_index = decode_reference_index(arg_reference);
-		this->argument_index++;
-	} else {
-		this->current_arg.name = NULL;
-	}
-
-	// argument value - did we get a constant or a block?
-	switch(ref_type) {
-		case PRT_CONSTANT: {
-			// constant, that's easy!
-			this->current_arg.value = frame_constant(frame, ref_index);
-			break;
-		}
-		case PRT_FUNCTION: {
-			// block - that's a lazy evaluated argument
-			CodeBlock *block = frame_block(frame, ref_index);
-			if (!block) {
-				this->current_arg.value = sepv_exception(exc.EInternal,
-						sepstr_sprintf("Code block %d out of bounds.", ref_index));
-				return &this->current_arg;
-			}
-			SepFunc *argument_l = (SepFunc*)lazy_create(block, frame->locals);
-			this->current_arg.value = func_to_sepv(argument_l);
-			break;
-		}
-		default:
-			this->current_arg.value = sepv_exception(exc.EInternal, sepstr_sprintf("Unrecognized reference type: %d", ref_type));
-	}
-
-	// return a pointer into our own structure
-	return &this->current_arg;
-}
-
-ArgumentSourceVT bytecode_args_vt = {
-	&_bytecode_next_argument
-};
-
-// Initializes a new bytecode source in place.
-void bytecodeargs_init(BytecodeArgs *this, ExecutionFrame *frame) {
-	this->base.vt = &bytecode_args_vt;
-	this->source_frame = frame;
-	this->argument_index = 0;
-	this->argument_count = (argcount_t)frame_read(frame);
-}
-
-// ===============================================================
-//  va_list argument source
-// ===============================================================
-
-Argument *_va_next_argument(ArgumentSource *_this) {
-	VAArgs *this = (VAArgs*)_this;
-
-	// keep track of the count
-	if (this->argument_index >= this->argument_count)
-		return NULL;
-	this->argument_index++;
-
-	// return next SepV from the va_list
-	this->current_arg.value = va_arg(this->c_arg_list, SepV);
-	return &this->current_arg;
-}
-
-ArgumentSourceVT va_args_vt = {
-	&_va_next_argument
-};
-
-// Initializes a new VAArgs source in place.
-void vaargs_init(VAArgs *this, argcount_t arg_count, va_list args) {
-	this->base.vt = &va_args_vt;
-	this->argument_index = 0;
-	this->argument_count = arg_count;
-	this->current_arg.name = NULL; // no names for VAArgs
-
-	va_copy(this->c_arg_list, args);
-}
-
-// ===============================================================
-//  Array-based argument source
-// ===============================================================
-
-Argument *_arrayargs_next_argument(ArgumentSource *_this) {
-	ArrayArgs *this = (ArrayArgs*)_this;
-	if (arrayit_end(&this->iterator))
-		return NULL;
-	this->current_arg.value = arrayit_next(&this->iterator);
-	return &this->current_arg;
-}
-
-ArgumentSourceVT array_args_vt = {
-	&_arrayargs_next_argument
-};
-
-// Initializes a new VAArgs source in place.
-void arrayargs_init(ArrayArgs *this, SepArray *array) {
-	this->base.vt = &array_args_vt;
-	this->array = array;
-	this->iterator = array_iterate_over(array);
-	this->current_arg.name = NULL; // no named arguments yet
 }
 
 // ===============================================================
@@ -455,7 +333,20 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 	GenericArrayIterator sit = ga_iterate_over(&vm->data->array);
 	while (!gait_end(&sit)) {
 		SepItem stack_item = *((SepItem*)gait_current(&sit));
+
+		// the value gets added regardless of slot type
 		gc_add_to_queue(gc, stack_item.value);
+
+		// l-values hold additional references
+		if (stack_item.type == SIT_ARTIFICIAL_LVALUE) {
+			gc_add_to_queue(gc, slot_to_sepv(stack_item.slot));
+		} else if (stack_item.type == SIT_PROPERTY_LVALUE) {
+			gc_add_to_queue(gc, stack_item.origin.owner);
+			gc_add_to_queue(gc, stack_item.origin.source);
+			gc_add_to_queue(gc, str_to_sepv(stack_item.origin.property));
+		}
+
+		// next!
 		gait_advance(&sit);
 	}
 

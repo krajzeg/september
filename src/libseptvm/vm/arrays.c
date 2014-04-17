@@ -44,6 +44,7 @@ SepArray *array_create(uint32_t initial_size) {
 	// does not trip over some uninitialized pointers
 	array->array.start = NULL;
 	array->base.props.entries = NULL;
+	array->base.data = NULL;
 
 	// register as GC root to avoid collection
 	gc_register(obj_to_sepv(array));

@@ -28,13 +28,19 @@
 
 // Creates a new r-value stack item from a SepV.
 SepItem item_rvalue(SepV value) {
-	SepItem item = {NULL, value};
+	SepItem item = {SIT_RVALUE, NULL, {SEPV_NOTHING, SEPV_NOTHING}, value};
 	return item;
 }
 
 // Creates a new l-value stack item from a slot and its value.
-SepItem item_lvalue(Slot *slot, SepV value) {
-	SepItem item = {slot, value};
+SepItem item_property_lvalue(SepV slot_owner, SepV accessed_through, SepString *property_name, Slot *slot, SepV value) {
+	SepItem item = {SIT_PROPERTY_LVALUE, slot, {accessed_through, slot_owner, property_name}, value};
+	return item;
+}
+
+// Creates a new artificial l-value stack item - the slot has to be a standalone managed object.
+SepItem item_artificial_lvalue(Slot *slot, SepV value) {
+	SepItem item = {SIT_ARTIFICIAL_LVALUE, slot, {SEPV_NOTHING, SEPV_NOTHING, NULL}, value};
 	return item;
 }
 
@@ -47,9 +53,7 @@ SepV sepv_bool(bool truth) {
 }
 
 SepItem si_bool(bool truth) {
-	static SepItem si_true = {NULL, SEPV_TRUE};
-	static SepItem si_false = {NULL, SEPV_FALSE};
-	return truth ? si_true : si_false;
+	return item_rvalue(truth ? SEPV_TRUE : SEPV_FALSE);
 }
 
 // ===============================================================

@@ -3,11 +3,17 @@
 
 /*******************************************************************/
 
+// ===============================================================
+//  Includes and pre-declarations
+// ===============================================================
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-/*******************************************************************/
+struct PropertyEntry;
+struct SepString;
+struct Slot;
 
 // ===============================================================
 //  Basic types for representing data.
@@ -19,29 +25,71 @@
  * signify the type (see below for the 8 types available), while the
  * rest defines the actual value and is type-dependent.
  */
-
 typedef uint64_t SepV;
+
+/**
+ * Data stack items (see below) come in a few flavors, mostly determining
+ * how assignment works.
+ */
+typedef enum SepItemType {
+	// R-values are just that - values. They have no originating slot
+	// since they are usually a result of calculations and cannot
+	// be assigned to.
+	SIT_RVALUE = 0,
+	// This type of l-value represents a property of an object, and
+	// this originating object is stored. This allows assignments
+	// to this l-value to go back to the right property on the
+	// right object.
+	SIT_PROPERTY_LVALUE = 1,
+	// Artificial l-values use special slot types that have their own
+	// specific rules about assignment. For example, array indexing
+	// (a[2]) returns a special l-value that directs stores back
+	// into the array element.
+	SIT_ARTIFICIAL_LVALUE = 2
+} SepItemType;
+
+/**
+ * Additional information stored for property-type l-values in order
+ * to let them implement 'store' properly.
+ */
+typedef struct OriginInfo {
+	// the object that was used on the left side of '.' to get at the property
+	// - note that this object might not actually own this slot, as it could
+	// belong to one of the prototypes
+	SepV source;
+	// the owner of the slot - can be a prototype of the host, or
+	// the host itself
+	SepV owner;
+	// the name of the property used to access the slot
+	struct SepString *property;
+} OriginInfo;
 
 /**
  * SepItem is what actually gets stored on the data stack. In addition
  * to a value represented by a SepV, it also stores the value's origin -
- * the slot it came from. This slot can be used to implement things
- * like the assignment operator. The 'origin' is NULL in case of
- * r-values which don't come from a slot.
+ * where it came from. This information is used to implement e.g the
+ * assignment operator.
  */
 typedef struct SepItem {
-	// the slot this value came from
-	struct Slot *origin;
+	// unassignable r-value, or one of the l-value types?
+	SepItemType type;
+	// the slot this value came from - provided only for l-values
+	struct Slot *slot;
+	// additional information used only by property-lvalues
+	OriginInfo origin;
 	// the value itself
 	SepV value;
 } SepItem;
 
 // Creates a new r-value stack item from a SepV.
 SepItem item_rvalue(SepV value);
-// Creates a new l-value stack item from a slot and its value.
-SepItem item_lvalue(struct Slot *slot, SepV value);
+// Creates a new property l-value stack item.
+SepItem item_property_lvalue(SepV slot_owner, SepV accessed_through, struct SepString *property_name, struct Slot *slot, SepV value);
+// Creates a new artificial l-value stack item - the slot has to be a standalone managed object.
+SepItem item_artificial_lvalue(struct Slot *slot, SepV value);
+
 // Checks if an item is an l-value and can be assigned to.
-#define item_is_lvalue(item) (item.slot != NULL)
+#define item_is_lvalue(item) (item.type != SIT_RVALUE)
 
 // ===============================================================
 //  SepV type-related constants
@@ -126,7 +174,7 @@ SepItem item_lvalue(struct Slot *slot, SepV value);
 
 SepV sepv_bool(bool truth);
 SepItem si_bool(bool truth);
-#define si_nothing() item_rvalue(SEPV_NOTHING);
+#define si_nothing() item_rvalue(SEPV_NOTHING)
 
 // ===============================================================
 //  Integers

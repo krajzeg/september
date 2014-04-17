@@ -1,0 +1,10 @@
+object := [[ apples: "crunchy", oranges: "juicy" ]]
+
+print("Direct access via a string index:", object["apples"], "apples.")
+
+fruit_name := "oranges"
+print("Indirect access with a variable name:", object[fruit_name], "oranges.")
+
+fruit_name = "apples"
+object[fruit_name] = "rotten"
+print("After modifying the values through indexing, we have:", object.apples, "apples.")

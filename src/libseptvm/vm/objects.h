@@ -28,10 +28,11 @@
 
 struct SepObj;
 struct Slot;
-struct SlotVTable;
+struct SlotType;
 struct PropertyEntry;
 struct PropertyMap;
 struct SepFunc;
+struct GarbageCollection;
 
 // ===============================================================
 //  Slots
@@ -48,10 +49,16 @@ struct SepFunc;
  * Every slot points to a v-table with two methods that control how
  * values are stored and retrieved.
  */
-typedef struct SlotVTable {
-	SepV (*retrieve)(struct Slot *slot, SepV context);
-	SepV (*store)(struct Slot *slot, SepV context, SepV newValue);
-} SlotVTable;
+typedef struct SlotType {
+	// retrieves the value from the slot, taking the slot's owner
+	// and the host object into account
+	SepV (*retrieve)(struct Slot *slot, struct OriginInfo *origin);
+	// stores a new value into the slot
+	SepV (*store)(struct Slot *slot, struct OriginInfo *origin, SepV newValue);
+	// optional - marks and queues any dependent objects during GC
+	// NULL if not required
+	void (*mark_and_queue)(struct Slot *slot, struct GarbageCollection *gc);
+} SlotType;
 
 /**
  * The slot structure.
@@ -59,24 +66,31 @@ typedef struct SlotVTable {
 typedef struct Slot {
 	// defines the behavior of this slot (as a field,
 	// a method, etc.)
-	SlotVTable *vt;
+	SlotType *vt;
 	// the value stored in the slot (or in the case of
 	// custom slots, the slot object)
 	SepV value;
 } Slot;
 
 // Create a new slot with specified behavior and initial value
-Slot *slot_create(SlotVTable *behavior,
+Slot *slot_create(SlotType *behavior,
 		SepV initial_value);
-
-// Creates a new 'field'-type slot.
-Slot *field_create(SepV initial_value);
-// Creates a new 'method'-type slot.
-Slot *method_create(SepV initial_value);
+// Retrieves a value from any type of slot.
+SepV slot_retrieve(Slot *slot, OriginInfo *origin);
+// Stores a value in any type of slot.
+SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 
 // Convert slots to SepV and back
 #define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))
 #define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
+
+// ===============================================================
+//  Specific slot types
+// ===============================================================
+
+// Built-in slot types
+extern SlotType st_field;
+extern SlotType st_method;
 
 // ===============================================================
 //  Property maps
@@ -121,7 +135,12 @@ void props_init(void *this,
 		int initial_capacity);
 
 // Adds a new property to the map and returns the new slot stored
-// inside the map.
+// inside the map. Should be preferred to props_accept_prop since
+// it avoids new memory allocations.
+Slot *props_add_prop(void *this, SepString *name,
+		SlotType *slot_type, SepV initial_value);
+// Copies an existing slot into the map and returns the new slot stored
+// inside the map. The original can be thrown away.
 Slot *props_accept_prop(void *this, SepString *name,
 		Slot *slot);
 // Sets the value of a property, which must already exist in the map.
@@ -207,8 +226,10 @@ typedef struct SepObj {
 	// a set of flags describing the object
 	ObjectTraits traits;
 
-	// a space for additional data in the form of a C struct
-	// usually used by C methods of a prototype
+	// a space for arbitrary additional data used by the C side
+	// if this pointer is non-null, it must be:
+	// a) allocated from managed memory
+	// b) not hold any references for GC or other outside pointers
 	void *data;
 } SepObj;
 
@@ -226,13 +247,20 @@ SepItem si_obj(void *object);
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing is found. For
 // primitive types, lookup starts with their prototype.
-Slot *sepv_lookup(SepV object, SepString *property);
+// If 'owner_ptr' is non-NULL, we will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) through this pointer.
+Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure, and returning a stack item (slot + its value).
 SepItem sepv_get_item(SepV object, SepString *property);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV object, SepString *property);
+// A variant of sepv_get() that returns SEPV_NO_VALUE when the property
+// is missing, instead of throwing exceptions.
+SepV sepv_lenient_get(SepV sepv, SepString *property);
+
 // Takes a SepV that will be called, and returns the proper SepFunc*
 // that will implement that call. For SepVs that are functions, this
 // will be the function itself. For objects, the special "<call>"

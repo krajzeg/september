@@ -190,6 +190,9 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 	// mark the property map region
 	gc_mark_region(object->props.entries);
 
+	// mark auxillary C data, if we hold any
+	gc_mark_region(object->data);
+
 	// queue property values
 	if (object->props.entries) {
 		PropertyIterator it = props_iterate_over(object);
@@ -229,6 +232,13 @@ void gc_mark_and_queue_obj(GarbageCollection *this, SepObj *object) {
 void gc_mark_and_queue_func(GarbageCollection *this, SepFunc *func) {
 	// delegate - each function type has different logic here
 	func->vt->mark_and_queue(func, this);
+}
+
+void gc_mark_and_queue_slot(GarbageCollection *this, Slot *slot) {
+	gc_add_to_queue(this, slot->value);
+	// artificial slots can have special needs
+	if (slot->vt->mark_and_queue)
+		slot->vt->mark_and_queue(slot, this);
 }
 
 // Marks any value passed in as a SepV and queues all other objects

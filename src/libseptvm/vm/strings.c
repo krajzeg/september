@@ -46,8 +46,6 @@ uint32_t cstring_hash(const char *c_string) {
 // ===============================================================
 
 SepString *sepstr_for(const char *c_string) {
-	static Slot *string_cache_slot = NULL;
-
 	// look in the cache and returned interned string if something's there
 	uint32_t hash = cstring_hash(c_string);
 	if (rt.string_cache) {
@@ -68,9 +66,8 @@ SepString *sepstr_for(const char *c_string) {
 	// strings might be used before the string_cache is initialized
 	// but if it is, intern the string
 	if (rt.string_cache) {
-		if (!string_cache_slot)
-			string_cache_slot = field_create(SEPV_NOTHING);
-		props_accept_prop(rt.string_cache, string, string_cache_slot);
+		// the name and the value of the property in the string cache are the same
+		props_add_prop(rt.string_cache, string, &st_field, str_to_sepv(string));
 	} else {
 		// if its not, prevent it from being GC'd
 		gc_register(str_to_sepv(string));
@@ -132,8 +129,7 @@ SepV sepv_string(char *c_string) {
 }
 
 SepItem si_string(char *c_string) {
-	SepItem si = {NULL, str_to_sepv(sepstr_for(c_string))};
-	return si;
+	return item_rvalue(str_to_sepv(sepstr_for(c_string)));
 }
 
 void sepstr_init(SepString *this, const char *c_string) {

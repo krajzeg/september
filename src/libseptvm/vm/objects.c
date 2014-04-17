@@ -12,6 +12,7 @@
 // ===============================================================
 //  Includes
 // ===============================================================
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -37,41 +38,47 @@
 //  Slots
 // ===============================================================
 
-Slot *slot_create(SlotVTable *behavior, SepV initial_value) {
-	Slot *slot = (Slot*) mem_unmanaged_allocate(sizeof(Slot)); // TODO: really should be managed
+void slot_init(Slot *slot, SlotType *behavior, SepV initial_value) {
 	slot->vt = behavior;
 	slot->value = initial_value;
+}
 
+Slot *slot_create(SlotType *behavior, SepV initial_value) {
+	Slot *slot = mem_allocate(sizeof(Slot));
+	slot->vt = behavior;
+	slot->value = initial_value;
 	return slot;
+}
+
+// Retrieves a value from any type of slot.
+SepV slot_retrieve(Slot *slot, OriginInfo *origin) {
+	return slot->vt->retrieve(slot, origin);
+}
+
+// Stores a value in any type of slot.
+SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value) {
+	return slot->vt->store(slot, origin, new_value);
 }
 
 // ===============================================================
 //  Fields
 // ===============================================================
 
-SepV field_store(Slot *slot, SepV context, SepV value) {
-	return slot->value = value;
-}
-
-SepV field_retrieve(Slot *slot, SepV context) {
+SepV field_retrieve(Slot *slot, OriginInfo *origin) {
 	return slot->value;
 }
 
-SlotVTable field_slot_vtable = { &field_retrieve, &field_store };
-
-Slot *field_create(SepV initial_value) {
-	return slot_create(&field_slot_vtable, initial_value);
+SepV field_store(Slot *slot, OriginInfo *origin, SepV value) {
+	return slot->value = value;
 }
+
+SlotType st_field = { &field_retrieve, &field_store, NULL };
 
 // ===============================================================
 //  Methods
 // ===============================================================
 
-SepV method_store(Slot *slot, SepV context, SepV value) {
-	return slot->value = value;
-}
-
-SepV method_retrieve(Slot *slot, SepV context) {
+SepV method_retrieve(Slot *slot, OriginInfo *origin) {
 	SepV method_v = slot->value;
 
 	// if the value inside is not a function, do nothing special
@@ -81,15 +88,15 @@ SepV method_retrieve(Slot *slot, SepV context) {
 	// if it is a function, bind it permanently to the host
 	// so the 'this' pointer is correct when it is invoked
 	SepFunc *func = sepv_to_func(method_v);
-	SepFunc *bound = (SepFunc*) boundmethod_create(func, context);
+	SepFunc *bound = (SepFunc*) boundmethod_create(func, origin->source);
 	return func_to_sepv(bound);
 }
 
-SlotVTable method_slot_vtable = { &method_retrieve, &method_store };
-
-Slot *method_create(SepV initial_value) {
-	return slot_create(&method_slot_vtable, initial_value);
+SepV method_store(Slot *slot, OriginInfo *origin, SepV value) {
+	return slot->value = value;
 }
+
+SlotType st_method = { &method_retrieve, &method_store, NULL };
 
 // ===============================================================
 //  Property maps - private implementation
@@ -217,20 +224,31 @@ void props_init(void *map, int initial_capacity) {
 	memset(this->entries, 0, bytes);
 }
 
-// Adds a new property to the map.
+// Adds an existing slot to the map.
 Slot *props_accept_prop(void *map, SepString *name, Slot *slot) {
 	// delegate to the internal version
 	return _props_accept_prop_internal(map, name, slot, true);
 }
 
+// Adds a new property to the map and returns the new slot stored
+// inside the map. Should be preferred to props_accept_prop since
+// it avoids new memory allocations.
+Slot *props_add_prop(void *map, SepString *name, SlotType *slot_type, SepV initial_value) {
+	Slot source_slot;
+	slot_init(&source_slot, slot_type, initial_value);
+	return _props_accept_prop_internal(map, name, &source_slot, true);
+}
+
 SepV props_get_prop(void *map, SepString *name) {
 	PropertyMap *this = (PropertyMap*) map;
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
-	if (entry->name)
-		return entry->slot.vt->retrieve(&entry->slot,
-				obj_to_sepv((SepObj* )this));
-	else
+	if (entry->name) {
+		SepV host = obj_to_sepv((SepObj*)this);
+		OriginInfo origin = {host, host, name};
+		return slot_retrieve(&entry->slot, &origin);
+	} else {
 		return SEPV_NOTHING;
+	}
 }
 
 // Finds the slot corresponding to a named property.
@@ -246,11 +264,13 @@ Slot *props_find_prop(void *map, SepString *name) {
 SepV props_set_prop(void *map, SepString *name, SepV value) {
 	PropertyMap *this = (PropertyMap*) map;
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
-	if (entry->name)
-		return entry->slot.vt->store(&entry->slot, obj_to_sepv((SepObj* )this),
-				value);
-	else
+	if (entry->name) {
+		SepV host = obj_to_sepv((SepObj*)this);
+		OriginInfo origin = {host, host, name};
+		return slot_store(&entry->slot, &origin, value);
+	} else {
 		return SEPV_NOTHING; // this will have to be an exception in the future
+	}
 }
 
 bool props_prop_exists(void *map, SepString *name) {
@@ -262,8 +282,7 @@ bool props_prop_exists(void *map, SepString *name) {
 void props_add_field(void *map, const char *name, SepV value) {
 	PropertyMap *this = (PropertyMap*) map;
 	SepString *s_name = sepstr_for(name);
-	Slot *slot = field_create(value);
-	props_accept_prop(this, s_name, slot);
+	props_add_prop(this, s_name, &st_field, value);
 }
 
 // Finds the hash table entry based on a raw hash and key string. Low-level
@@ -325,7 +344,9 @@ Slot *propit_slot(PropertyIterator *current) {
 // The value of the property.
 SepV propit_value(PropertyIterator *current) {
 	Slot *slot = &(current->entry->slot);
-	return slot->vt->retrieve(slot, obj_to_sepv((SepObj* )current->map));
+	SepV host = obj_to_sepv((SepObj*)current->map);
+	OriginInfo origin = {host, host, current->entry->name};
+	return slot_retrieve(slot, &origin);
 }
 
 // ===============================================================
@@ -338,14 +359,14 @@ SepObj *obj_create() {
 
 	SepObj *obj = mem_allocate(sizeof(SepObj));
 
-	// set up traits
+	// set up default values
 	obj->traits = DEFAULT_TRAITS;
-	// default prototype is runtime.Object - Object class
 	obj->prototypes = obj_to_sepv(rt.Object);
 
 	// make sure all unallocated pointers are NULL to avoid GC
 	// tripping over uninitialized pointers and going berserk on
 	// random memory
+	obj->data = NULL;
 	obj->props.entries = NULL;
 
 	// register in as a GC root in the current frame to prevent accidental freeing
@@ -412,11 +433,15 @@ SepV sepv_prototypes(SepV sepv) {
 
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing found.
-Slot *sepv_lookup(SepV sepv, SepString *property) {
-	// handle the Literals special
+// If the 'owner_ptr' is non-NULL, it will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) into the memory being pointed to.
+Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
+	// handle the Literals in a special way
 	if (sepv == SEPV_LITERALS) {
-		// just return the name of the requested property back
-		return field_create(str_to_sepv(property));
+		// return the property name itself, wrapped in a fake slot
+		*owner_ptr = SEPV_NO_VALUE;
+		return slot_create(&st_field, str_to_sepv(property));
 	}
 
 	// if we are an object, we might have this property ourselves
@@ -425,6 +450,8 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 		Slot *local_slot = props_find_prop(obj, property);
 		if (local_slot) {
 			// found it - local values always take priority
+			if (owner_ptr)
+				*owner_ptr = sepv;
 			return local_slot;
 		}
 	}
@@ -450,9 +477,8 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 				// skip cyclical references
 				if (prototype == sepv)
 					continue;
-				// look inside
-				Slot *proto_slot = sepv_lookup(array_get(prototypes, index),
-						property);
+				// look inside (pass the owner ptr so the owner gets written by the recursive call)
+				Slot *proto_slot = sepv_lookup(prototype, property, owner_ptr);
 				if (proto_slot)
 					return proto_slot;
 			}
@@ -460,23 +486,35 @@ Slot *sepv_lookup(SepV sepv, SepString *property) {
 			return NULL;
 		} else {
 			// a single prototype, recurse into it (if its not a cycle)
+			// the 'owner_ptr' is passed to make sure the owner is stored
+			// by the recursive call
 			if (proto != sepv)
-				return sepv_lookup(proto, property);
+				return sepv_lookup(proto, property, owner_ptr);
 			else
 				return NULL;
 		}
 	} else {
 		// single non-object prototype, strange but legal
-		return sepv_lookup(proto, property);
+		return sepv_lookup(proto, property, owner_ptr);
 	}
 }
 
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure.
 SepItem sepv_get_item(SepV sepv, SepString *property) {
-	Slot *slot = sepv_lookup(sepv, property);
+	SepV owner;
+	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
-		return item_lvalue(slot, slot->vt->retrieve(slot, sepv));
+		OriginInfo origin = {sepv, owner, property};
+		SepV value = slot_retrieve(slot, &origin);
+		if (owner != SEPV_NO_VALUE) {
+			// just a normal property
+			return item_property_lvalue(owner, sepv, property, slot, value);
+		} else {
+			// SEPV_NO_VALUE in the owner means that
+			// this is an artificially-created slot
+			return item_artificial_lvalue(slot, value);
+		}
 	} else {
 		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
 				property->cstr);
@@ -485,15 +523,30 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 }
 
 // Gets the value of a property from an arbitrary SepV, using
+// proper lookup procedure. If the property is found, returns
+// it in the SepV. If the property is absent, SEPV_NO_VALUE will
+// be returned as a marker. If you prefer an exception, use
+// sepv_get().
+SepV sepv_lenient_get(SepV sepv, SepString *property) {
+	SepV owner;
+	Slot *slot = sepv_lookup(sepv, property, &owner);
+	if (slot) {
+		OriginInfo origin = {sepv, owner, property};
+		return slot_retrieve(slot, &origin);
+	} else {
+		return SEPV_NOTHING;
+	};
+}
+
+// Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure. Returns just a SepV.
 SepV sepv_get(SepV sepv, SepString *property) {
-	Slot *slot = sepv_lookup(sepv, property);
-	if (slot) {
-		return slot->vt->retrieve(slot, sepv);
+	SepV value = sepv_lenient_get(sepv, property);
+	if (value == SEPV_NO_VALUE) {
+		return sepv_exception(exc.EMissingProperty,
+				sepstr_sprintf("Property '%s' does not exist.", property->cstr));
 	} else {
-		SepString *message = sepstr_sprintf("Property '%s' does not exist.",
-				property->cstr);
-		return sepv_exception(exc.EMissingProperty, message);
+		return value;
 	}
 }
 
@@ -507,11 +560,10 @@ SepFunc *sepv_call_target(SepV value) {
 	if (sepv_is_func(value))
 		return sepv_to_func(value);
 
-	Slot *call_slot = sepv_lookup(value, sepstr_for("<call>"));
-	if (!call_slot)
+	if (!property_exists(value, "<call>"))
 		return NULL;
 
 	// recurse into the <call> property
-	SepV call_property = call_slot->vt->retrieve(call_slot, value);
+	SepV call_property = property(value, "<call>");
 	return sepv_call_target(call_property);
 }

@@ -77,7 +77,7 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err) {
 
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents) {
-	props_accept_prop(obj, sepstr_for(name), field_create(contents));
+	props_add_prop(obj, sepstr_for(name), &st_field, contents);
 }
 
 // Adds a new built-in method to a given object.
@@ -89,7 +89,7 @@ void obj_add_builtin_method(SepObj *obj, char *name, BuiltInImplFunc impl, uint8
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_for(name), method_create(func_to_sepv(builtin)));
+	props_add_prop(obj, sepstr_for(name), &st_method, func_to_sepv(builtin));
 }
 
 // Adds a new built-in free function (as opposed to a method) to a given object.
@@ -101,7 +101,7 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 	va_end(args);
 
 	// make the slot
-	props_accept_prop(obj, sepstr_for(name), field_create(func_to_sepv(builtin)));
+	props_add_prop(obj, sepstr_for(name), &st_field, func_to_sepv(builtin));
 }
 
 // Adds a new prototype to the object.
@@ -143,7 +143,7 @@ SepV property(SepV host, char *name) {
 
 // Checks whether a named property exists on a host object (including prototype lookup).
 bool property_exists(SepV host, char *name) {
-	Slot *slot = sepv_lookup(host, sepstr_for(name));
+	Slot *slot = sepv_lookup(host, sepstr_for(name), NULL);
 	return (slot != NULL);
 }
 
@@ -187,7 +187,7 @@ SepObj *make_class(char *name, SepObj *parent) {
 
 	// copy properties from the Class master object
 	SepV call_v = property(obj_to_sepv(rt.Cls), "<call>");
-	props_accept_prop(cls, sepstr_for("<call>"), method_create(call_v));
+	props_add_prop(cls, sepstr_for("<call>"), &st_method, call_v);
 
 	// return the class
 	return cls;
@@ -276,29 +276,4 @@ BuiltInFunc *make_return_func(ExecutionFrame *frame) {
 
 	// return the function
 	return function;
-}
-
-// ===============================================================
-//  Common operations on SepVs
-// ===============================================================
-
-SepString *sepv_debug_string(SepV sepv, SepError *out_err) {
-	SepError err = NO_ERROR;
-
-	// look for the class
-	Slot *class_slot = sepv_lookup(sepv, sepstr_for("<class>"));
-	if (class_slot) {
-		// retrieve the name of the class
-		SepV class_v = class_slot->vt->retrieve(class_slot, sepv);
-		SepString *class_name = prop_as_str(class_v, "<name>", &err);
-			or_quit_with(NULL);
-
-		if (sepv_is_obj(sepv))
-			return sepstr_sprintf("<%s at %llx>", class_name->cstr, (uint64_t)(intptr_t)sepv_to_obj(sepv));
-		else
-			return sepstr_sprintf("<%s object>", class_name->cstr);
-	} else {
-		// this must be an object, primitives all have <class>
-		return sepstr_sprintf("<classless object at %llx>", (uint64_t)(intptr_t)sepv_to_obj(sepv));
-	}
 }

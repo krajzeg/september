@@ -21,6 +21,7 @@
 #include "opcodes.h"
 #include "types.h"
 #include "objects.h"
+#include "funcparams.h"
 
 // ===============================================================
 //  Pre-declaring structs
@@ -30,35 +31,6 @@ struct ArgumentSource;
 struct ExecutionFrame;
 struct SepFunc;
 struct SepModule;
-
-// ===============================================================
-//  Function parameters
-// ===============================================================
-
-typedef enum ParamType {
-	PT_STANDARD_PARAMETER = 0,
-	PT_POSITIONAL_SINK = 1,
-	PT_NAMED_SINK = 2
-} ParamType;
-
-typedef struct FuncParam {
-	// undecorated parameter name
-	SepString *name;
-	// flags controlling how the parameter is passed
-	struct {
-		int lazy:1;
-		ParamType type:2;
-		int optional:1;
-	} flags;
-	// if the parameter is optional, a reference to the default value
-	// (an index into the constant pool/function pool) will be stored
-	// here
-	CodeUnit default_value_reference;
-} FuncParam;
-
-// Sets up the all the call arguments inside the execution scope. Also validates them.
-// Any problems found will be reported as an exception SepV in the return value.
-SepV funcparam_pass_arguments(struct ExecutionFrame *frame, struct SepFunc *func, SepObj *scope, struct ArgumentSource *arguments);
 
 // ===============================================================
 //  Common function interface
