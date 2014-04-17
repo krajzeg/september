@@ -3,11 +3,17 @@
 
 /*******************************************************************/
 
+// ===============================================================
+//  Includes and pre-declarations
+// ===============================================================
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-/*******************************************************************/
+struct PropertyEntry;
+struct SepString;
+struct Slot;
 
 // ===============================================================
 //  Basic types for representing data.
@@ -46,15 +52,17 @@ typedef enum SepItemType {
  * Additional information stored for property-type l-values in order
  * to let them implement 'store' properly.
  */
-typedef struct OriginPropertyInfo {
-	// the object we used on the left side of '.' to get at the property
-	// - note that it might not actually have this slot, as it could
+typedef struct OriginInfo {
+	// the object that was used on the left side of '.' to get at the property
+	// - note that this object might not actually own this slot, as it could
 	// belong to one of the prototypes
 	SepV source;
 	// the owner of the slot - can be a prototype of the host, or
 	// the host itself
 	SepV owner;
-} OriginPropertyInfo;
+	// the name of the property used to access the slot
+	struct SepString *property;
+} OriginInfo;
 
 /**
  * SepItem is what actually gets stored on the data stack. In addition
@@ -65,10 +73,10 @@ typedef struct OriginPropertyInfo {
 typedef struct SepItem {
 	// unassignable r-value, or one of the l-value types?
 	SepItemType type;
-	// the slot this value came from - set only in case of l-value
+	// the slot this value came from - provided only for l-values
 	struct Slot *slot;
 	// additional information used only by property-lvalues
-	OriginPropertyInfo property;
+	OriginInfo origin;
 	// the value itself
 	SepV value;
 } SepItem;
@@ -76,7 +84,7 @@ typedef struct SepItem {
 // Creates a new r-value stack item from a SepV.
 SepItem item_rvalue(SepV value);
 // Creates a new property l-value stack item.
-SepItem item_property_lvalue(SepV slot_owner, SepV accessed_through, struct Slot *slot, SepV value);
+SepItem item_property_lvalue(SepV slot_owner, SepV accessed_through, struct SepString *property_name, struct Slot *slot, SepV value);
 // Creates a new artificial l-value stack item - the slot has to be a standalone managed object.
 SepItem item_artificial_lvalue(struct Slot *slot, SepV value);
 

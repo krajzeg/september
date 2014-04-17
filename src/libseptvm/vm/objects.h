@@ -52,9 +52,9 @@ struct GarbageCollection;
 typedef struct SlotType {
 	// retrieves the value from the slot, taking the slot's owner
 	// and the host object into account
-	SepV (*retrieve)(struct Slot *slot, SepV owner, SepV host);
+	SepV (*retrieve)(struct Slot *slot, struct OriginInfo *origin);
 	// stores a new value into the slot
-	SepV (*store)(struct Slot *slot, SepV owner, SepV host, SepV newValue);
+	SepV (*store)(struct Slot *slot, struct OriginInfo *origin, SepV newValue);
 	// optional - marks and queues any dependent objects during GC
 	// NULL if not required
 	void (*mark_and_queue)(struct Slot *slot, struct GarbageCollection *gc);
@@ -76,9 +76,9 @@ typedef struct Slot {
 Slot *slot_create(SlotType *behavior,
 		SepV initial_value);
 // Retrieves a value from any type of slot.
-SepV slot_retrieve(Slot *slot, SepV owner, SepV host);
+SepV slot_retrieve(Slot *slot, OriginInfo *origin);
 // Stores a value in any type of slot.
-SepV slot_store(Slot *slot, SepV owner, SepV host, SepV new_value);
+SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 
 // Convert slots to SepV and back
 #define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))

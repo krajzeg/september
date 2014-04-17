@@ -48,7 +48,7 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_ty
 
 	// create the slot
 	Slot *slot = props_add_prop(host, property_name, slot_type, value);
-	return item_property_lvalue(host_v, host_v, slot, SEPV_NOTHING);
+	return item_property_lvalue(host_v, host_v, property_name, slot, SEPV_NOTHING);
 }
 
 // The ':' field creation operator, valid for all objects.

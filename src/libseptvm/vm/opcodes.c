@@ -168,12 +168,7 @@ void store_impl(ExecutionFrame *frame) {
 	}
 
 	// store the value in the slot specified
-	SepV result;
-	if (item.type == SIT_PROPERTY_LVALUE) {
-		result = slot_store(item.slot, item.property.owner, item.property.source, value);
-	} else if (item.type == SIT_ARTIFICIAL_LVALUE) {
-		result = slot_store(item.slot, SEPV_NO_VALUE, SEPV_NO_VALUE, value);
-	}
+	SepV result = slot_store(item.slot, &item.origin, value);
 
 	// return the value to the stack (as an rvalue)
 	stack_push_rvalue(frame->data, result);
@@ -209,7 +204,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	Slot *slot = props_add_prop(host, property, &st_field, SEPV_NOTHING);
 
 	// push it on the stack
-	SepItem property_item = item_property_lvalue(host_v, host_v, slot, SEPV_NOTHING);
+	SepItem property_item = item_property_lvalue(host_v, host_v, property, slot, SEPV_NOTHING);
 	stack_push_item(frame->data, property_item);
 }
 

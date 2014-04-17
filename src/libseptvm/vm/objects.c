@@ -51,24 +51,24 @@ Slot *slot_create(SlotType *behavior, SepV initial_value) {
 }
 
 // Retrieves a value from any type of slot.
-SepV slot_retrieve(Slot *slot, SepV owner, SepV host) {
-	return slot->vt->retrieve(slot, owner, host);
+SepV slot_retrieve(Slot *slot, OriginInfo *origin) {
+	return slot->vt->retrieve(slot, origin);
 }
 
 // Stores a value in any type of slot.
-SepV slot_store(Slot *slot, SepV owner, SepV host, SepV new_value) {
-	return slot->vt->store(slot, owner, host, new_value);
+SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value) {
+	return slot->vt->store(slot, origin, new_value);
 }
 
 // ===============================================================
 //  Fields
 // ===============================================================
 
-SepV field_retrieve(Slot *slot, SepV owner, SepV host) {
+SepV field_retrieve(Slot *slot, OriginInfo *origin) {
 	return slot->value;
 }
 
-SepV field_store(Slot *slot, SepV owner, SepV host, SepV value) {
+SepV field_store(Slot *slot, OriginInfo *origin, SepV value) {
 	return slot->value = value;
 }
 
@@ -78,7 +78,7 @@ SlotType st_field = { &field_retrieve, &field_store, NULL };
 //  Methods
 // ===============================================================
 
-SepV method_retrieve(Slot *slot, SepV owner, SepV host) {
+SepV method_retrieve(Slot *slot, OriginInfo *origin) {
 	SepV method_v = slot->value;
 
 	// if the value inside is not a function, do nothing special
@@ -88,11 +88,11 @@ SepV method_retrieve(Slot *slot, SepV owner, SepV host) {
 	// if it is a function, bind it permanently to the host
 	// so the 'this' pointer is correct when it is invoked
 	SepFunc *func = sepv_to_func(method_v);
-	SepFunc *bound = (SepFunc*) boundmethod_create(func, host);
+	SepFunc *bound = (SepFunc*) boundmethod_create(func, origin->source);
 	return func_to_sepv(bound);
 }
 
-SepV method_store(Slot *slot, SepV owner, SepV host, SepV value) {
+SepV method_store(Slot *slot, OriginInfo *origin, SepV value) {
 	return slot->value = value;
 }
 
@@ -244,7 +244,8 @@ SepV props_get_prop(void *map, SepString *name) {
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
 	if (entry->name) {
 		SepV host = obj_to_sepv((SepObj*)this);
-		return slot_retrieve(&entry->slot, host, host);
+		OriginInfo origin = {host, host, name};
+		return slot_retrieve(&entry->slot, &origin);
 	} else {
 		return SEPV_NOTHING;
 	}
@@ -265,7 +266,8 @@ SepV props_set_prop(void *map, SepString *name, SepV value) {
 	PropertyEntry *prev, *entry = _props_find_entry(this, name, &prev);
 	if (entry->name) {
 		SepV host = obj_to_sepv((SepObj*)this);
-		return slot_store(&entry->slot, host, host, value);
+		OriginInfo origin = {host, host, name};
+		return slot_store(&entry->slot, &origin, value);
 	} else {
 		return SEPV_NOTHING; // this will have to be an exception in the future
 	}
@@ -343,7 +345,8 @@ Slot *propit_slot(PropertyIterator *current) {
 SepV propit_value(PropertyIterator *current) {
 	Slot *slot = &(current->entry->slot);
 	SepV host = obj_to_sepv((SepObj*)current->map);
-	return slot_retrieve(slot, host, host);
+	OriginInfo origin = {host, host, current->entry->name};
+	return slot_retrieve(slot, &origin);
 }
 
 // ===============================================================
@@ -502,10 +505,11 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 	SepV owner;
 	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
-		SepV value = slot_retrieve(slot, owner, sepv);
+		OriginInfo origin = {sepv, owner, property};
+		SepV value = slot_retrieve(slot, &origin);
 		if (owner != SEPV_NO_VALUE) {
 			// just a normal property
-			return item_property_lvalue(owner, sepv, slot, value);
+			return item_property_lvalue(owner, sepv, property, slot, value);
 		} else {
 			// SEPV_NO_VALUE in the owner means that
 			// this is an artificially-created slot
@@ -527,7 +531,8 @@ SepV sepv_lenient_get(SepV sepv, SepString *property) {
 	SepV owner;
 	Slot *slot = sepv_lookup(sepv, property, &owner);
 	if (slot) {
-		return slot_retrieve(slot, owner, sepv);
+		OriginInfo origin = {sepv, owner, property};
+		return slot_retrieve(slot, &origin);
 	} else {
 		return SEPV_NOTHING;
 	};

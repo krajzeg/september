@@ -341,8 +341,9 @@ void vm_queue_gc_roots(GarbageCollection *gc) {
 		if (stack_item.type == SIT_ARTIFICIAL_LVALUE) {
 			gc_add_to_queue(gc, slot_to_sepv(stack_item.slot));
 		} else if (stack_item.type == SIT_PROPERTY_LVALUE) {
-			gc_add_to_queue(gc, stack_item.property.owner);
-			gc_add_to_queue(gc, stack_item.property.source);
+			gc_add_to_queue(gc, stack_item.origin.owner);
+			gc_add_to_queue(gc, stack_item.origin.source);
+			gc_add_to_queue(gc, str_to_sepv(stack_item.origin.property));
 		}
 
 		// next!
