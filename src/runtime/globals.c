@@ -204,8 +204,12 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 
 	// create execution scope for the body
 	SepObj *while_body_scope = obj_create_with_proto(frame->prev_frame->locals);
-	obj_add_escape(while_body_scope, "break", frame, SEPV_BREAK);
-	obj_add_escape(while_body_scope, "continue", frame, SEPV_NOTHING);
+
+	// add 'break' and 'continue' support inside the body
+	SepFunc *break_f = (SepFunc*)make_escape_func(frame, SEPV_BREAK);
+	SepFunc *continue_f = (SepFunc*)make_escape_func(frame, SEPV_NOTHING);
+	obj_add_slot(while_body_scope, "break", &st_magic_word, func_to_sepv(break_f));
+	obj_add_slot(while_body_scope, "continue", &st_magic_word, func_to_sepv(continue_f));
 
 	// loop!
 	SepV body_l = param(scope, "body");
@@ -274,8 +278,14 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 
 	// prepare the scope
 	SepObj *for_body_scope = obj_create_with_proto(frame->prev_frame->locals);
-	obj_add_escape(for_body_scope, "break", frame, SEPV_BREAK);
-	obj_add_escape(for_body_scope, "continue", frame, SEPV_NOTHING);
+
+	// add break/continue support
+	SepFunc *break_f = (SepFunc*)make_escape_func(frame, SEPV_BREAK);
+	SepFunc *continue_f = (SepFunc*)make_escape_func(frame, SEPV_NOTHING);
+	obj_add_slot(for_body_scope, "break", &st_magic_word, func_to_sepv(break_f));
+	obj_add_slot(for_body_scope, "continue", &st_magic_word, func_to_sepv(continue_f));
+
+	// add a field for current element
 	props_add_prop(for_body_scope, variable_name, &st_field, SEPV_NOTHING);
 	SepV for_body_scope_v = obj_to_sepv(for_body_scope);
 
