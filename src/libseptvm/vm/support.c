@@ -75,6 +75,12 @@ SepInt cast_as_named_int(char *name, SepV value, SepError *out_err) {
 //  Operating on properties
 // ===============================================================
 
+// Adds a new slot of a chosen type to a given object. There are more convenient
+// functions for specific slot types.
+void obj_add_slot(SepObj *obj, char *name, SlotType *type, SepV value) {
+	props_add_prop(obj, sepstr_for(name), type, value);
+}
+
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents) {
 	props_add_prop(obj, sepstr_for(name), &st_field, contents);
@@ -228,8 +234,11 @@ SepItem escape_impl(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem return_impl(SepObj *scope, ExecutionFrame *frame) {
-	// set the return value in the 'escape' structure
-	SepItem return_value = item_rvalue(param(scope, "return_value"));
+	// retrieve the desired return value (using the default if none was provided)
+	SepV return_value_v = param(scope, "return_value");
+	if (return_value_v == SEPV_NO_VALUE)
+		return_value_v = SEPV_NOTHING;
+	SepItem return_value = item_rvalue(return_value_v);
 
 	// retrieve data from the function
 	BuiltInFunc *bfunc = (BuiltInFunc*)frame->function;
@@ -267,8 +276,8 @@ BuiltInFunc *make_escape_func(ExecutionFrame *frame, SepV value_returned) {
 }
 
 BuiltInFunc *make_return_func(ExecutionFrame *frame) {
-	// create a new escape function
-	BuiltInFunc *function = builtin_create(return_impl, 1, "return_value");
+	// create a new return function
+	BuiltInFunc *function = builtin_create(return_impl, 1, "=return_value");
 
 	// remember some stuff inside the function to be able to escape
 	// to the right place, leave return value to be filled later

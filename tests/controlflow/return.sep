@@ -1,0 +1,6 @@
+void := {
+	return;  # this should return Nothing
+	42;      # this should not get returned
+}
+
+print("Testing empty 'return' - should yield Nothing:", void())

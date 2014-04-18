@@ -255,7 +255,7 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, Executi
 
 	// add a 'return' function to the scope
 	BuiltInFunc *return_f = make_return_func(exec_frame);
-	obj_add_field(exec_scope, "return", func_to_sepv(return_f));
+	obj_add_slot(exec_scope, "return", &st_magic_word, func_to_sepv(return_f));
 
 	// store the scope in the frame
 	exec_frame->locals = exec_scope_v;

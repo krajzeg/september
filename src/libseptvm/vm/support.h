@@ -103,6 +103,9 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...);
 //  Adding properties
 // ===============================================================
 
+// Adds a new slot of a chosen type to a given object.
+// There are more convenient functions for specific slot types.
+void obj_add_slot(SepObj *obj, char *name, SlotType *type, SepV value);
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents);
 // Adds a new built-in method to a given object.
