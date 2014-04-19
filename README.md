@@ -19,6 +19,7 @@ The majority of the effort right now goes to making the virtual machine fully fe
 	* ☑ named arguments in calls (`people.sort(reverse: True)`) 
 * ☑ array/object "literals" (`[1, 2, 3]`, `[[x:1, y:2]]`)
 * ☑ indexing operator (`a[2]`)
+* ☐ normalize syntax so statements like `return a+b;`, `return;`, `break;` and `continue;` all work as expected
 * ☐ allow for writing and importing modules
 * ☐ get the basic class system with constructors, fields and methods working
 
