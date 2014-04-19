@@ -265,6 +265,9 @@ SepItem si_obj(void *object);
 //  Property lookup for all types
 // ===============================================================
 
+// Finds the prototype list (or single prototype) for a given SepV,
+// handling both rich objects and primitives.
+SepV sepv_prototypes(SepV sepv);
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing is found. For
 // primitive types, lookup starts with their prototype.

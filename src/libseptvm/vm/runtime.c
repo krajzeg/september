@@ -52,8 +52,10 @@ void initialize_runtime_references(SepV globals_v) {
 	store(exc, EMissingProperty);
 	store(exc, EPropertyAlreadyExists);
 	store(exc, ECannotAssign);
-	store(exc, ENoMoreElements);
 	store(exc, ENumericOverflow);
 	store(exc, EInternal);
+	store(exc, ENoMoreElements);
+	store(exc, EBreak);
+	store(exc, EContinue);
 }
 #undef store

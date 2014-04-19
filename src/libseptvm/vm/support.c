@@ -173,7 +173,7 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 }
 
 // ===============================================================
-//  Classes
+//  Classes and prototypes
 // ===============================================================
 
 // Creates a new class with the given name and parent class.
@@ -197,6 +197,39 @@ SepObj *make_class(char *name, SepObj *parent) {
 
 	// return the class
 	return cls;
+}
+
+// Checks whether a given object has another among its prototypes (or grand-prototypes).
+bool has_prototype(SepV object, SepV requested) {
+	SepV proto = sepv_prototypes(object);
+	if (proto == SEPV_NOTHING)
+		return false;
+
+	if (sepv_is_simple_object(proto)) {
+		// a simple object - not an array
+		if (proto == requested)
+			return true;
+		// recurse
+		if (proto != object)
+			return has_prototype(proto, object);
+	}
+
+	if (sepv_is_array(proto)) {
+		// iterate over all prototypes
+		SepArrayIterator it = array_iterate_over(sepv_to_array(proto));
+		while (!arrayit_end(&it)) {
+			SepV prototype = arrayit_next(&it);
+			if (prototype == requested)
+				return true;
+			if (has_prototype(prototype, requested))
+				return true;
+		}
+		// options exhausted
+		return false;
+	}
+
+	// it's strange that we're here, but we don't know how to find a prototype in this case
+	return false;
 }
 
 // ===============================================================

@@ -94,6 +94,9 @@ SepV property(SepV host, char *name);
 // Checks whether a named property exists on a host object (including prototype lookup).
 bool property_exists(SepV host, char *name);
 
+// Checks whether a given object has another among its prototypes (or grand-prototypes).
+bool has_prototype(SepV object, SepV prototype);
+
 // Calls a method from a SepV and returns the return value. Any problems
 // (the method not being there, the property not being callable) are
 // reported as an exception. Arguments have to be passed in as SepVs.

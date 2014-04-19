@@ -10,3 +10,11 @@ while (from != to) {
 print(from)
 
 print("While loop exited cleanly.")
+
+print("While should propagate exceptions out of its body.")
+try {
+	while(True) { missing = 42 }
+	print("But it doesn't.")
+} catch (EMissingProperty) {
+	print("And it does.")
+}

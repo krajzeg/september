@@ -7,3 +7,5 @@ This should print even numbers up to 6.
 2
 4
 6
+Exceptions from within 'for' should be propagated.
+And they are.
