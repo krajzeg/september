@@ -1,0 +1,3 @@
+Testing empty 'return' - should yield Nothing: <Nothing>
+Testing literal 'return' - should yield 42: 42
+Testing expression 'return' - should yield 42: 42

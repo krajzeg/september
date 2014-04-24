@@ -1,7 +1,7 @@
-The loop should print odd numbers up to 9.
+The loop should print only odd numbers up to 9.
 1
 3
 5
 7
 9
-break() exited the loop exited cleanly.
+'break' exited the loop exited cleanly.

@@ -54,6 +54,8 @@ typedef struct BuiltinExceptions {
 	SepObj *ECannotAssign;
 
 	SepObj *ENoMoreElements;
+	SepObj *EBreak;
+	SepObj *EContinue;
 
 	SepObj *ENumericOverflow;
 

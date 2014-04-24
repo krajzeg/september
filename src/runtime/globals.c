@@ -23,7 +23,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-aye"
+#define SEPTEMBER_VERSION "0.1-azoth"
 
 // ===============================================================
 //  Prototype creation methods
@@ -190,6 +190,31 @@ SepObj *create_if_statement_prototype() {
 }
 
 // ===============================================================
+//  Loop support for all types of loops
+// ===============================================================
+
+SepObj *proto_LoopBodyMixin;
+
+SepItem break_impl(SepObj *scope, ExecutionFrame *frame) {
+	raise(exc.EBreak, "Uncaught 'break'.");
+}
+
+SepItem continue_impl(SepObj *scope, ExecutionFrame *frame) {
+	raise(exc.EContinue, "Uncaught 'continue'.");
+}
+
+SepObj *create_loop_body_mixin() {
+	SepObj* LoopBodyMixin = obj_create();
+
+	SepFunc *break_f = (SepFunc*)builtin_create(&break_impl, 0);
+	obj_add_slot(LoopBodyMixin, "break", &st_magic_word, func_to_sepv(break_f));
+	SepFunc *continue_f = (SepFunc*)builtin_create(&continue_impl, 0);
+	obj_add_slot(LoopBodyMixin, "continue", &st_magic_word, func_to_sepv(continue_f));
+
+	return LoopBodyMixin;
+}
+
+// ===============================================================
 //  While
 // ===============================================================
 
@@ -204,8 +229,9 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 
 	// create execution scope for the body
 	SepObj *while_body_scope = obj_create_with_proto(frame->prev_frame->locals);
-	obj_add_escape(while_body_scope, "break", frame, SEPV_BREAK);
-	obj_add_escape(while_body_scope, "continue", frame, SEPV_NOTHING);
+
+	// add 'break' and 'continue' support inside the body
+	obj_add_prototype(while_body_scope, obj_to_sepv(proto_LoopBodyMixin));
 
 	// loop!
 	SepV body_l = param(scope, "body");
@@ -214,11 +240,20 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 		gc_release(condition);
 		// execute body
 		SepV result = vm_invoke_in_scope(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
-			or_propagate(result);
-		// break?
-		if (result == SEPV_BREAK) {
-			break;
+		// break or continue?
+		if (sepv_is_exception(result)) {
+			if (has_prototype(result, obj_to_sepv(exc.EBreak))) {
+				// break out of the C loop
+				break;
+			} else if (has_prototype(result, obj_to_sepv(exc.EContinue))) {
+				// just ignore the exception
+			} else {
+				// propagate other exceptions up
+				return item_rvalue(result);
+			}
 		}
+
+		// release result
 		gc_release(result);
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
@@ -274,8 +309,11 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 
 	// prepare the scope
 	SepObj *for_body_scope = obj_create_with_proto(frame->prev_frame->locals);
-	obj_add_escape(for_body_scope, "break", frame, SEPV_BREAK);
-	obj_add_escape(for_body_scope, "continue", frame, SEPV_NOTHING);
+
+	// add 'break' and 'continue' support inside the body
+	obj_add_prototype(for_body_scope, obj_to_sepv(proto_LoopBodyMixin));
+
+	// add a field for current element
 	props_add_prop(for_body_scope, variable_name, &st_field, SEPV_NOTHING);
 	SepV for_body_scope_v = obj_to_sepv(for_body_scope);
 
@@ -299,11 +337,18 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 		// execute the body of the loop
 		props_set_prop(for_body_scope, variable_name, element);
 		SepV result = vm_invoke_in_scope(frame->vm, body_l, for_body_scope_v, 0).value;
-			or_propagate(result);
 
-		// breaking
-		if (result == SEPV_BREAK) {
-			break;
+		// break or continue?
+		if (sepv_is_exception(result)) {
+			if (has_prototype(result, obj_to_sepv(exc.EBreak))) {
+				// break out of the C loop
+				break;
+			} else if (has_prototype(result, obj_to_sepv(exc.EContinue))) {
+				// just ignore the exception
+			} else {
+				// propagate other exceptions up
+				return item_rvalue(result);
+			}
 		}
 
 		// release objects from this iteration of the loop to make them GC'able
@@ -492,14 +537,16 @@ SepObj *create_globals() {
 	proto_IfStatement = create_if_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
+	proto_TryStatement = create_try_statement_prototype();
+	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
 
+	// loops
+	proto_LoopBodyMixin = create_loop_body_mixin();
 	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
 
 	proto_ForStatement = create_for_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "for..", &statement_for, 1, "?variable_name");
 
-	proto_TryStatement = create_try_statement_prototype();
-	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
 
 	// array and object literals
 	obj_add_builtin_func(obj_Syntax, "[]", &bracket_expr_array, 1, "...<items>");
@@ -527,6 +574,7 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 	module_register_private(module, obj_to_sepv(proto_ForStatement));
 	module_register_private(module, obj_to_sepv(proto_IfStatement));
 	module_register_private(module, obj_to_sepv(proto_TryStatement));
+	module_register_private(module, obj_to_sepv(proto_LoopBodyMixin));
 }
 
 void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals, SepError *out_err) {

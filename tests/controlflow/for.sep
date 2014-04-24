@@ -1,18 +1,26 @@
-array := |...elements| { return(elements); }
-
 print("This should print 1, 2, 3.")
-for (number) in (array(1,2,3)) {
+for (number) in ([1,2,3]) {
 	print(number)
 }
 
 print("This should never execute the body.")
-for (number) in (array()) {
+for (number) in ([]) {
 	print("But it did.")
 }
 
 print("This should print even numbers up to 6.")
-for (number) in (array(1,2,3,4,5,6,7,8)) {
-	if (number > 6) { break() }
-	if (number % 2 != 0) { continue() }
+for (number) in ([1,2,3,4,5,6,7,8]) {
+	if (number > 6) { break }
+	if (number % 2 != 0) { continue }
 	print(number)
+}
+
+print("Exceptions from within 'for' should be propagated.")
+try {
+	for (number) in ([1]) {
+		missing_prop = 42
+	}
+	print("But they aren't.")
+} catch(EMissingProperty) {
+	print("And they are.")
 }

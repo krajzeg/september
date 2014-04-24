@@ -72,7 +72,7 @@ SepV field_store(Slot *slot, OriginInfo *origin, SepV value) {
 	return slot->value = value;
 }
 
-SlotType st_field = { &field_retrieve, &field_store, NULL };
+SlotType st_field = {SF_NOTHING_SPECIAL, &field_retrieve, &field_store, NULL };
 
 // ===============================================================
 //  Methods
@@ -96,7 +96,16 @@ SepV method_store(Slot *slot, OriginInfo *origin, SepV value) {
 	return slot->value = value;
 }
 
-SlotType st_method = { &method_retrieve, &method_store, NULL };
+SlotType st_method = {SF_NOTHING_SPECIAL, &method_retrieve, &method_store, NULL };
+
+// ===============================================================
+//  Magic words
+// ===============================================================
+
+// magic words are behave identically to fields - but they have
+// the SF_MAGIC_WORD flag turned on to make the VM handle them
+// in a special fashion
+SlotType st_magic_word = {SF_MAGIC_WORD, &field_retrieve, &field_store, NULL };
 
 // ===============================================================
 //  Property maps - private implementation

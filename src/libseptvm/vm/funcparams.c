@@ -252,41 +252,53 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *param, SepObj *sco
 // Finalizes the value of the parameter - this is where default parameter
 // values are set and parameters are validated.
 SepV funcparam_finalize_value(ExecutionFrame *frame, SepFunc *func, FuncParam *this, SepObj *scope) {
+	// is the parameter missing?
 	if (!props_find_prop(scope, this->name)) {
-		// parameter missing
+		// let's see if we can find a default value for it
 		SepV default_value = SEPV_NO_VALUE;
+		bool default_value_found = false;
 
-		// default value?
+		// default value provided?
 		if (this->flags.optional) {
-			CodeUnit dv_reference = this->default_value_reference;
-			PoolReferenceType dv_type = decode_reference_type(dv_reference);
-			uint32_t dv_index = decode_reference_index(dv_reference);
-			switch (dv_type) {
-				case PRT_CONSTANT:
-					default_value = cpool_constant(func->module->constants, dv_index);
-					break;
-				case PRT_FUNCTION: {
-					// this is a lazy expression - call it in the function declaration scope
-					SepV scope = func->vt->get_declaration_scope(func);
-					CodeBlock *block = bpool_block(func->module->blocks, dv_index);
-					SepFunc *default_value_l = (SepFunc*)lazy_create(block, scope);
-					default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
-					break;
+			// we'll definitely find one
+			default_value_found = true;
+			// is this a built-in (and has no module pointer?)
+			if (func->module) {
+				CodeUnit dv_reference = this->default_value_reference;
+				PoolReferenceType dv_type = decode_reference_type(dv_reference);
+				uint32_t dv_index = decode_reference_index(dv_reference);
+				switch (dv_type) {
+					case PRT_CONSTANT:
+						default_value = cpool_constant(func->module->constants, dv_index);
+						break;
+					case PRT_FUNCTION: {
+						// this is a lazy expression - call it in the function declaration scope
+						SepV scope = func->vt->get_declaration_scope(func);
+						CodeBlock *block = bpool_block(func->module->blocks, dv_index);
+						SepFunc *default_value_l = (SepFunc*)lazy_create(block, scope);
+						default_value = vm_resolve(frame->vm, func_to_sepv(default_value_l));
+						break;
+					}
+					default:
+						return sepv_exception(exc.EInternal, sepstr_new("Default value references can only be constants or functions."));
 				}
-				default:
-					return sepv_exception(exc.EInternal, sepstr_new("Default value references can only be constants or functions."));
+			} else {
+				// this function has no module, so it is a built-in - and built-ins use SEPV_NO_VALUE for all defaults
+				default_value = SEPV_NO_VALUE;
 			}
 		}
 
 		// sink parameters always have an implicit default value even if none was given
-		if (default_value == SEPV_NO_VALUE && this->flags.type == PT_POSITIONAL_SINK) {
+		if (!default_value_found && this->flags.type == PT_POSITIONAL_SINK) {
 			default_value = obj_to_sepv(array_create(0));
+			default_value_found = true;
 		}
-		if (default_value == SEPV_NO_VALUE && this->flags.type == PT_NAMED_SINK) {
+		if (!default_value_found && this->flags.type == PT_NAMED_SINK) {
 			default_value = obj_to_sepv(obj_create());
+			default_value_found = true;
 		}
 
-		if (default_value != SEPV_NO_VALUE) {
+		if (default_value_found) {
 			// we have arrived at some default value to assign
 			props_add_prop(scope, this->name, &st_field, default_value);
 			return SEPV_NOTHING;

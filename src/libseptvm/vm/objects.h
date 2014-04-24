@@ -50,6 +50,9 @@ struct GarbageCollection;
  * values are stored and retrieved.
  */
 typedef struct SlotType {
+	// special flags enabling very specific handling in the VM (see SlotFlag enum)
+	// for most slot types, this will be 0 - unless magic is needed
+	uint8_t flags;
 	// retrieves the value from the slot, taking the slot's owner
 	// and the host object into account
 	SepV (*retrieve)(struct Slot *slot, struct OriginInfo *origin);
@@ -59,6 +62,18 @@ typedef struct SlotType {
 	// NULL if not required
 	void (*mark_and_queue)(struct Slot *slot, struct GarbageCollection *gc);
 } SlotType;
+
+/**
+ * Flags for slot types.
+ */
+typedef enum SlotFlag {
+	// used by st_magic_word - if this slot is ever popped explicitly from the stack,
+	// the function inside the slot gets executed
+	SF_MAGIC_WORD = 0x1,
+
+	// value used when the slot doesn't want any special treatment
+	SF_NOTHING_SPECIAL = 0x0
+} SlotFlag;
 
 /**
  * The slot structure.
@@ -89,8 +104,14 @@ SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 // ===============================================================
 
 // Built-in slot types
+// Simple dumb field for any type of value.
 extern SlotType st_field;
+// Method slot - binds the function with its "this" pointer on retrieval.
 extern SlotType st_method;
+// Special slot for pseudo-keywords like "return" or "break". The function
+// inside the slot is called whenever it appears as the only value in an
+// expression.
+extern SlotType st_magic_word;
 
 // ===============================================================
 //  Property maps
@@ -244,6 +265,9 @@ SepItem si_obj(void *object);
 //  Property lookup for all types
 // ===============================================================
 
+// Finds the prototype list (or single prototype) for a given SepV,
+// handling both rich objects and primitives.
+SepV sepv_prototypes(SepV sepv);
 // Finds a property starting from a given object, taking prototypes
 // into consideration. Returns NULL if nothing is found. For
 // primitive types, lookup starts with their prototype.

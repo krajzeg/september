@@ -212,9 +212,20 @@ void pop_impl(ExecutionFrame *frame) {
 	log0("opcodes", "pop");
 
 	// just pop the top
-	SepItem popped_value = stack_pop_item(frame->data);
+	SepItem popped = stack_pop_item(frame->data);
 	// latch as return value
-	frame->return_value = popped_value;
+	frame->return_value = popped;
+
+	// check for magic words
+	if (popped.slot && (popped.slot->vt->flags & SF_MAGIC_WORD)) {
+		// call the function inside the slot and replace the return value
+		SepItem result = vm_invoke(frame->vm, popped.value, 0);
+		frame->return_value = result;
+	}
+
+	// check for exceptions and raise them if needed
+	if (sepv_is_exception(frame->return_value.value))
+		frame_raise(frame, frame->return_value.value);
 }
 
 // ===============================================================

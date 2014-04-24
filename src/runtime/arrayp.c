@@ -92,6 +92,7 @@ void _array_index_slot_mark_and_queue(Slot *slot, GarbageCollection *gc) {
 
 // The v-table for the array index slot.
 SlotType array_index_slot_vt = {
+	SF_NOTHING_SPECIAL,
 	&_array_index_slot_retrieve,
 	&_array_index_slot_store,
 	&_array_index_slot_mark_and_queue

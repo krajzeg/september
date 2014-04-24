@@ -94,6 +94,9 @@ SepV property(SepV host, char *name);
 // Checks whether a named property exists on a host object (including prototype lookup).
 bool property_exists(SepV host, char *name);
 
+// Checks whether a given object has another among its prototypes (or grand-prototypes).
+bool has_prototype(SepV object, SepV prototype);
+
 // Calls a method from a SepV and returns the return value. Any problems
 // (the method not being there, the property not being callable) are
 // reported as an exception. Arguments have to be passed in as SepVs.
@@ -103,6 +106,9 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...);
 //  Adding properties
 // ===============================================================
 
+// Adds a new slot of a chosen type to a given object.
+// There are more convenient functions for specific slot types.
+void obj_add_slot(SepObj *obj, char *name, SlotType *type, SepV value);
 // Adds a new field to a given object.
 void obj_add_field(SepObj *obj, char *name, SepV contents);
 // Adds a new built-in method to a given object.

@@ -7,3 +7,5 @@ Iterating over numbers, starting at 9 and ending at 3
 4
 3
 While loop exited cleanly.
+While should propagate exceptions out of its body.
+And it does.
