@@ -311,8 +311,10 @@ class FunctionCallParser(OperationParser):
             return cls.parse_block(parser, token, left)
         elif token.kind == "(":
             return cls.parse_parenthesised_list(parser, token, left)
-        else: # identifier
+        elif token.is_a(lexer.Id):
             return cls.parse_identifier(parser, token, left)
+        else:
+            parser.error("Internal: FunctionCallParser cannot handle %s." % token)
 
     @classmethod
     def op_precedence(cls, token):
@@ -335,7 +337,7 @@ class FunctionCallParser(OperationParser):
             # make a new call out of it
             returned = host = FunctionCall(left)
 
-        block = BlockParser.null_parse(parser, token)
+        block = FunctionLiteralParser.null_parse(parser, token)
         host.child("args").add(block)
         return returned
 
@@ -386,6 +388,37 @@ class FunctionCallParser(OperationParser):
                          "not an identifier.")
 
 
+class FlatCallParser(OperationParser):
+    """Parser for 'flat' calls, such as 'return 2' - really return(2) - or
+    yield a,b - really yield(a,b). This capability is limited such that
+    operators cannot be used right after the function name."""
+    TOKENS = [lexer.StrLiteral, lexer.FloatLiteral, lexer.IntLiteral,
+              lexer.Id]
+    # precedes only assignment operators
+    PRECEDENCE = 15
+
+    @classmethod
+    def op_parse(cls, parser, token, left):
+        # we don't handle function calls on the left - that's FunctionCallParser's domain
+        if left.kind in (FunctionCall, ComplexCall):
+            return None
+
+        # parse the single argument
+        argument = parser.expression(cls.PRECEDENCE)
+        # build the resulting call
+        call = FunctionCall(left)
+        call.child("args").add(argument)
+        return call
+
+    @classmethod
+    def op_precedence(cls, token):
+        return cls.PRECEDENCE
+
+    @classmethod
+    def strength(cls, token):
+        return 10
+
+
 class BinaryOpParser(OperationParser):
     """Parser for binary operators."""
     TOKENS = [lexer.Operator]
@@ -415,7 +448,7 @@ class BinaryOpParser(OperationParser):
 
 
 class UnaryOpParser(ContextlessParser):
-    """Parser for unary operators."""
+    """Parser for unary operators. All unary operators in September are prefix."""
     TOKENS = [lexer.Operator]
     PRECEDENCE = 80
 
@@ -446,14 +479,14 @@ class IndexOpParser(OperationParser):
 
     @classmethod
     def op_precedence(cls, token):
-        # all indexing operator have high precedence (on par with . and :)
+        # all indexing operators have high precedence (on par with . and :)
         return 95
 
 
 class BracketExpressionParser(ContextlessParser):
-    """Parser for bracketed expression such as [[ an: object ]].
-    Such expressions are parsed as a function call of a function based on the bracket types,
-    e.g. "[[]]", with arguments taken from inside the brackets.
+    """Parser for bracketed expression such as '[1,2,3]' or '[[ x:0, y:0 ]]'.
+    Such expressions are parsed as a function call where the function name is based
+    on the brackets that were used - e.g. "[]" for '[1,2,3]'.
     """
     TOKENS = [lexer.OpenBracket]
 
@@ -473,8 +506,8 @@ class BracketExpressionParser(ContextlessParser):
 
 
 class ParameterListParser(ContextlessParser):
-    """Parses block argument lists. Only invoked by BlockParser,
-    never directly based on the token stream.
+    """Parses block argument lists. Only invoked by FunctionLiteralParser,
+    never directly.
     """
 
     @staticmethod
@@ -543,10 +576,9 @@ class ParameterListParser(ContextlessParser):
         return params
 
 
-
-
-class BlockParser(ContextlessParser):
-    """Parser for code blocks."""
+class FunctionLiteralParser(ContextlessParser):
+    """Parser for function literals of the form '|param,param|{...code...}',
+    or the parameterless '{...code...}'."""
     TOKENS = ["|", "{"]
 
     @classmethod
@@ -566,6 +598,7 @@ class BlockParser(ContextlessParser):
 
         return block
 
+
 class ParenthesisedExpressionParser(ContextlessParser):
     """Parses parenthesised expression like (a + b)."""
     TOKENS = ["("]
@@ -582,10 +615,10 @@ class ParenthesisedExpressionParser(ContextlessParser):
 # Parsers list
 ##############################################
 
-NULL_PARSERS = [IdParser, ConstantParser, BlockParser, UnaryOpParser,
+NULL_PARSERS = [IdParser, ConstantParser, FunctionLiteralParser, UnaryOpParser,
                 ParenthesisedExpressionParser,
                 BracketExpressionParser]
-OP_PARSERS = [BinaryOpParser, FunctionCallParser, IndexOpParser]
+OP_PARSERS = [BinaryOpParser, FunctionCallParser, IndexOpParser, FlatCallParser]
 
 ##############################################
 # The parsing code itself
@@ -638,31 +671,23 @@ class Parser:
         else:
             return None
 
-    def null_parser(self, token):
-        """Picks the best parser for a given token when we have no current
-        context.
-        """
-        return self.pick_parser(self.null_parsers, token)
+    def null_parser_set(self, token):
+        """Returns the set of applicable contextless parsers for the token at hand."""
+        return self._find_parsers(self.null_parsers, token)
 
-    def op_parser(self, token):
-        """Picks the best parser for a given token when we have a
-        left-hand-side context and expect an operator.
-        """
-        return self.pick_parser(self.op_parsers, token)
+    def op_parser_set(self, token):
+        """Returns the set of applicable operation parsers for the token at hand."""
+        return self._find_parsers(self.op_parsers, token)
 
-    def pick_parser(self, parsers, token):
+    def _find_parsers(self, parsers, token):
+        def parser_ordering(p):
+            return -p.strength(token)
         try:
             collection = parsers[token.kind]
-            if len(collection) == 1:
-                return collection[0]
-            else:
-                # multiple parsers, get the one with the best strength
-                ordered = sorted(collection, key=lambda p:-p.strength(token))
-                return ordered[0]
-
+            return sorted(collection, key=parser_ordering)
         except KeyError:
             # no match, no parser
-            return None
+            return []
 
     def expect(self, token_kind):
         """Asserts that the current token matches the kind given. Anything
@@ -711,23 +736,42 @@ class Parser:
         """
 
         # read the first term
-        first_term_parser = self.null_parser(self.token)
-        if not first_term_parser:
+        expression = None
+        first_parsers = self.null_parser_set(self.token)
+        if not first_parsers:
             self.error("This token cannot start an expression.")
-        expression = first_term_parser.null_parse(self, self.token)
+        for first_term_parser in first_parsers:
+            expression = first_term_parser.null_parse(self, self.token)
+            if expression:
+                break
+        else:
+            self.error("This is not a valid expression.")
 
         # and the following terms
         while True:
+            # if there are no more tokens - expression complete
             if not self.token:
-                # end of stream, nothing more to parse
                 return expression
-            parser = self.op_parser(self.token)
-            if not parser or parser.op_precedence(self.token) <= min_precedence:
-                # either there is no way to parse the expression further or
-                # the operator precedence is too low, this expression will
-                # become the left-side to the following operator
+            operation_parsers = self.op_parser_set(self.token)
+            # if the next token does not belong in an expression, expression complete
+            if not operation_parsers:
                 return expression
-            expression = parser.op_parse(self, self.token, expression)
+
+            for op_parser in operation_parsers:
+                # skip parsers with too low precedence
+                if op_parser.op_precedence(self.token) <= min_precedence:
+                    continue
+                updated_expression = op_parser.op_parse(self, self.token, expression)
+                # skip if the parser decided it didn't want to parse after all
+                if updated_expression is None:
+                    continue
+                # if we reached here, we update the expression and no more parsers
+                # need to be consulted
+                expression = updated_expression
+                break
+            else:
+                # no parser was able to do anything - that means expression complete
+                return expression
 
     def statement(self):
         """Parses a statement, which is just a terminated expression."""
