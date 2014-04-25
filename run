@@ -2,6 +2,6 @@
 
 ./compile $1 || exit $?
 
-BINARY_NAME=`echo $1 | sed -e 's/\..*/.09/'`
+BINARY_NAME=`echo $1 | sed -e 's/\..*/.sept/'`
 bin/09 $BINARY_NAME
 

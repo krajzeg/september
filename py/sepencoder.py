@@ -2,7 +2,7 @@
 #
 # sepencoder
 #
-# This package is responsible for writing the on-disk ".09" format that
+# This package is responsible for writing the on-disk ".sept" format that
 # September uses for its bytecode.
 #
 ##########################################################################

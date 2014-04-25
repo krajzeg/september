@@ -551,10 +551,10 @@ if __name__ == "__main__":
             outname = sys.argv[2]
         else:
             basename, extension = os.path.splitext(filename)
-            if extension != "09":
-                outname = basename + ".09"
+            if extension != "sept":
+                outname = basename + ".sept"
             else:
-                outname = filename + ".09"
+                outname = filename + ".sept"
 
         # try reading the file (UTF-8 assumed)
         with open(filename, "r", encoding="utf8") as f:

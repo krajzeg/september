@@ -1,7 +1,7 @@
 .*\.o
 .*\.d
 .*\.pyc
-.*\.09
+.*\.sept
 .*~
 __pycache__
 scribbles
