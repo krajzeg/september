@@ -1,0 +1,14 @@
+################################################################
+#
+# SEPTEMBER MODULE: runtime
+#
+# A module that is automatically loaded by the September
+# interpreter at startup before handing control over to actual
+# September code. Defines basic stuff like loops, control flow
+# constructs, and prototypes for primitives (Integer, String,
+# etc).
+#
+################################################################
+
+# just a mock definition for now
+runtimeLoaded := True

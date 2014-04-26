@@ -518,6 +518,9 @@ SepObj *create_globals() {
 	// initialize built-in exception classes
 	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
 
+	// ensure that syntax is part of the module
+	obj_add_prototype(obj_Globals, obj_to_sepv(obj_Syntax));
+
 	// initialize primitive classes
 	obj_add_field(obj_Globals, "Object", obj_to_sepv(rt.Object));
 	obj_add_field(obj_Globals, "Class", obj_to_sepv(rt.Cls));
@@ -552,7 +555,7 @@ SepObj *create_globals() {
 	obj_add_builtin_func(obj_Syntax, "[]", &bracket_expr_array, 1, "...<items>");
 	obj_add_builtin_func(obj_Syntax, "[[]]", &bracket_expr_object, 1, ":::<properties>");
 
-	// built-in functions are initialized
+	// built-in functions
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
 
 	return obj_Globals;
