@@ -14,7 +14,6 @@
 // ===============================================================
 //  Includes
 // ===============================================================
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <septvm.h>
@@ -62,11 +61,12 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
 			SepV to_string = property(thing, "toString");
-				or_propagate(to_string);
+			or_propagate(to_string);
 			SepItem string_i = vm_invoke(frame->vm, to_string, 0);
-				or_propagate(string_i.value);
-			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-				or_raise(exc.EWrongType);
+			or_propagate(string_i.value);
+			string = cast_as_named_str("Return value of toString()",
+					string_i.value, &err);
+			or_raise(exc.EWrongType);
 		} else {
 			string = sepv_to_str(thing);
 		}
@@ -146,12 +146,12 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 
 	SepV ifs = target(scope);
-	SepArray *branches = (SepArray*)prop_as_obj(ifs, "branches", &err);
-		or_raise(exc.EInternal);
+	SepArray *branches = (SepArray*) prop_as_obj(ifs, "branches", &err);
+	or_raise(exc.EInternal);
 
 	// iterate over all the branches guarded with conditions
 	SepArrayIterator it = array_iterate_over(branches);
-	while(!arrayit_end(&it)) {
+	while (!arrayit_end(&it)) {
 		// next branch
 		SepV branch = arrayit_next(&it);
 
@@ -183,7 +183,8 @@ SepObj *create_if_statement_prototype() {
 	SepObj *IfStatement = make_class("IfStatement", NULL);
 
 	obj_add_builtin_method(IfStatement, "else..", substatement_else, 1, "body");
-	obj_add_builtin_method(IfStatement, "elseif..", substatement_elseif, 2, "?condition", "body");
+	obj_add_builtin_method(IfStatement, "elseif..", substatement_elseif, 2,
+			"?condition", "body");
 	obj_add_builtin_method(IfStatement, "..!", statement_if_impl, 0);
 
 	return IfStatement;
@@ -206,10 +207,11 @@ SepItem continue_impl(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_loop_body_mixin() {
 	SepObj* LoopBodyMixin = obj_create();
 
-	SepFunc *break_f = (SepFunc*)builtin_create(&break_impl, 0);
+	SepFunc *break_f = (SepFunc*) builtin_create(&break_impl, 0);
 	obj_add_slot(LoopBodyMixin, "break", &st_magic_word, func_to_sepv(break_f));
-	SepFunc *continue_f = (SepFunc*)builtin_create(&continue_impl, 0);
-	obj_add_slot(LoopBodyMixin, "continue", &st_magic_word, func_to_sepv(continue_f));
+	SepFunc *continue_f = (SepFunc*) builtin_create(&continue_impl, 0);
+	obj_add_slot(LoopBodyMixin, "continue", &st_magic_word,
+			func_to_sepv(continue_f));
 
 	return LoopBodyMixin;
 }
@@ -221,7 +223,7 @@ SepObj *create_loop_body_mixin() {
 SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition_l = param(scope, "condition");
 	SepV condition = vm_resolve(frame->vm, condition_l);
-		or_propagate(condition);
+	or_propagate(condition);
 
 	// not looping even once?
 	if (condition != SEPV_TRUE)
@@ -239,7 +241,8 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 		// release condition for GC
 		gc_release(condition);
 		// execute body
-		SepV result = vm_invoke_in_scope(frame->vm, body_l, obj_to_sepv(while_body_scope), 0).value;
+		SepV result = vm_invoke_in_scope(frame->vm, body_l,
+				obj_to_sepv(while_body_scope), 0).value;
 		// break or continue?
 		if (sepv_is_exception(result)) {
 			if (has_prototype(result, obj_to_sepv(exc.EBreak))) {
@@ -257,7 +260,7 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 		gc_release(result);
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
-			or_propagate(condition);
+		or_propagate(condition);
 	}
 
 	// while() has no return value on normal exit
@@ -274,7 +277,8 @@ SepObj *proto_ForStatement;
 SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
 	SepObj *for_s = obj_create_with_proto(obj_to_sepv(proto_ForStatement));
 
-	SepV variable_name = vm_resolve_as_literal(frame->vm, param(scope, "variable_name"));
+	SepV variable_name = vm_resolve_as_literal(frame->vm,
+			param(scope, "variable_name"));
 	obj_add_field(for_s, "variable_name", variable_name);
 
 	return si_obj(for_s);
@@ -284,7 +288,7 @@ SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
 SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 	SepObj *for_s = target_as_obj(scope, &err);
-		or_raise(exc.EWrongType);
+	or_raise(exc.EWrongType);
 
 	obj_add_field(for_s, "collection", param(scope, "collection"));
 	obj_add_field(for_s, "body", param(scope, "body"));
@@ -299,12 +303,12 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	// get everything out of the statement
 	SepV for_s = target(scope);
 	SepString *variable_name = prop_as_str(for_s, "variable_name", &err);
-		or_raise(exc.EWrongType);
+	or_raise(exc.EWrongType);
 	SepV collection = property(for_s, "collection");
 	SepV iterator = call_method(frame->vm, collection, "iterator", 0);
-		or_propagate(iterator);
+	or_propagate(iterator);
 	SepV iterator_next = property(iterator, "next");
-		or_propagate(iterator_next);
+	or_propagate(iterator_next);
 	SepV body_l = property(for_s, "body");
 
 	// prepare the scope
@@ -318,14 +322,15 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV for_body_scope_v = obj_to_sepv(for_body_scope);
 
 	// actually start the loop
-	while(true) {
+	while (true) {
 		// get the next element in the collection
 		SepV element = vm_invoke(frame->vm, iterator_next, 0).value;
 		if (sepv_is_exception(element)) {
 			// check if its ENoMoreElements - if so, break out of the loop
 			SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
-			SepV is_no_more_elements_v = call_method(frame->vm, element, "is", 1, enomoreelements_v);
-				or_propagate(is_no_more_elements_v);
+			SepV is_no_more_elements_v = call_method(frame->vm, element, "is",
+					1, enomoreelements_v);
+			or_propagate(is_no_more_elements_v);
 			if (is_no_more_elements_v == SEPV_TRUE) {
 				break;
 			}
@@ -336,7 +341,8 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// execute the body of the loop
 		props_set_prop(for_body_scope, variable_name, element);
-		SepV result = vm_invoke_in_scope(frame->vm, body_l, for_body_scope_v, 0).value;
+		SepV result =
+				vm_invoke_in_scope(frame->vm, body_l, for_body_scope_v, 0).value;
 
 		// break or continue?
 		if (sepv_is_exception(result)) {
@@ -363,7 +369,8 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_for_statement_prototype() {
 	SepObj *ForStatement = make_class("ForStatement", NULL);
 
-	obj_add_builtin_method(ForStatement, "in..", substatement_in, 2, "collection", "body");
+	obj_add_builtin_method(ForStatement, "in..", substatement_in, 2,
+			"collection", "body");
 	obj_add_builtin_method(ForStatement, "..!", statement_for_impl, 0);
 
 	return ForStatement;
@@ -432,12 +439,13 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 		// go over the catch clauses and try to catch it
 		SepArray *catchers = sepv_to_array(property(try_s, "catchers"));
 		SepArrayIterator it = array_iterate_over(catchers);
-		while(!arrayit_end(&it)) {
+		while (!arrayit_end(&it)) {
 			SepV catcher_obj = arrayit_next(&it);
 
 			// check the exception type using Exception.is().
 			SepV catcher_type = property(catcher_obj, "type");
-			SepV type_matches_v = call_method(frame->vm, try_result, "is", 1, catcher_type);
+			SepV type_matches_v = call_method(frame->vm, try_result, "is", 1,
+					catcher_type);
 			if (type_matches_v != SEPV_TRUE) {
 				// type doesn't match - try another catcher
 				continue;
@@ -446,7 +454,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 			// the type matches, run the catcher body
 			SepV catcher_body = property(catcher_obj, "body");
 			SepV catch_result = vm_invoke(frame->vm, catcher_body, 0).value;
-				or_propagate(catch_result);
+			or_propagate(catch_result);
 
 			// phew, exception handled!
 			try_result = SEPV_NOTHING;
@@ -461,7 +469,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	while (!arrayit_end(&it)) {
 		SepV finalizer_v = arrayit_next(&it);
 		SepV finalizer_result = vm_invoke(frame->vm, finalizer_v, 0).value;
-			or_propagate(finalizer_result);
+		or_propagate(finalizer_result);
 	}
 
 	// return the final result (Nothing if there was an exception)
@@ -471,27 +479,13 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_try_statement_prototype() {
 	SepObj *TryStatement = make_class("TryStatement", NULL);
 
-	obj_add_builtin_method(TryStatement, "catch..", substatement_catch, 2, "type", "body");
-	obj_add_builtin_method(TryStatement, "finally..", substatement_finally, 1, "body");
+	obj_add_builtin_method(TryStatement, "catch..", substatement_catch, 2,
+			"type", "body");
+	obj_add_builtin_method(TryStatement, "finally..", substatement_finally, 1,
+			"body");
 	obj_add_builtin_method(TryStatement, "..!", statement_try_impl, 0);
 
 	return TryStatement;
-}
-
-// ===============================================================
-//  Bracket expression
-// ===============================================================
-
-// [...] bracket expression, array "literal".
-SepItem bracket_expr_array(SepObj *scope, ExecutionFrame *frame) {
-	SepV array = param(scope, "<items>");
-	return item_rvalue(array);
-}
-
-// [[ ... ]] bracket expression, object "literal".
-SepItem bracket_expr_object(SepObj *scope, ExecutionFrame *frame) {
-	SepV object = param(scope, "<properties>");
-	return item_rvalue(object);
 }
 
 // ===============================================================
@@ -508,7 +502,7 @@ SepObj *create_globals() {
 
 	// create the superglobals and establish their relationship
 	SepObj *obj_Globals = obj_create();
-	SepObj *obj_Syntax  = obj_create();
+	SepObj *obj_Syntax = obj_create();
 	obj_add_field(obj_Globals, "globals", obj_to_sepv(obj_Globals));
 	obj_add_field(obj_Globals, "syntax", obj_to_sepv(obj_Syntax));
 
@@ -526,9 +520,12 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "Class", obj_to_sepv(rt.Cls));
 	obj_add_field(obj_Globals, "Array", obj_to_sepv(create_array_prototype()));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv(create_bool_prototype()));
-	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));
-	obj_add_field(obj_Globals, "String", obj_to_sepv(create_string_prototype()));
-	obj_add_field(obj_Globals, "NothingType", obj_to_sepv(create_nothing_prototype()));
+	obj_add_field(obj_Globals, "Integer",
+			obj_to_sepv(create_integer_prototype()));
+	obj_add_field(obj_Globals, "String",
+			obj_to_sepv(create_string_prototype()));
+	obj_add_field(obj_Globals, "NothingType",
+			obj_to_sepv(create_nothing_prototype()));
 
 	// built-in variables are initialized
 	obj_add_field(obj_Globals, "version", sepv_string(SEPTEMBER_VERSION));
@@ -539,21 +536,19 @@ SepObj *create_globals() {
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
-	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition", "body");
+	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition",
+			"body");
 	proto_TryStatement = create_try_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
 
 	// loops
 	proto_LoopBodyMixin = create_loop_body_mixin();
-	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition", "body");
+	obj_add_builtin_func(obj_Syntax, "while", &func_while, 2, "?condition",
+			"body");
 
 	proto_ForStatement = create_for_statement_prototype();
-	obj_add_builtin_func(obj_Syntax, "for..", &statement_for, 1, "?variable_name");
-
-
-	// array and object literals
-	obj_add_builtin_func(obj_Syntax, "[]", &bracket_expr_array, 1, "...<items>");
-	obj_add_builtin_func(obj_Syntax, "[[]]", &bracket_expr_object, 1, ":::<properties>");
+	obj_add_builtin_func(obj_Syntax, "for..", &statement_for, 1,
+			"?variable_name");
 
 	// built-in functions
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
@@ -580,6 +575,7 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 	module_register_private(module, obj_to_sepv(proto_LoopBodyMixin));
 }
 
-void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals, SepError *out_err) {
+void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals,
+		SepError *out_err) {
 	libseptvm_initialize_slave(globals);
 }

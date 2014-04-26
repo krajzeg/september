@@ -10,5 +10,8 @@
 #
 ################################################################
 
-# just a mock definition for now
-runtimeLoaded := True
+### Array and object 'literals'
+
+syntax:"[]" = |...___arrayElements| { ___arrayElements }
+syntax:"[[]]" = |:::___objectProperties| { ___objectProperties }
+

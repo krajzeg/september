@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
 	// == platform-specific initialization
 	platform_initialize(argc, argv);
 	libseptvm_initialize();
-	
+
 	// == initialize the runtime
 	gc_start_context();
 		initialize_module_loader(find_module_files);
