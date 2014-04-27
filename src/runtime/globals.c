@@ -34,6 +34,7 @@ SepObj *create_class_object();
 SepObj *create_array_prototype();
 SepObj *create_integer_prototype();
 SepObj *create_string_prototype();
+SepObj *create_slot_prototype();
 SepObj *create_bool_prototype();
 SepObj *create_nothing_prototype();
 
@@ -520,12 +521,10 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "Class", obj_to_sepv(rt.Cls));
 	obj_add_field(obj_Globals, "Array", obj_to_sepv(create_array_prototype()));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv(create_bool_prototype()));
-	obj_add_field(obj_Globals, "Integer",
-			obj_to_sepv(create_integer_prototype()));
-	obj_add_field(obj_Globals, "String",
-			obj_to_sepv(create_string_prototype()));
-	obj_add_field(obj_Globals, "NothingType",
-			obj_to_sepv(create_nothing_prototype()));
+	obj_add_field(obj_Globals, "Slot", obj_to_sepv(create_slot_prototype()));
+	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));
+	obj_add_field(obj_Globals, "String", obj_to_sepv(create_string_prototype()));
+	obj_add_field(obj_Globals, "NothingType", obj_to_sepv(create_nothing_prototype()));
 
 	// built-in variables are initialized
 	obj_add_field(obj_Globals, "version", sepv_string(SEPTEMBER_VERSION));

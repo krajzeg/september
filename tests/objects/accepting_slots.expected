@@ -1,0 +1,3 @@
+The manually added field should have nothing inside: <Nothing>
+But we can set it (to 42, for example): 42
+The manually added method should yield true: <True>

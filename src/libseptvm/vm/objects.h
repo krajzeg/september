@@ -98,6 +98,7 @@ SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 // Convert slots to SepV and back
 #define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))
 #define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
+#define sepv_is_slot(sepv) (sepv_type(sepv) == SEPV_TYPE_SLOT)
 
 // ===============================================================
 //  Specific slot types

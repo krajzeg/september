@@ -75,6 +75,25 @@ SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
 //  Common operations
 // ===============================================================
 
+// Object.accept(property_name, slot)
+// Allows to add an arbitrary property to an object, with any slot type.
+// The resulting value is returned, with the slot set - so this can be
+// used as an l-value.
+SepItem object_accept(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+	SepObj *target = target_as_obj(scope, &err);
+		or_raise_with_msg(exc.EWrongType, "Only objects can accept new properties.");
+	SepString *name = param_as_str(scope, "property_name", &err);
+		or_raise(exc.EWrongType);
+	SepV slot_v = param(scope, "slot");
+	if (!sepv_is_slot(slot_v))
+		raise(exc.EWrongType, "Only slots can be accepted into objects.");
+
+	Slot *slot = sepv_to_slot(slot_v);
+	slot = props_accept_prop(target, name, slot);
+	return sepv_get_item(obj_to_sepv(target), name);
+}
+
 // Object.resolve()
 // Used for resolving a lazy parameter. If the object is a function created for
 // lazy evaluation, it will be evaluated. Otherwise, the object itself is returned
@@ -139,6 +158,7 @@ SepObj *create_object_prototype() {
 
 	// add common methods
 	obj_add_builtin_method(Object, "resolve", object_resolve, 0);
+	obj_add_builtin_method(Object, "accept", object_accept, 2, "property_name", "slot");
 	obj_add_builtin_method(Object, "instantiate", object_instantiate, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
 
