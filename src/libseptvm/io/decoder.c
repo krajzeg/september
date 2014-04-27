@@ -205,7 +205,10 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 				or_quit();
 		}
 
-		// read the name
+		// read the parameter name
+		// it's important to use sepstr_for to make sure the string will be interned
+		// the string cache might end up being the only object with a reference to it
+		// that prevents it from being GC'd
 		parameter.name = sepstr_for(decoder_read_string(this, &err));
 			or_quit();
 

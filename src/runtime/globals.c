@@ -507,9 +507,6 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "globals", obj_to_sepv(obj_Globals));
 	obj_add_field(obj_Globals, "syntax", obj_to_sepv(obj_Syntax));
 
-	// create the interned strings cache
-	obj_add_field(obj_Globals, "<string_cache>", obj_to_sepv(obj_create()));
-
 	// initialize built-in exception classes
 	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
 

@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../libmain.h"
 #include "../common/debugging.h"
 #include "mem.h"
 #include "gc.h"
@@ -46,10 +47,10 @@ uint32_t cstring_hash(const char *c_string) {
 // ===============================================================
 
 SepString *sepstr_for(const char *c_string) {
-	// look in the cache and returned interned string if something's there
+	// look in the cache and return interned string if something's there
 	uint32_t hash = cstring_hash(c_string);
-	if (rt.string_cache) {
-		PropertyEntry *entry = props_find_entry_raw(rt.string_cache, c_string, hash);
+	if (lsvm_globals.string_cache) {
+		PropertyEntry *entry = props_find_entry_raw(lsvm_globals.string_cache, c_string, hash);
 		if (entry) {
 			log("strcache", "Returning cached string: '%s'", c_string);
 			return entry->name;
@@ -65,9 +66,9 @@ SepString *sepstr_for(const char *c_string) {
 
 	// strings might be used before the string_cache is initialized
 	// but if it is, intern the string
-	if (rt.string_cache) {
+	if (lsvm_globals.string_cache) {
 		// the name and the value of the property in the string cache are the same
-		props_add_prop(rt.string_cache, string, &st_field, str_to_sepv(string));
+		props_add_prop(lsvm_globals.string_cache, string, &st_field, str_to_sepv(string));
 	} else {
 		// if its not, prevent it from being GC'd
 		gc_register(str_to_sepv(string));

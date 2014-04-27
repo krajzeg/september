@@ -47,6 +47,7 @@ Slot *slot_create(SlotType *behavior, SepV initial_value) {
 	Slot *slot = mem_allocate(sizeof(Slot));
 	slot->vt = behavior;
 	slot->value = initial_value;
+	gc_register(slot_to_sepv(slot));
 	return slot;
 }
 
