@@ -528,6 +528,7 @@ SepObj *create_globals() {
 	obj_add_field(obj_Syntax, "Nothing", SEPV_NOTHING);
 	obj_add_field(obj_Syntax, "True", SEPV_TRUE);
 	obj_add_field(obj_Syntax, "False", SEPV_FALSE);
+	obj_add_field(obj_Globals, "LiteralScope", SEPV_LITERALS);
 
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();

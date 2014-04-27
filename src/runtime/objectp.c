@@ -94,13 +94,20 @@ SepItem object_accept(SepObj *scope, ExecutionFrame *frame) {
 	return sepv_get_item(obj_to_sepv(target), name);
 }
 
-// Object.resolve()
+// Object.resolve(scope = None)
 // Used for resolving a lazy parameter. If the object is a function created for
 // lazy evaluation, it will be evaluated. Otherwise, the object itself is returned
 // unchanged. This ensures safe treatment of lazy parameters.
+// Optionally, the resolution scope can be changed to obtain special effects
+// such as resolving as literal identifier.
 SepItem object_resolve(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
-	return item_rvalue(vm_resolve(frame->vm, target));
+	SepV resolution_scope = param(scope, "scope");
+	if (resolution_scope != SEPV_NO_VALUE) {
+		return item_rvalue(vm_resolve_in(frame->vm, target, resolution_scope));
+	} else {
+		return item_rvalue(vm_resolve(frame->vm, target));
+	}
 }
 
 // Object.instantiate()
@@ -157,7 +164,7 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
 
 	// add common methods
-	obj_add_builtin_method(Object, "resolve", object_resolve, 0);
+	obj_add_builtin_method(Object, "resolve", object_resolve, 1, "=scope");
 	obj_add_builtin_method(Object, "accept", object_accept, 2, "property_name", "slot");
 	obj_add_builtin_method(Object, "instantiate", object_instantiate, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
