@@ -53,11 +53,7 @@ SepItem string_plus(SepObj *scope, ExecutionFrame *frame) {
 	SepString *other = param_as_str(scope, "other", &err);
 		or_raise(exc.EWrongType);
 
-	SepString *concatenated = sepstr_allocate(this->length + other->length);
-	memcpy(&concatenated->cstr, this->cstr, this->length);
-	memcpy(&concatenated->cstr + this->length, other->cstr, other->length);
-	concatenated->cstr[concatenated->length] = '\0';
-
+	SepString *concatenated = sepstr_sprintf("%s%s", this->cstr, other->cstr);
 	return item_rvalue(str_to_sepv(concatenated));
 }
 
