@@ -1,11 +1,19 @@
 Person := class (Person) {
-	field firstName = "John"
-	field lastName = "Kowalski"
+	field firstName
+	field lastName
 
-	method (fullName) {
+	method (toString) {
 		return firstName + " " + lastName
 	}
+
+	constructor(|first, last| {
+		this:firstName = first
+		this:lastName = last
+	})
 }
 
-person := Person()
-print("If things went smoothly, this should say John Kowalski:", person.fullName())
+person := Person("John", "Kowalski")
+maggie := Person("Maggie", "Smith")
+
+print("If things went smoothly, this should say John Kowalski:", person)
+print("And this, Maggie Smith:", maggie)
