@@ -1,0 +1,11 @@
+Person := class (Person) {
+	field firstName = "John"
+	field lastName = "Kowalski"
+
+	method (fullName) {
+		return firstName + " " + lastName
+	}
+}
+
+person := Person()
+print("If things went smoothly, this should say John Kowalski:", person.fullName())
