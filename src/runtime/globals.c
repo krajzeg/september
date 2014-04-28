@@ -158,7 +158,9 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// evaluate condition
 		SepV condition_l = property(branch, "condition");
+			or_propagate(condition_l);
 		SepV fulfilled = vm_resolve(frame->vm, condition_l);
+			or_propagate(fulfilled);
 
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
