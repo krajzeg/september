@@ -10,8 +10,13 @@
 #
 ################################################################
 
+### Object methods
+
+Object::resolveAsLiteral = {
+	this.resolve(scope: LiteralScope)
+}
+
 ### Array and object 'literals'
 
 syntax:"[]" = |...___arrayElements| { ___arrayElements }
 syntax:"[[]]" = |:::___objectProperties| { ___objectProperties }
-

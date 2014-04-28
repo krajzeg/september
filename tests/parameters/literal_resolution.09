@@ -1,5 +1,5 @@
 literal := |?identifier| {
-	return identifier.resolve(scope: LiteralScope)
+	identifier.resolveAsLiteral()
 }
 
 print("This should just say 'identifier':", literal(identifier))
