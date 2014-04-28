@@ -1,0 +1,5 @@
+This should print correctly.
+Using invoke() with 'arguments', 2 + 3 seems to be: 5
+If 'target' overriding works, we should see 42: 42
+If 'scope' overriding works, we should see 42: 42
+If everything went well, 42 again: 42

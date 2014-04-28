@@ -33,6 +33,8 @@ typedef struct RuntimeObjects {
 	SepObj *Integer;
 	SepObj *String;
 	SepObj *Bool;
+	SepObj *Function;
+	SepObj *Slot;
 	SepObj *NothingType;
 
 	// the class object

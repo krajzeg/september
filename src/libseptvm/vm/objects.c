@@ -422,9 +422,10 @@ SepV sepv_prototypes(SepV sepv) {
 		return obj_to_sepv(rt.String);
 
 	case SEPV_TYPE_FUNC:
-		// TODO: functions will get their own prototype later,
-		// they use Object now to have access to .resolve()
-		return obj_to_sepv(rt.Object);
+		return obj_to_sepv(rt.Function);
+
+	case SEPV_TYPE_SLOT:
+		return obj_to_sepv(rt.Slot);
 
 		// special?
 	case SEPV_TYPE_SPECIAL:
@@ -544,7 +545,7 @@ SepV sepv_lenient_get(SepV sepv, SepString *property) {
 		OriginInfo origin = {sepv, owner, property};
 		return slot_retrieve(slot, &origin);
 	} else {
-		return SEPV_NOTHING;
+		return SEPV_NO_VALUE;
 	};
 }
 

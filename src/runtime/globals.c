@@ -37,6 +37,7 @@ SepObj *create_string_prototype();
 SepObj *create_slot_prototype();
 SepObj *create_bool_prototype();
 SepObj *create_nothing_prototype();
+SepObj *create_function_prototype();
 
 SepObj *create_builtin_exceptions();
 
@@ -62,12 +63,11 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
 			SepV to_string = property(thing, "toString");
-			or_propagate(to_string);
+				or_propagate(to_string);
 			SepItem string_i = vm_invoke(frame->vm, to_string, 0);
-			or_propagate(string_i.value);
-			string = cast_as_named_str("Return value of toString()",
-					string_i.value, &err);
-			or_raise(exc.EWrongType);
+				or_propagate(string_i.value);
+			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
+				or_raise(exc.EWrongType);
 		} else {
 			string = sepv_to_str(thing);
 		}
@@ -521,6 +521,7 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "Slot", obj_to_sepv(create_slot_prototype()));
 	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));
 	obj_add_field(obj_Globals, "String", obj_to_sepv(create_string_prototype()));
+	obj_add_field(obj_Globals, "Function", obj_to_sepv(create_function_prototype()));
 	obj_add_field(obj_Globals, "NothingType", obj_to_sepv(create_nothing_prototype()));
 
 	// built-in variables are initialized
