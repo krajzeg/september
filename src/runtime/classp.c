@@ -33,7 +33,7 @@ SepItem class_new(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem class_call(SepObj *scope, ExecutionFrame *frame) {
 	SepV target_v = target(scope);
-	SepV instance = call_method(frame->vm, target_v, "instantiate", 0);
+	SepV instance = call_method(frame->vm, target_v, "spawn", 0);
 		or_propagate(instance);
 
 	// do we have a constructor?

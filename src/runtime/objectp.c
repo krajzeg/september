@@ -110,10 +110,10 @@ SepItem object_resolve(SepObj *scope, ExecutionFrame *frame) {
 	}
 }
 
-// Object.instantiate()
+// Object.spawn()
 // Used by the class system. Creates a new object and sets its prototype to the object
-// on which the instantiate() method was invoked.
-SepItem object_instantiate(SepObj *scope, ExecutionFrame *frame) {
+// on which the spawn() method was invoked.
+SepItem object_spawn(SepObj *scope, ExecutionFrame *frame) {
 	SepV prototype = target(scope);
 	return si_obj(obj_create_with_proto(prototype));
 }
@@ -166,7 +166,7 @@ SepObj *create_object_prototype() {
 	// add common methods
 	obj_add_builtin_method(Object, "resolve", object_resolve, 1, "=scope");
 	obj_add_builtin_method(Object, "accept", object_accept, 2, "property_name", "slot");
-	obj_add_builtin_method(Object, "instantiate", object_instantiate, 0);
+	obj_add_builtin_method(Object, "spawn", object_spawn, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
 
 	return Object;
