@@ -6,10 +6,10 @@ Person := class (Person) {
 		return firstName + " " + lastName
 	}
 
-	constructor(|first, last| {
+	constructor |first, last| {
 		this:firstName = first
 		this:lastName = last
-	})
+	}
 }
 
 person := Person("John", "Kowalski")

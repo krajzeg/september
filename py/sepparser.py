@@ -303,11 +303,12 @@ class ArgumentListParser:
 
 class FunctionCallParser(OperationParser):
     """Parses simple and complex call constructs."""
-    TOKENS = ["{", "(", lexer.Id]
+    TOKENS = ["{", "(", "|", lexer.Id]
+    PRECEDENCE = 90
 
     @classmethod
     def op_parse(cls, parser, token, left):
-        if token.kind == "{":
+        if token.kind in ("{", "|"):
             return cls.parse_block(parser, token, left)
         elif token.kind == "(":
             return cls.parse_parenthesised_list(parser, token, left)
@@ -318,7 +319,7 @@ class FunctionCallParser(OperationParser):
 
     @classmethod
     def op_precedence(cls, token):
-        return 90
+        return cls.PRECEDENCE
 
     @classmethod
     def parse_block(cls, parser, token, left):
@@ -550,7 +551,7 @@ class ParameterListParser(ContextlessParser):
     def parse_default_value(cls, parser):
         if parser.token.raw == "=":
             parser.advance()
-            return parser.expression(0)
+            return parser.expression(FunctionCallParser.PRECEDENCE + 1)
         else:
             return None
 

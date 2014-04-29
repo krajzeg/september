@@ -15,7 +15,7 @@ next_id := {
 	id = id + 1
 	return (id)
 }
-lazy := |id = next_id()| {
+lazy := |id = (next_id())| {
 	return (id)
 }
 
