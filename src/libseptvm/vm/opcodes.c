@@ -78,6 +78,7 @@ void push_const_impl(ExecutionFrame *frame) {
 		}
 		default:
 			frame_raise(frame, sepv_exception(exc.EInternal, sepstr_new("Only constants or functions can be PUSHed.")));
+			return;
 	}
 
 	if (sepv_is_exception(value))
