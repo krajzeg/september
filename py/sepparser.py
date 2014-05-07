@@ -395,8 +395,9 @@ class FlatCallParser(OperationParser):
     operators cannot be used right after the function name."""
     TOKENS = [lexer.StrLiteral, lexer.FloatLiteral, lexer.IntLiteral,
               lexer.Id]
-    # precedes only assignment operators
-    PRECEDENCE = 15
+
+    # precedence is the same as any other function call
+    PRECEDENCE = FunctionCallParser.PRECEDENCE
 
     @classmethod
     def op_parse(cls, parser, token, left):
