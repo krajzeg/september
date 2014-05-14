@@ -1,8 +1,8 @@
 Delayed := Class.new("Delayed")
-Delayed::"<constructor>" = |?operation| {
-	this:operation = operation
+Delayed:::"<constructor>" = |?operation| {
+	this::operation = operation
 }
-Delayed::run = {
+Delayed:::run = {
 	this.operation.resolve()
 }
 

@@ -40,7 +40,7 @@ SepItem object_op_index(SepObj *scope, ExecutionFrame *frame) {
 	return sepv_get_item(host_v, property_name);
 }
 
-// Base function used to implement ':' and '::'.
+// Base function used to implement '::' and ':::'.
 SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_type, SepV value) {
 	SepError err = NO_ERROR;
 	SepV host_v = target(scope);
@@ -61,13 +61,13 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_ty
 	return item_property_lvalue(host_v, host_v, property_name, slot, SEPV_NOTHING);
 }
 
-// The ':' field creation operator, valid for all objects.
-SepItem object_op_colon(SepObj *scope, ExecutionFrame *frame) {
+// The '::' field creation operator, valid for all objects.
+SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
 	return insert_slot_impl(scope, frame, &st_field, SEPV_NOTHING);
 }
 
-// The '::' method creation operator, valid for all objects.
-SepItem object_op_double_colon(SepObj *scope, ExecutionFrame *frame) {
+// The ':::' method creation operator, valid for all objects.
+SepItem object_op_triple_colon(SepObj *scope, ExecutionFrame *frame) {
 	return insert_slot_impl(scope, frame, &st_method, SEPV_NOTHING);
 }
 
@@ -159,8 +159,8 @@ SepObj *create_object_prototype() {
 
 	// add operators common to all objects
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");
-	obj_add_builtin_method(Object, ":", object_op_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
+	obj_add_builtin_method(Object, ":::", object_op_triple_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
 
 	// add common methods

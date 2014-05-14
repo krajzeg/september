@@ -12,30 +12,30 @@
 
 ### Object methods
 
-Object::resolveAsLiteral = {
+Object:::resolveAsLiteral = {
 	this.resolve(scope: LiteralScope)
 }
 
 ### Array and object 'literals'
 
-syntax:"[]" = |...___arrayElements| { ___arrayElements }
-syntax:"[[]]" = |:::___objectProperties| { ___objectProperties }
+syntax::"[]" = |...___arrayElements| { ___arrayElements }
+syntax::"[[]]" = |:::___objectProperties| { ___objectProperties }
 
 ### 'class' statement and its components
 
 ClassDefinition := Object()
 
-ClassDefinition::field = |?name| {
+ClassDefinition:::field = |?name| {
 	name = name.resolveAsLiteral()
 	cls.accept(name, Slot.field())
 }
 
-ClassDefinition::method = |?name, function| {
+ClassDefinition:::method = |?name, function| {
 	name = name.resolveAsLiteral()
 	cls.accept(name, Slot.method(function))
 }
 
-ClassDefinition::constructor = |function| {
+ClassDefinition:::constructor = |function| {
 	cls.accept("<constructor>", Slot.method(function))
 }
 
@@ -43,7 +43,7 @@ class := |?name, definition| {
 	name = name.resolveAsLiteral()
 	cls := Class.new(name)	
 	definitionScope := ClassDefinition.spawn()
-	definitionScope:cls = cls	
+	definitionScope::cls = cls
 	definition.invoke(scope: definitionScope)
 
 	return cls

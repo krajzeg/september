@@ -9,9 +9,9 @@ inventory(apples: 1, bananas: 2, cucumbers: 3)
 
 print("Let's try again by passing the argument explicitly.")
 counts := Object()
-counts:apples = 1
-counts:bananas = 2
-counts:cucumbers = 3
+counts::apples = 1
+counts::bananas = 2
+counts::cucumbers = 3
 inventory(counts: counts)
 
 print("But we shouldn't be able to pass a parameter both explicitly and implicitly.")

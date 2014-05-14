@@ -15,7 +15,7 @@ print("If 'scope' overriding works, we should see 42:", sumItUp.invoke(scope: sc
 
 # Test for invoke on bound methods
 holder := [[]]
-holder::setMe = |value| { this:theAnswer = value }
+holder:::setMe = |value| { this::theAnswer = value }
 universe := [[]]
 holder.setMe.invoke(target: universe, arguments: [42])
 print("If everything went well, 42 again:", universe.theAnswer)
