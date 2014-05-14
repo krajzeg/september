@@ -279,7 +279,7 @@ class ArgumentListParser:
 
         # nope, let's parse the arguments
         while True:
-            if parser.matches(lexer.Id, lexer.Operator(":")):
+            if parser.matches(lexer.Id, ":"):
                 # this is a named argument
                 arg_name = parser.token.value
                 parser.advance()
@@ -294,7 +294,8 @@ class ArgumentListParser:
             # the list is closed here, or we will have more args after a comma
             if parser.matches(closing_token):
                 # end of argument list
-                parser.advance()
+                if closing_token != lexer.StatementEnd:
+                    parser.advance()
                 return
             else:
                 # more arguments have to be here, expect a comma
@@ -303,8 +304,9 @@ class ArgumentListParser:
 
 class FunctionCallParser(OperationParser):
     """Parses simple and complex call constructs."""
-    TOKENS = ["{", "(", "|", lexer.Id]
+    TOKENS = ["{", "(", "|", ":", lexer.Id]
     PRECEDENCE = 90
+    COLON_PRECEDENCE = 15
 
     @classmethod
     def op_parse(cls, parser, token, left):
@@ -312,6 +314,8 @@ class FunctionCallParser(OperationParser):
             return cls.parse_block(parser, token, left)
         elif token.kind == "(":
             return cls.parse_parenthesised_list(parser, token, left)
+        elif token.kind == ":":
+            return cls.parse_colon_call(parser, token, left)
         elif token.is_a(lexer.Id):
             return cls.parse_identifier(parser, token, left)
         else:
@@ -319,7 +323,14 @@ class FunctionCallParser(OperationParser):
 
     @classmethod
     def op_precedence(cls, token):
-        return cls.PRECEDENCE
+        if token.is_a(":"):
+            return cls.COLON_PRECEDENCE
+        else:
+            return cls.PRECEDENCE
+
+    @classmethod
+    def strength(cls, token):
+        return 10
 
     @classmethod
     def parse_block(cls, parser, token, left):
@@ -362,6 +373,16 @@ class FunctionCallParser(OperationParser):
         return returned
 
     @classmethod
+    def parse_colon_call(cls, parser, _, left):
+        """Parses colon calls, e.g.: 'return: 12' or 'yield: a, b'."""
+        call = FunctionCall(left)
+
+        # parse argument list
+        parser.advance(":")
+        ArgumentListParser.parse_argument_list_into(parser, call.child("args"), closing_token=lexer.StatementEnd)
+        return call
+
+    @classmethod
     def parse_identifier(cls, parser, token, left):
         """Parses identifiers used as continuation of a complex call chain."""
         if left.kind == FunctionCall:
@@ -390,9 +411,7 @@ class FunctionCallParser(OperationParser):
 
 
 class FlatCallParser(OperationParser):
-    """Parser for 'flat' calls, such as 'return 2' - really return(2) - or
-    yield a,b - really yield(a,b). This capability is limited such that
-    operators cannot be used right after the function name."""
+    """Parser for 'flat' calls, such as 'field name' - really field(name)."""
     TOKENS = [lexer.StrLiteral, lexer.FloatLiteral, lexer.IntLiteral,
               lexer.Id]
 
@@ -418,7 +437,7 @@ class FlatCallParser(OperationParser):
 
     @classmethod
     def strength(cls, token):
-        return 10
+        return 20
 
 
 class BinaryOpParser(OperationParser):
@@ -448,6 +467,9 @@ class BinaryOpParser(OperationParser):
         else:
             return 50
 
+    @classmethod
+    def strength(cls, token):
+        return 0
 
 class UnaryOpParser(ContextlessParser):
     """Parser for unary operators. All unary operators in September are prefix."""

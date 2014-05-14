@@ -3,7 +3,7 @@ Person := class Person {
 	field lastName
 
 	method toString {
-		return (firstName + " " + lastName)
+		return: firstName + " " + lastName
 	}
 
 	constructor |first, last| {
