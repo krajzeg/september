@@ -6,13 +6,13 @@ void := {
 print("Testing empty 'return' - should yield Nothing:", void())
 
 int := {
-	return 42 
+	return: 42 
 	1 # this should not be returned
 }
 print("Testing literal 'return' - should yield 42:", int())
 
 expr := |a,b| {
-	return (a * a + b * b + 1)
+	return: a * a + b * b + 1
 	1 # this should not be returned       
 }
 print("Testing expression 'return' - should yield 42:", expr(4, 5))

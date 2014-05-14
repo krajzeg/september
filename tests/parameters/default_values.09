@@ -13,10 +13,10 @@ simple("The answer to life, the universe and everything is", "not 'cucumber'")
 id := 0
 next_id := { 
 	id = id + 1
-	return (id)
+	return: id
 }
 lazy := |id = (next_id())| {
-	return (id)
+	return: id
 }
 
 print("This should print 1, 2, the default is evaluated on each call:", lazy(), lazy())
