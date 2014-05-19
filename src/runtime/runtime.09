@@ -47,9 +47,9 @@ class := |?name, definition| {
 	definitionScope::cls = cls
 	definition.invoke(scope: definitionScope)
 	
-	# add the class to our caller's scope so "class A {...}"
-	# actually defines 'A'
-	vm.callerScope().accept(name, Slot.field(cls))
+	# add the class to our caller's scope so that the 
+	# statement "class A {...}" actually defines 'A'
+	export(cls, as: name)
 
 	return cls
 }

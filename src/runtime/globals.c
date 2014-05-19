@@ -39,8 +39,6 @@ SepObj *create_bool_prototype();
 SepObj *create_nothing_prototype();
 SepObj *create_function_prototype();
 
-SepObj *create_vm_object();
-
 SepObj *create_builtin_exceptions();
 
 // ===============================================================
@@ -493,6 +491,39 @@ SepObj *create_try_statement_prototype() {
 	return TryStatement;
 }
 
+
+// ===============================================================
+//  Helpers for declarations
+// ===============================================================
+
+SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
+	SepError err = NO_ERROR;
+
+	// find the caller scope
+	ExecutionFrame *export_caller = frame->prev_frame;
+	ExecutionFrame *export_callers_caller = export_caller->prev_frame;
+	if (!export_callers_caller) {
+		raise(exc.EInternal, "export() was called from the top-most stack frame (main module's top level) - no place to export to.");
+	}
+	SepV target_scope_v = export_callers_caller->locals;
+	SepObj *target_scope = cast_as_named_obj("Target for export", target_scope_v, &err);
+		or_raise(exc.EWrongType);
+
+	// retrieve the object to export and its name
+	SepV object = vm_resolve(frame->vm, param(scope, "object"));
+	SepV name_v = param(scope, "as");
+	if (name_v == SEPV_NO_VALUE) {
+		// use the same name as our local name for the object
+		name_v = vm_resolve_as_literal(frame->vm, param(scope, "object"));
+	}
+	SepString *name = cast_as_named_str("Export name", name_v, &err);
+		or_raise(exc.EWrongType);
+
+	// export!
+	props_add_prop(target_scope, name, &st_field, object);
+	return si_nothing();
+}
+
 // ===============================================================
 //  Runtime initialization
 // ===============================================================
@@ -536,7 +567,7 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "LiteralScope", SEPV_LITERALS);
 
 	// some built-in objects
-	obj_add_field(obj_Globals, "vm", obj_to_sepv(create_vm_object()));
+	obj_add_builtin_func(obj_Globals, "export", &func_export, 2, "?object", "=as");
 
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();

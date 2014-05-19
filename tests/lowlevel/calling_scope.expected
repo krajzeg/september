@@ -1,2 +1,0 @@
-On top level, the calling scope should be Nothing:  <Nothing>
-This should be 42 after inject() sets it: 42
