@@ -40,11 +40,17 @@ ClassDefinition:::constructor = |function| {
 }
 
 class := |?name, definition| {
+	# create the class
 	name = name.resolveAsLiteral()
 	cls := Class.new(name)	
 	definitionScope := ClassDefinition.spawn()
 	definitionScope::cls = cls
 	definition.invoke(scope: definitionScope)
+	
+	# add the class to our caller's scope so "class A {...}"
+	# actually defines 'A'
+	vm.callerScope().accept(name, Slot.field(cls))
 
 	return cls
 }
+

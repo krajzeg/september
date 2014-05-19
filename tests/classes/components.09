@@ -1,4 +1,4 @@
-Person := class Person {
+class Person {
 	field firstName
 	field lastName
 
