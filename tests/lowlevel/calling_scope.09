@@ -1,0 +1,9 @@
+print("On top level, the calling scope should be Nothing: ", vm.callerScope())
+
+inject := {
+	caller_scope := vm.callerScope()
+	caller_scope::theAnswer = 42
+}
+
+inject()
+print("This should be 42 after inject() sets it:", theAnswer);

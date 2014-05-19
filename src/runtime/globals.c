@@ -39,6 +39,8 @@ SepObj *create_bool_prototype();
 SepObj *create_nothing_prototype();
 SepObj *create_function_prototype();
 
+SepObj *create_vm_object();
+
 SepObj *create_builtin_exceptions();
 
 // ===============================================================
@@ -532,6 +534,9 @@ SepObj *create_globals() {
 	obj_add_field(obj_Syntax, "True", SEPV_TRUE);
 	obj_add_field(obj_Syntax, "False", SEPV_FALSE);
 	obj_add_field(obj_Globals, "LiteralScope", SEPV_LITERALS);
+
+	// some built-in objects
+	obj_add_field(obj_Globals, "vm", obj_to_sepv(create_vm_object()));
 
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();
