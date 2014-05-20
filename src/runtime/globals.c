@@ -136,19 +136,15 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(obj_to_sepv(ifs));
 }
 
-SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
-	// delegate to statement if
-	SepV statement = statement_if(scope, frame).value;
-	SepV executor = property(statement, "..!");
-	return vm_invoke(frame->vm, executor, 0);
-}
-
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepError err = NO_ERROR;
 
 	SepV ifs = target(scope);
 	SepArray *branches = (SepArray*) prop_as_obj(ifs, "branches", &err);
 	or_raise(exc.EInternal);
+
+	// execution scope for all the functions
+	SepV parent_scope = frame->prev_frame->locals;
 
 	// iterate over all the branches guarded with conditions
 	SepArrayIterator it = array_iterate_over(branches);
@@ -165,7 +161,7 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
 			SepV body_v = property(branch, "body");
-			SepV result = vm_invoke(frame->vm, body_v, 0).value;
+			SepV result = vm_invoke_in_scope(frame->vm, body_v, parent_scope, 0).value;
 			return item_rvalue(result);
 		}
 	}
@@ -174,12 +170,19 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV else_v = property(ifs, "else_branch");
 	if (else_v != SEPV_NOTHING) {
 		// there was an 'else', so execute that
-		SepV result = vm_invoke(frame->vm, else_v, 0).value;
+		SepV result = vm_invoke_in_scope(frame->vm, else_v, parent_scope, 0).value;
 		return item_rvalue(result);
 	} else {
 		// no branch matched, did nothing, return nothing
 		return si_nothing();
 	}
+}
+
+SepItem func_if(SepObj *scope, ExecutionFrame *frame) {
+	// standalone if, delegate to substatement if
+	SepV statement = statement_if(scope, frame).value;
+	obj_add_field(scope, "this", statement);
+	return statement_if_impl(scope, frame);
 }
 
 SepObj *create_if_statement_prototype() {
