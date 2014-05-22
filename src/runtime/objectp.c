@@ -52,11 +52,7 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_ty
 	SepString *property_name = cast_as_str(property_name_v, &err);
 		or_raise_with_msg(exc.EWrongType, "Incorrect expression used as property name for the ':' operator.");
 
-	// check if it already exists
-	if (props_find_prop(host, property_name))
-		raise(exc.EPropertyAlreadyExists, "Property '%s' cannot be created because it already exists.", property_name->cstr);
-
-	// create the slot
+	// create or reassign the slot
 	Slot *slot = props_add_prop(host, property_name, slot_type, value);
 	return item_property_lvalue(host_v, host_v, property_name, slot, SEPV_NOTHING);
 }

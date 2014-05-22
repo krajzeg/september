@@ -1,0 +1,14 @@
+a := 12
+a := 42
+print("This should not be a problem, and should print 42:", a)
+
+b := [[fourtyTwo: 42]]
+b::method = 1
+b:::method = { this.fourtyTwo }
+print("This should use a method to print 42:", b.method())
+
+print("This should print Ann, Belle, Carol in order:")
+for (person) in (["Ann", "Belle", "Carol"]) {
+	name := person
+	print(name)
+}

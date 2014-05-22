@@ -193,15 +193,7 @@ void create_field_impl(ExecutionFrame *frame) {
 	}
 	SepObj *host = sepv_to_obj(host_v);
 
-	// check if the field exists
-	if (props_find_prop(host, property)) {
-		SepString *message = sepstr_sprintf("Property '%s' already exists and cannot be created.",
-				property->cstr);
-		frame_raise(frame, sepv_exception(exc.EPropertyAlreadyExists, message));
-		return;
-	}
-
-	// it doesn't, so let's create it
+	// add the property
 	Slot *slot = props_add_prop(host, property, &st_field, SEPV_NOTHING);
 
 	// push it on the stack
