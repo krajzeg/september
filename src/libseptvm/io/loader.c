@@ -114,9 +114,9 @@ SepV load_module(ModuleDefinition *definition) {
 
 error_handler:
 	if (module) module_free(module);
+	SepV exception = sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s", err.message));
 	gc_end_context();
-
-	return sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s.", err.message));
+	return exception;
 }
 
 // Loads a module by its string name. Uses functionality delivered by the interpreter
