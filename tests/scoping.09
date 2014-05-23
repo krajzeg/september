@@ -1,5 +1,5 @@
 declare_from_within := {
-	module:property = 0	
+	module::property = 0
 }
 
 test_scopes := {

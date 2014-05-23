@@ -55,7 +55,7 @@ bool file_exists(const char *path) {
 }
 
 // Creates an array of paths which will be searched for .dll, .so,
-// .09 and .sep files that represent September modules.
+// .09 and .sept files that represent September modules.
 SepArray *module_search_paths() {
 	static SepArray *paths = NULL;
 

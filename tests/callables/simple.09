@@ -1,6 +1,6 @@
 dog := Object()
-dog:sound = "Woof!"
-dog::"<call>" = |how_many| {
+dog::sound = "Woof!"
+dog:::"<call>" = |how_many| {
 	n := 0
 	while (n < how_many) {
 		print(this.sound)

@@ -1,0 +1,6 @@
+This should not be a problem, and should print 42: 42
+This should use a method to print 42: 42
+This should print Ann, Belle, Carol in order:
+Ann
+Belle
+Carol

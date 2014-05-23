@@ -110,16 +110,19 @@ TOKENS = {
     r"[0-9]+":                    IntLiteral,
     r"[0-9]+\.[0-9]+":            FloatLiteral,
     r'"([^"\\]|\\\\")*([^\\])?"': StrLiteral,
-    r'[?&^+*/%:.!<>=-]+|\|\|':    Operator,
     r';':                         StatementEnd,
     r'\[[[{<]*':                  OpenBracket,
     r'[}>\]]*]':                  CloseBracket,
+
+    r':':                         token_type(":"),
     r'\(':                        token_type("("),
     r'\)':                        token_type(")"),
     r'\{':                        token_type("{"),
     r'\}':                        token_type("}"),
     r',':                         token_type(","),
     r'\|':                        token_type("|"),
+
+    r'[?&^+*/%.!<>=-][:?&^+*/%.!<>=-]*|:[:?&^+*/%.!<>=-]+|\|\|': Operator,
 
     r'#.*':                       Comment
 }

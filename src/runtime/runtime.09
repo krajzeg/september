@@ -1,0 +1,56 @@
+################################################################
+#
+# SEPTEMBER MODULE: runtime
+#
+# A module that is automatically loaded by the September
+# interpreter at startup before handing control over to actual
+# September code. Defines basic stuff like loops, control flow
+# constructs, and prototypes for primitives (Integer, String,
+# etc).
+#
+################################################################
+
+### Object methods
+
+Object:::resolveAsLiteral = {
+	this.resolve(scope: LiteralScope)
+}
+
+### Array and object 'literals'
+
+syntax::"[]" = |...___arrayElements| { ___arrayElements }
+syntax::"[[]]" = |:::___objectProperties| { ___objectProperties }
+
+### 'class' statement and its components
+
+ClassDefinition := Object()
+
+ClassDefinition:::field = |?name| {
+	name = name.resolveAsLiteral()
+	cls.accept(name, Slot.field())
+}
+
+ClassDefinition:::method = |?name, function| {
+	name = name.resolveAsLiteral()
+	cls.accept(name, Slot.method(function))
+}
+
+ClassDefinition:::constructor = |function| {
+	cls.accept("<constructor>", Slot.method(function))
+}
+
+class := |?name, definition| {
+	# create the class
+	name = name.resolveAsLiteral()
+	cls := Class.new(name)	
+	definitionScope := ClassDefinition.spawn()
+	definitionScope::cls = cls
+	definition.invoke(scope: definitionScope)
+	
+	# add the class to our caller's scope so that the 
+	# statement "class A {...}" actually defines 'A'
+	export(cls, as: name)
+
+	return cls
+}
+

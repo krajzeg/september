@@ -59,7 +59,7 @@ class TestFile:
         """Creates a new test based on a .sep file."""
         self.source_name = filename
         extensionless, _ = path.splitext(filename)
-        self.binary_name = extensionless + ".09"
+        self.binary_name = extensionless + ".sept"
         self.name = path.relpath(extensionless, root_directory)
 
     def run(self, distribution_root):
@@ -201,7 +201,7 @@ def gather_test_files(file_args):
     for dir_or_file in file_args:
         if path.isdir(dir_or_file):
             for current_dir, _, files in os.walk(dir_or_file):
-                for file in filter(lambda f: f.endswith(".sep"), files):
+                for file in filter(lambda f: f.endswith(".09"), files):
                     yield TestFile(dir_or_file, path.join(current_dir, file))
         else:
             yield TestFile(path.dirname(dir_or_file), dir_or_file)

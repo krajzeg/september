@@ -1,6 +1,6 @@
 /*****************************************************************
  **
- ** runtime/integerp.c
+ ** runtime/lowlevel.c
  **
  ** Implementation of the Integer prototype.
  **

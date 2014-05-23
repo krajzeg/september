@@ -1,0 +1,6 @@
+literal := |?identifier| {
+	identifier.resolveAsLiteral()
+}
+
+print("This should just say 'identifier':", literal(identifier))
+print("This should also say 'identifier':", literal("identifier"))

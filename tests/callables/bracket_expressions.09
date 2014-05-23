@@ -1,4 +1,4 @@
-syntax:"[{}]" = |...items, :::properties| {
+syntax::"[{}]" = |...items, :::properties| {
 	[[
 		array: items,
 		object: properties

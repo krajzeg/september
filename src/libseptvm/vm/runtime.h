@@ -33,13 +33,12 @@ typedef struct RuntimeObjects {
 	SepObj *Integer;
 	SepObj *String;
 	SepObj *Bool;
+	SepObj *Function;
+	SepObj *Slot;
 	SepObj *NothingType;
 
 	// the class object
 	SepObj *Cls;
-
-	// the string cache (interned strings live as keys here)
-	SepObj *string_cache;
 } RuntimeObjects;
 
 typedef struct BuiltinExceptions {

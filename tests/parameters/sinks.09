@@ -14,7 +14,7 @@ do_in_order := |...?actions| {
 	for (action) in (actions) {
 		action.resolve()
 	}
-	return(return_value)
+	return: return_value
 }
 
 # Test various call variants

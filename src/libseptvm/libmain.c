@@ -66,5 +66,6 @@ void libseptvm_initialize() {
 
 	gc_start_context();
 	lsvm_globals.module_cache = obj_create_with_proto(SEPV_NOTHING);
+	lsvm_globals.string_cache = obj_create_with_proto(SEPV_NOTHING);
 	gc_end_context();
 }

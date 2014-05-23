@@ -30,6 +30,8 @@ typedef struct LibSeptVMGlobals {
 	struct ManagedMemory *memory;
 	// the loaded September module cache
 	struct SepObj *module_cache;
+	// the interned string cache
+	struct SepObj *string_cache;
 	// garbage collection contexts
 	struct GenericArray *gc_contexts;
 	// accessing the VM thread-local

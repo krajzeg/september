@@ -13,6 +13,9 @@ RTM_DEPENDENCIES = $(RTM_SOURCE_FILES:.c=.d)
 RTM_LDFLAGS = -shared
 RTM_LIBS = $(LIBSVM_TARGET_LIB)
 
+RTM_09_FILE = $(RTM_DIR)/runtime.09
+RTM_SEPT_FILE = $(MODULES_DIR)/runtime.sept
+
 # ==========================
 # System dependent
 # ==========================
@@ -30,17 +33,20 @@ RTM_TARGET_LIB := $(MODULES_DIR)/$(RTM_LIB_NAME)
 
 .PHONY: runtime runtime-clean runtime-distclean
 
-runtime: $(RTM_TARGET_LIB)
+runtime: $(RTM_TARGET_LIB) $(RTM_SEPT_FILE)
 
 $(RTM_TARGET_LIB): $(LIBSVM_TARGET_LIB) $(RTM_LIBS) $(RTM_OBJECTS) | $(MODULES_DIR)
 	$(CC) $(RTM_LDFLAGS) $(RTM_OBJECTS) $(RTM_LIBS) -o$@
+
+$(RTM_SEPT_FILE): $(RTM_09_FILE)
+	$(SEPTCOMPILER) $< $@
 
 # ==========================
 # Cleaning
 # ==========================
 
 runtime-clean:
-	$(RM) $(call fix_paths,$(RTM_TARGET_LIB) $(RTM_OBJECTS))
+	$(RM) $(call fix_paths,$(RTM_TARGET_LIB) $(RTM_SEPT_FILE) $(RTM_OBJECTS))
 
 runtime-distclean: runtime-clean
 	$(RM) $(call fix_paths,$(RTM_DEPENDENCIES))

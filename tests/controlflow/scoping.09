@@ -1,0 +1,12 @@
+if_else_scopes := |value|{
+	if (value == 0) {
+		variable := "if"
+	} elseif (value == 1) {
+		variable := "elseif"
+	} else {
+		variable := "else"
+	}
+	return: variable
+}
+
+print("This should print 'if elseif else':", if_else_scopes(0), if_else_scopes(1), if_else_scopes(2))

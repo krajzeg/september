@@ -1,0 +1,21 @@
+# Test for built-ins
+print.invoke(arguments: ["This", "should", "print", "correctly."])
+
+# Test for interpreted functions
+sumItUp := |a,b| { a+b }
+print("Using invoke() with 'arguments', 2 + 3 seems to be:", sumItUp.invoke(arguments: [2,3]))
+
+# Test for this override
+knowThyself := { this }
+print("If 'target' overriding works, we should see 42:", knowThyself.invoke(target: 42))
+
+# Test for scope override
+scope := [[ a: 17, b: 25 ]]
+print("If 'scope' overriding works, we should see 42:", sumItUp.invoke(scope: scope))
+
+# Test for invoke on bound methods
+holder := [[]]
+holder:::setMe = |value| { this::theAnswer = value }
+universe := [[]]
+holder.setMe.invoke(target: universe, arguments: [42])
+print("If everything went well, 42 again:", universe.theAnswer)

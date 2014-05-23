@@ -1,0 +1,11 @@
+# test adding fields
+hitchhikersGuide := Object()
+hitchhikersGuide.accept("theAnswer", Slot.field())
+print("The manually added field should have nothing inside:", hitchhikersGuide.theAnswer)
+hitchhikersGuide.theAnswer = 42
+print("But we can set it (to 42, for example):", hitchhikersGuide.theAnswer)
+
+# test adding methods
+checkAnswer := |yourAnswer| { return: yourAnswer == theAnswer }
+hitchhikersGuide.accept("checkAnswer", Slot.method(checkAnswer))
+print("The manually added method should yield true:", hitchhikersGuide.checkAnswer(42))

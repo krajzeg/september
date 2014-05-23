@@ -1,0 +1,14 @@
+implicit_export := {
+	fourtyTwo := 42
+	export(fourtyTwo)
+}
+
+implicit_export()
+print("The exported value should be 42:", fourtyTwo)
+
+explicit_export := |name| {
+	export(42, as: name)
+}
+
+explicit_export("theAnswer")
+print("And the explicitly exported value should also be 42:", theAnswer)
