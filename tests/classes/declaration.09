@@ -1,7 +1,4 @@
 class Person {
-	field firstName
-	field lastName
-
 	method toString {
 		return: firstName + " " + lastName
 	}
