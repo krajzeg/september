@@ -22,7 +22,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-azoth"
+#define SEPTEMBER_VERSION "0.1-bailiwick"
 
 // ===============================================================
 //  Prototype creation methods
