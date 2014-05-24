@@ -35,7 +35,8 @@ PARTS := libseptvm runtime interpreter
 # Flags
 # ==========================
 
-CFLAGS += -Isrc/libseptvm
+INCLUDE_DIRS := -Isrc/libseptvm
+CFLAGS += $(INCLUDE_DIRS)
 
 # ==========================
 # Targets
@@ -50,10 +51,10 @@ tests: all
 all: $(foreach part,$(PARTS),$(part))
 
 clean: $(foreach part,$(PARTS),$(part)-clean)
-	$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
+	-$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
 	
 distclean: $(foreach part,$(PARTS),$(part)-distclean)
-	$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
+	-$(RMDIR) $(call fix_paths,$(MODULES_DIR) $(LIB_DIR) $(BIN_DIR))
 
 # ==========================
 # Build dirs
@@ -74,7 +75,7 @@ $(MODULES_DIR): | $(BIN_DIR)
 
 # how to make a .d file
 %.d: %.c
-	$(CC) -MM $< -MT $(<:.c=.o) >$@
+	$(CC) $(INCLUDE_DIRS) -MM $< -MT $(<:.c=.o) >$@
 
 # ==========================
 # Include part makefiles
