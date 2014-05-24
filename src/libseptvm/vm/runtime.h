@@ -69,6 +69,6 @@ extern BuiltinExceptions exc;
 // ===============================================================
 
 // Extracts references to commonly used objects from the provided "globals" variable.
-void initialize_runtime_references(SepV globals_v);
+SepV initialize_runtime_references(SepV globals_v);
 
 #endif
