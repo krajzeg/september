@@ -43,7 +43,7 @@ SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 
 	// extract the iterator from the object
 	SepObj *target = target_as_obj(scope, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 	SepArrayIterator *iterator = target->data;
 
 	// end of iteration?
@@ -128,7 +128,7 @@ SepItem array_index(SepObj *scope, ExecutionFrame *frame) {
 
 	// create the slot used for assignment to array indices
 	SepV value = array_get(this, index);
-		or_propagate(value);
+		or_raise(value);
 	Slot *slot = (Slot*)array_index_slot_create(this, index);
 
 	// return an l-value so assigning to indices works

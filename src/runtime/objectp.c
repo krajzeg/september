@@ -25,7 +25,7 @@ SepItem object_op_dot(SepObj *scope, ExecutionFrame *frame) {
 	SepV property_name_lv = param(scope, "property_name");
 	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
-		or_raise_with_msg(exc.EWrongType, "Incorrect expression used as property name for the '.' operator.");
+		or_raise(err);
 
 	SepItem property_value = sepv_get_item(host_v, property_name);
 	return property_value;
@@ -36,7 +36,7 @@ SepItem object_op_index(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepV host_v = target(scope);
 	SepString *property_name = cast_as_named_str("Property name", param(scope, "property_name"), &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 	return sepv_get_item(host_v, property_name);
 }
 
@@ -45,12 +45,12 @@ SepItem insert_slot_impl(SepObj *scope, ExecutionFrame *frame, SlotType *slot_ty
 	SepV err = SEPV_NOTHING;
 	SepV host_v = target(scope);
 	SepObj *host = target_as_obj(scope, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 	SepV property_name_lv = param(scope, "property_name");
 
 	SepV property_name_v = vm_resolve_as_literal(frame->vm, property_name_lv);
 	SepString *property_name = cast_as_str(property_name_v, &err);
-		or_raise_with_msg(exc.EWrongType, "Incorrect expression used as property name for the ':' operator.");
+		or_raise(err);
 
 	// create or reassign the slot
 	Slot *slot = props_add_prop(host, property_name, slot_type, value);
@@ -78,9 +78,9 @@ SepItem object_op_triple_colon(SepObj *scope, ExecutionFrame *frame) {
 SepItem object_accept(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepObj *target = target_as_obj(scope, &err);
-		or_raise_with_msg(exc.EWrongType, "Only objects can accept new properties.");
+		or_raise(err);
 	SepString *name = param_as_str(scope, "property_name", &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 	SepV slot_v = param(scope, "slot");
 	if (!sepv_is_slot(slot_v))
 		raise(exc.EWrongType, "Only slots can be accepted into objects.");

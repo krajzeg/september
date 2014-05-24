@@ -53,7 +53,7 @@ overflow:
 SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
 	SepV err = get_params(scope, &a, &b);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	return overflow_safe_add(a, b);
 }
@@ -61,7 +61,7 @@ SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
 	SepV err = get_params(scope, &a, &b);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	return overflow_safe_add(a, -b);
 }
@@ -69,7 +69,7 @@ SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
 	SepV err = get_params(scope, &a, &b);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	// TODO: check for overflow
 	return si_int(a*b);
@@ -78,7 +78,7 @@ SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
 	SepV err = get_params(scope, &a, &b);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	return si_int(a/b);
 }
@@ -86,7 +86,7 @@ SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_op_mod(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
 	SepV err = get_params(scope, &a, &b);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	return si_int(a%b);
 }
@@ -94,7 +94,7 @@ SepItem integer_op_mod(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_op_negate(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepInt integer = target_as_int(scope, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 
 	return overflow_safe_add(0, -integer);
@@ -112,37 +112,37 @@ int compare_params(SepObj *scope, SepV *error) {
 
 SepItem integer_op_eq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison == 0);
 }
 
 SepItem integer_op_neq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison != 0);
 }
 
 SepItem integer_op_lt(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison < 0);
 }
 
 SepItem integer_op_gt(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison > 0);
 }
 
 SepItem integer_op_leq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison <= 0);
 }
 
 SepItem integer_op_geq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
+	int comparison = compare_params(scope, &err); or_raise(err);
 	return si_bool(comparison >= 0);
 }
 
@@ -153,7 +153,7 @@ SepItem integer_op_geq(SepObj *scope, ExecutionFrame *frame) {
 SepItem integer_to_string(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepInt integer = target_as_int(scope, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	return item_rvalue(str_to_sepv(sepstr_sprintf("%lld", integer)));
 }

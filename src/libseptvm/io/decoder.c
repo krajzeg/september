@@ -64,7 +64,7 @@ uint8_t decoder_read_byte(BytecodeDecoder *this, SepV *error) {
 int32_t decoder_read_int(BytecodeDecoder *this, SepV *error) {
 	SepV err = SEPV_NOTHING;
 
-	uint8_t first_byte = decoder_read_byte(this, &err) or_quit_with(0);
+	uint8_t first_byte = decoder_read_byte(this, &err) or_fail_with(0);
 	bool negative = (first_byte & 0x80);
 	int32_t magnitude = 0;
 	if ((first_byte & 0x60) == 0x60) {
@@ -73,12 +73,12 @@ int32_t decoder_read_int(BytecodeDecoder *this, SepV *error) {
 		//                    ----- little endian ----
 		uint8_t bytes_to_read = first_byte & 0x1F;
 		while (bytes_to_read--) {
-			uint8_t next_byte = decoder_read_byte(this, &err) or_quit_with(0);
+			uint8_t next_byte = decoder_read_byte(this, &err) or_fail_with(0);
 			magnitude = (magnitude << 8) | next_byte;
 		}
 	} else if (first_byte & 0x40) {
 		// two-byte format: (S10xxxxx)(xxxxxxxx)
-		uint8_t second_byte = decoder_read_byte(this, &err) or_quit_with(0);
+		uint8_t second_byte = decoder_read_byte(this, &err) or_fail_with(0);
 		magnitude = ((first_byte & 0x3F) << 8) | second_byte;
 	} else {
 		// simple format: (S0xxxxxx)
@@ -92,7 +92,7 @@ int32_t decoder_read_int(BytecodeDecoder *this, SepV *error) {
 char *decoder_read_string(BytecodeDecoder *this, SepV *error) {
 	SepV err = SEPV_NOTHING;
 	int32_t length = decoder_read_int(this, &err)
-		or_quit_with(NULL);
+		or_fail_with(NULL);
 	if (length < 0)
 		fail(NULL, exception(exc.EInternal, "Negative string length."));
 
@@ -128,7 +128,7 @@ void decoder_verify_header(BytecodeDecoder *this, SepV *error) {
 	char *c = EXPECTED_HEADER;
 	while(*c) {
 		uint8_t byte = decoder_read_byte(this, &err);
-			or_quit();
+			or_fail();
 		if (byte != *c)
 			fail(exception(exc.EInternal, "The file does not seem to be a September module file."));
 
@@ -141,7 +141,7 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepV *error) {
 
 	// read the number of constants and create a pool
 	int32_t num_constants = decoder_read_int(this, &err);
-		or_quit_with(NULL);
+		or_fail_with(NULL);
 	log("decoder", "Reading a pool of %d constants.", num_constants);
 	ConstantPool * pool = cpool_create(num_constants);
 
@@ -149,12 +149,12 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepV *error) {
 	int index;
 	for (index = 0; index < num_constants; index++) {
 		uint8_t constant_type = decoder_read_byte(this, &err);
-			or_quit_with(pool);
+			or_fail_with(pool);
 		switch(constant_type) {
 			case CT_INT:
 			{
 				SepInt integer = decoder_read_int(this, &err);
-					or_quit_with(pool);
+					or_fail_with(pool);
 				cpool_add_int(pool, integer);
 				break;
 			}
@@ -162,7 +162,7 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepV *error) {
 			case CT_STRING:
 			{
 				char *string = decoder_read_string(this, &err);
-					or_quit_with(pool);
+					or_fail_with(pool);
 				cpool_add_string(pool, string);
 				log("decoder", "constant %d: %s", index+1, string);
 				break;
@@ -189,7 +189,7 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 
 		// deal with the flags first
 		uint8_t param_flags = decoder_read_byte(this, &err);
-			or_quit();
+			or_fail();
 		parameter.flags.lazy = (param_flags & MFILE_P_LAZY_EVALUATED) != 0;
 		parameter.flags.optional = (param_flags & MFILE_P_OPTIONAL) != 0;
 
@@ -203,7 +203,7 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 		if (parameter.flags.optional) {
 			// read default value reference
 			parameter.default_value_reference = decoder_read_int(this, &err);
-				or_quit();
+				or_fail();
 		}
 
 		// read the parameter name
@@ -211,7 +211,7 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 		// the string cache might end up being the only object with a reference to it
 		// that prevents it from being GC'd
 		parameter.name = sepstr_for(decoder_read_string(this, &err));
-			or_quit();
+			or_fail();
 
 		// remember the parameter
 		block->parameters[index] = parameter;
@@ -222,7 +222,7 @@ void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepV *error
 	SepV err = SEPV_NOTHING;
 	
 	uint8_t opcode = decoder_read_byte(this, &err);
-		or_quit();
+		or_fail();
 	
 	// read operations until end of block  
 	while (opcode != 0xFF) {
@@ -252,17 +252,17 @@ void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepV *error
 			case OP_PUSH_CONST:
 				// constant
 				bpool_write_code(pool, (int16_t)decoder_read_int(this, &err));
-					or_quit();
+					or_fail();
 				break;
 			case OP_LAZY_CALL:
 				// count arguments
 				op_arg_count = decoder_read_byte(this, &err);
-					or_quit();
+					or_fail();
 				bpool_write_code(pool, op_arg_count);
 				// read them all
 				for (arg_index = 0; arg_index < op_arg_count; arg_index++) {
 					bpool_write_code(pool, (int16_t)decoder_read_int(this, &err));
-						or_quit();
+						or_fail();
 				}
 				break;
 				
@@ -277,7 +277,7 @@ void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepV *error
 		
 		// next!
 		opcode = decoder_read_byte(this, &err);
-			or_quit();
+			or_fail();
 	}
 	
 	// close the code block
@@ -291,7 +291,7 @@ BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepV *er
 	
 	// read functions until we run out 
 	uint8_t function_header_byte = decoder_read_byte(this, &err);
-		or_quit_with(blocks);
+		or_fail_with(blocks);
 		
 	// read until the end marker
 	while (function_header_byte != 0xFF) {
@@ -300,13 +300,13 @@ BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepV *er
 
 		// read the function
 		decoder_read_block_params(this, blocks, parameter_count, &err);
-			or_quit_with(blocks);
+			or_fail_with(blocks);
 		decoder_read_block_code(this, blocks, &err);
-			or_quit_with(blocks);
+			or_fail_with(blocks);
 		
 		// next!
 		function_header_byte = decoder_read_byte(this, &err);
-			or_quit_with(blocks);
+			or_fail_with(blocks);
 	}
 	
 	// seal the block to make it usable
@@ -319,12 +319,12 @@ void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepV *error) {
 	SepV err = SEPV_NOTHING;
 
 	decoder_verify_header(this, &err);
-		or_quit();
+		or_fail();
 		
 	module->constants = decoder_read_cpool(this, &err);
-		or_quit();
+		or_fail();
 	module->blocks = decoder_read_bpool(this, module, &err);
-		or_quit();
+		or_fail();
 }
 
 void decoder_free(BytecodeDecoder *this) {

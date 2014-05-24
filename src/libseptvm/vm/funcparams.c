@@ -222,7 +222,7 @@ SepV funcparam_set_in_scope(ExecutionFrame *frame, FuncParam *param, SepObj *sco
 
 	// resolve lazy values if necessary at this point
 	value = funcparam_resolve_argument_if_needed(frame, param, value);
-		or_propagate_sepv(value);
+		or_raise_sepv(value);
 
 	// did we arrive at this parameter by directly naming it in the call?
 	bool directly_named = argument->name && !sepstr_cmp(argument->name, param->name);
@@ -388,7 +388,7 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 
 		// put the argument in scope
 		SepV setting_exc = funcparam_set_in_scope(frame, parameter, scope, argument);
-			or_propagate_sepv(setting_exc);
+			or_raise_sepv(setting_exc);
 
 		// move to next positional parameter if needed
 		if (funcparam_argument_advances_position(parameter, argument))
@@ -403,7 +403,7 @@ SepV funcparam_pass_arguments(ExecutionFrame *frame, SepFunc *func, SepObj *scop
 	for (p = 0; p < param_count; p++) {
 		FuncParam *param = &parameters[p];
 		SepV result = funcparam_finalize_value(frame, func, param, scope);
-			or_propagate_sepv(result);
+			or_raise_sepv(result);
 	}
 
 	// everything ok

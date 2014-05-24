@@ -73,7 +73,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepV *error) {
 	SepString *shared_object_path = find_file(search_paths, shared_object_filename);
 	if (shared_object_path) {
 		SharedObject *object = shared_open(shared_object_path->cstr, &err);
-			or_quit_with(NULL);
+			or_fail_with(NULL);
 		native_code = load_native_code(object);
 	}
 
@@ -83,7 +83,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepV *error) {
 	ByteSource *bytecode_source = NULL;
 	if (bytecode_file_path) {
 		bytecode_source = file_bytesource_create(bytecode_file_path->cstr, &err);
-			or_quit_with(NULL);
+			or_fail_with(NULL);
 	}
 
 	// TODO: also find and compile .09 files

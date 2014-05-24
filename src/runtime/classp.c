@@ -22,7 +22,7 @@
 SepItem class_new(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepString *class_name = param_as_str(scope, "name", &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	// make class object using libseptvm functionality
 	SepObj *cls = make_class(class_name->cstr, rt.Object);
@@ -34,7 +34,7 @@ SepItem class_new(SepObj *scope, ExecutionFrame *frame) {
 SepItem class_call(SepObj *scope, ExecutionFrame *frame) {
 	SepV target_v = target(scope);
 	SepV instance = call_method(frame->vm, target_v, "spawn", 0);
-		or_propagate(instance);
+		or_raise(instance);
 
 	// do we have a constructor?
 	bool constructor_present = property_exists(instance, "<constructor>");
@@ -50,7 +50,7 @@ SepItem class_call(SepObj *scope, ExecutionFrame *frame) {
 
 		// call!
 		SepV ctor_result = vm_invoke_with_argsource(frame->vm, constructor_v, SEPV_NO_VALUE, arg_source).value;
-			or_propagate(ctor_result);
+			or_raise(ctor_result);
 	}
 
 	return item_rvalue(instance);

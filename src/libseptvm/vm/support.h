@@ -22,22 +22,20 @@
 #include "../vm/vm.h"
 
 // ===============================================================
-//  Error handling primitives
+//  Error handling macros
 // ===============================================================
 
+// Macros for use in functions returning exceptions directly through a SepItem or SepV
+#define or_raise(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
+#define or_raise_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
 #define raise(exc_type, ...) return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
+#define raise_sepv(exc_type, ...) return sepv_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
 
-#define or_quit() ; if (sepv_is_exception(err)) { *error = err; return; };
-#define or_quit_with(rv) ; if (sepv_is_exception(err)) { *error = err; return rv; };
+// Macros for use in functions that return exception through a SepV *error output parameter
+#define or_fail() ; if (sepv_is_exception(err)) { *error = err; return; };
+#define or_fail_with(rv) ; if (sepv_is_exception(err)) { *error = err; return rv; };
 #define or_go(label) ; if (sepv_is_exception(err)) { *error = err; goto label; };
 #define or_handle() ; if(sepv_is_exception(err))
-
-#define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
-#define or_propagate_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
-
-#define or_raise(exc_type) or_propagate(err)
-#define or_raise_sepv(exc_type) or_propagate_sepv(err)
-#define or_raise_with_msg(exc_type, ...) or_propagate(err)
 
 #define _fail1(e) do { *error = e; return; } while(0)
 #define _fail2(rv,e) do { *error = e; return rv; } while(0)

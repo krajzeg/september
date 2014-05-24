@@ -158,7 +158,7 @@ bool property_exists(SepV host, char *name) {
 // reported as an exception. Arguments have to be passed in as SepVs.
 SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 	SepV method_v = property(host, name);
-		or_propagate_sepv(method_v);
+		or_raise_sepv(method_v);
 
 	va_list args;
 	va_start(args, argument_count);
