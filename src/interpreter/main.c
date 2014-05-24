@@ -78,7 +78,7 @@ int run_program(const char *filename) {
 
 	// create the file source
 	ByteSource *bytecode = file_bytesource_create(filename, &err);
-	or_handle(EAny) {
+	or_handle() {
 		error_report(err);
 		return EXIT_NO_EXECUTION;
 	};

@@ -55,7 +55,7 @@ SepV load_module(ModuleDefinition *definition) {
 	if (bytecode) {
 		BytecodeDecoder *decoder = decoder_create(bytecode);
 		decoder_read_pools(decoder, module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// execute early initialization, if any
@@ -63,13 +63,13 @@ SepV load_module(ModuleDefinition *definition) {
 		if (!native->initialize_slave_vm)
 			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
 		native->initialize_slave_vm(&lsvm_globals, &err)
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	if (native && native->early_initializer) {
 		ModuleInitFunc early_initialization = native->early_initializer;
 		early_initialization(module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// execute bytecode, if any
@@ -99,7 +99,7 @@ SepV load_module(ModuleDefinition *definition) {
 	if (native && native->late_initializer) {
 		ModuleInitFunc late_initialization = native->late_initializer;
 		late_initialization(module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// add the module to the module cache
@@ -114,9 +114,8 @@ SepV load_module(ModuleDefinition *definition) {
 
 error_handler:
 	if (module) module_free(module);
-	SepV exception = sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s", err.message));
 	gc_end_context();
-	return exception;
+	return err;
 }
 
 // Loads a module by its string name. Uses functionality delivered by the interpreter
@@ -131,9 +130,8 @@ SepV load_module_by_name(SepString *module_name) {
 	// find the module
 	ModuleDefinition *definition = NULL;
 	definition = _find_module(module_name, &err);
-		or_handle(EAny) {
-			result = sepv_exception(exc.EInternal,
-				sepstr_sprintf("Unable to load module '%s': %s", module_name->cstr, err.message));
+		or_handle() {
+			result = err;
 			goto cleanup;
 		}
 

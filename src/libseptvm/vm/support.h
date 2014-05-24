@@ -26,12 +26,13 @@
 
 #define raise(exc_type, ...) return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
 
-#define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_new(err.message)); }
-#define or_raise_sepv(exc_type) if (err.type && (!err.handled)) { return sepv_exception(exc_type, sepstr_new(err.message)); }
-#define or_raise_with_msg(exc_type, ...) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__)); }
 
 #define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
 #define or_propagate_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
+
+#define or_raise(exc_type) or_propagate(err)
+#define or_raise_sepv(exc_type) or_propagate_sepv(err)
+#define or_raise_with_msg(exc_type, ...) or_propagate(err)
 
 // ===============================================================
 //  Accessing this and parameters
@@ -119,6 +120,12 @@ void obj_add_builtin_func(SepObj *obj, char *name, BuiltInImplFunc impl, uint8_t
 void obj_add_prototype(SepObj *obj, SepV prototype);
 // Adds a new escape function (like "return", "break", etc.) to a local scope.
 void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, SepV return_value);
+
+// ===============================================================
+//  Exceptions
+// ===============================================================
+
+#define exception(type, ...) sepv_exception(type, sepstr_sprintf(__VA_ARGS__))
 
 // ===============================================================
 //  Escape functions

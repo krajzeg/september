@@ -3,52 +3,27 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../vm/mem.h"
+#include "../vm/support.h"
+#include "../vm/runtime.h"
 #include "errors.h"
 
 /*****************************************************************/
 
-SepError e_file_not_found(const char *filename) { return error_create(EFileNotFound, "File '%s' does not exist.", filename); }
-SepError e_not_september_file() { return error_create(ENotSeptemberFile, "This file does not seem to be a September module file."); }
-SepError e_unexpected_eof() { return error_create(EUnexpectedEOF, "Encountered end of file where more data was expected."); }
-SepError e_malformed_module_file(const char *detail) { return error_create(EMalformedModuleFile, "The module file seems to be incorrect: %s.", detail); }
-SepError e_module_not_found(const char *module_name) { return error_create(EFileNotFound, "Module '%s' does not exist - no files could be found for it.", module_name); }
+SepError e_file_not_found(const char *filename) { return exception(exc.EInternal, "File '%s' does not exist.", filename); }
+SepError e_not_september_file() { return exception(exc.EInternal, "This file does not seem to be a September module file."); }
+SepError e_unexpected_eof() { return exception(exc.EInternal, "Encountered end of file where more data was expected."); }
+SepError e_malformed_module_file(const char *detail) { return exception(exc.EInternal, detail); }
+SepError e_module_not_found(const char *module_name) { return exception(exc.EInternal, module_name); }
 
-SepError e_out_of_memory() { return error_create(EOutOfMemory, "Out of memory."); }
-SepError e_not_implemented_yet(const char *what) { return error_create(ENotImplementedYet, "Missing implementation for: %s.", what); }
-SepError e_internal(const char *message) { return error_create(EInternal, message); }
-SepError e_type_mismatch(const char *what, const char *expected_type) { return error_create(ETypeMismatch, "%s was expected to be of type '%s'", what, expected_type); }
-SepError e_wrong_arguments(const char *message) { return error_create(EWrongArguments, message); }
+SepError e_out_of_memory() { return exception(exc.EInternal, "Out of memory."); }
+SepError e_not_implemented_yet(const char *what) { return exception(exc.EInternal, what); }
+SepError e_internal(const char *message) { return exception(exc.EInternal, message); }
+SepError e_type_mismatch(const char *what, const char *expected_type) { return exception(exc.EWrongType, expected_type); }
+SepError e_wrong_arguments(const char *message) { return exception(exc.EWrongArguments, message); }
 
 /*****************************************************************/
 
-SepError error_create(SepErrorType type, const char *message_fmt, ...) {
-	SepError error = {type, false, NULL, NULL};
-
-	char *message = mem_unmanaged_allocate(1024);
-	va_list args;
-	va_start(args, message_fmt);
-	vsnprintf(message, 1024, message_fmt, args);
-	error.message = message;
-	va_end(args);
-
-	return error;
-}
-
-bool error_matches(SepError error, SepErrorType type) {
-	return (error.type) && (!error.handled) && (error.type & (type >> 16)) == (type & 0xFFFF);
-}
-
-void error_free(SepError error) {
-	mem_unmanaged_free(error.message);
-	if (error.previous) {
-		error_free(*(error.previous));
-		mem_unmanaged_free(error.previous);
-	}
-}
-
 void error_report(SepError error) {
-	fprintf(stderr, "%s\n", error.message);
-	if (error.previous)
-		error_report(*(error.previous));
+	SepError err = NO_ERROR;
+	fprintf(stderr, "%s\n", prop_as_str(error, "message", &err)->cstr);
 }
-
