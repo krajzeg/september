@@ -94,7 +94,7 @@ char *decoder_read_string(BytecodeDecoder *this, SepV *error) {
 	int32_t length = decoder_read_int(this, &err)
 		or_fail_with(NULL);
 	if (length < 0)
-		fail(NULL, exception(exc.EInternal, "Negative string length."));
+		fail(NULL, exception(exc.EMalformedModule, "Negative string constant length encountered."));
 
 	char *string = mem_unmanaged_allocate(length + 1);
 	string[length] = '\0';
@@ -130,7 +130,7 @@ void decoder_verify_header(BytecodeDecoder *this, SepV *error) {
 		uint8_t byte = decoder_read_byte(this, &err);
 			or_fail();
 		if (byte != *c)
-			fail(exception(exc.EInternal, "The file does not seem to be a September module file."));
+			fail(exception(exc.EMalformedModule, "The file does not seem to be a September module file."));
 
 		c++;
 	}
@@ -169,7 +169,7 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepV *error) {
 			}
 
 			default:
-				fail(pool, exception(exc.EInternal, "Unrecognized constant type tag: %d.", constant_type));
+				fail(pool, exception(exc.EMalformedModule, "Unrecognized constant type tag: %d.", constant_type));
 		}
 	}
 

@@ -45,9 +45,15 @@ SepV initialize_runtime_references(SepV globals_v) {
 	store(exc, ECannotAssign);
 	store(exc, ENumericOverflow);
 	store(exc, EInternal);
+
 	store(exc, ENoMoreElements);
 	store(exc, EBreak);
 	store(exc, EContinue);
+
+	store(exc, EMissingModule);
+	store(exc, EMalformedModule);
+
+	store(exc, EFile);
 
 	// other primitives and built-ins
 	store(rt, Array);

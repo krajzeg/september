@@ -58,6 +58,10 @@ typedef struct BuiltinExceptions {
 
 	SepObj *ENumericOverflow;
 
+	SepObj *EMissingModule;
+	SepObj *EMalformedModule;
+
+	SepObj *EFile;
 	SepObj *EInternal;
 } BuiltinExceptions;
 

@@ -90,7 +90,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepV *error) {
 
 	// create module definition
 	if (!native_code && !bytecode_source) {
-		fail(NULL, exception(exc.EInternal, "Module not found: %s.", module_name->cstr));
+		fail(NULL, exception(exc.EMissingModule, "Module not found: %s.", module_name->cstr));
 	}
 
 	return moduledef_create(bytecode_source, native_code);

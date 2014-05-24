@@ -61,7 +61,7 @@ SepV load_module(ModuleDefinition *definition) {
 	// execute early initialization, if any
 	if (native) {
 		if (!native->initialize_slave_vm)
-			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
+			return sepv_exception(exc.EMalformedModule, sepstr_for("Invalid native module: no initialize_slave_vm function."));
 		native->initialize_slave_vm(&lsvm_globals, &err)
 			or_handle() { goto error_handler; }
 	}
@@ -181,7 +181,7 @@ uint8_t filesource_get_byte(ByteSource *_this, SepV *error) {
 	FileSource *this = (FileSource*)_this;
 	int byte = fgetc(this->file);
 	if (byte == EOF)
-		fail(0, exception(exc.EInternal, "Unexpected end of file."));
+		fail(0, exception(exc.EFile, "Unexpected end of file."));
 	return byte;
 }
 
@@ -205,7 +205,7 @@ ByteSource *file_bytesource_create(const char *filename, SepV *error) {
 	// try opening the file
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL)
-		fail(NULL, exception(exc.EInternal, "File not found."));
+		fail(NULL, exception(exc.EFile, "File not found."));
 
 	// allocate and set up the data structure
 	FileSource *source = mem_unmanaged_allocate(sizeof(FileSource));
