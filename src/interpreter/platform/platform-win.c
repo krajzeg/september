@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <windows.h>
-#undef NO_ERROR
+#undef SEPV_NOTHING
 #include "platform.h"
 
 // ===============================================================
@@ -84,7 +84,7 @@ typedef struct WindowsSharedObject {
 } WindowsSharedObject;
 
 // Opens a new shared object store under the path provided.
-SharedObject *shared_open(const char *path, SepError *out_err) {
+SharedObject *shared_open(const char *path, SepV *error) {
 	// load the DLL
 	HMODULE handle = LoadLibrary(path);
 

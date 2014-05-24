@@ -31,12 +31,12 @@ struct ArgumentSource;
 struct ExecutionFrame;
 struct SepFunc;
 struct SepModule;
+struct GarbageCollection;
 
 // ===============================================================
 //  Common function interface
 // ===============================================================
 
-struct GarbageCollection;
 typedef struct SepFuncVTable {
 	// initializes an execution frame, setting the instruction pointer
 	void (*initialize_frame)(struct SepFunc *this, struct ExecutionFrame *frame);
@@ -168,14 +168,6 @@ typedef struct BoundMethod {
 
 // Creates a new bound method based on a given free function.
 BoundMethod *boundmethod_create(SepFunc *function, SepV this_pointer);
-
-// ===============================================================
-//  SepV conversions
-// ===============================================================
-
-#define func_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_FUNC))
-#define sepv_to_func(sepv) ((SepFunc*)(intptr_t)(sepv << 3))
-#define sepv_is_func(sepv) ((sepv & SEPV_TYPE_MASK) == SEPV_TYPE_FUNC)
 
 /*****************************************************************/
 

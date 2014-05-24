@@ -93,7 +93,7 @@ typedef struct UnixSharedObject {
 } UnixSharedObject;
 
 // Opens a new shared object store under the path provided.
-SharedObject *shared_open(const char *path, SepError *out_err) {
+SharedObject *shared_open(const char *path, SepV *error) {
 	// load the .so
 	void *handle = dlopen(path, RTLD_LAZY);
 

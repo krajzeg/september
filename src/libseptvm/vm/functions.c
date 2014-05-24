@@ -28,7 +28,7 @@
 #include "vm.h"
 #include "support.h"
 
-#include "../common/errors.h"
+
 #include "../vm/runtime.h"
 
 // ===============================================================

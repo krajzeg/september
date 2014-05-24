@@ -95,10 +95,6 @@ SepV slot_retrieve(Slot *slot, OriginInfo *origin);
 // Stores a value in any type of slot.
 SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 
-// Convert slots to SepV and back
-#define slot_to_sepv(slot) ((SepV)(((intptr_t)(slot) >> 3) | SEPV_TYPE_SLOT))
-#define sepv_to_slot(sepv) ((Slot*)(intptr_t)(sepv << 3))
-#define sepv_is_slot(sepv) (sepv_type(sepv) == SEPV_TYPE_SLOT)
 
 // ===============================================================
 //  Specific slot types
@@ -296,14 +292,8 @@ struct SepFunc *sepv_call_target(SepV object);
 // ===============================================================
 //  Macros for working with objects
 // ===============================================================
-
-#define obj_to_sepv(obj) ((obj) ? (SEPV_TYPE_OBJECT | (((intptr_t)(obj)) >> 3)) : SEPV_NOTHING)
-#define sepv_to_obj(val) ((val == SEPV_NOTHING) ? NULL : ((SepObj*)(((intptr_t)val) << 3)))
-#define sepv_is_obj(val) ((val & SEPV_TYPE_MASK) == SEPV_TYPE_OBJECT)
-
 #define obj_is_simple(obj) (((SepObj*)(obj))->traits.representation == REPRESENTATION_SIMPLE)
 #define obj_is_array(obj) (((SepObj*)(obj))->traits.representation == REPRESENTATION_ARRAY)
-
 #define sepv_is_array(val) (sepv_is_obj(val) && obj_is_array(sepv_to_obj(val)))
 #define sepv_is_simple_object(val) (sepv_is_obj(val) && obj_is_simple(sepv_to_obj(val)))
 #define sepv_to_array(val) ((SepArray*)(sepv_to_obj(val)))

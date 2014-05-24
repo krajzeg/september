@@ -21,7 +21,7 @@
 #include "../vm/objects.h"
 #include "../vm/module.h"
 #include "../vm/vm.h"
-#include "../common/errors.h"
+
 
 // ===============================================================
 //  Module definitions
@@ -37,7 +37,7 @@ typedef struct ByteSource {
 } ByteSource;
 
 typedef struct ByteSourceVT {
-	uint8_t (*get_next_byte)(ByteSource *this, SepError *out_err);
+	uint8_t (*get_next_byte)(ByteSource *this, SepV *error);
 	void (*close_and_free)(ByteSource *this);
 } ByteSourceVT;
 
@@ -51,8 +51,8 @@ typedef struct ByteSourceVT {
  * before or after the part of the module written September is
  * executed.
  */
-typedef void (*VMInitFunc)(LibSeptVMGlobals *globals, SepError *out_err);
-typedef void (*ModuleInitFunc)(SepModule *module, SepError *out_err);
+typedef void (*VMInitFunc)(LibSeptVMGlobals *globals, SepV *error);
+typedef void (*ModuleInitFunc)(SepModule *module, SepV *error);
 typedef struct ModuleNativeCode {
 	VMInitFunc initialize_slave_vm;
 	ModuleInitFunc early_initializer;
@@ -83,14 +83,14 @@ void moduledef_free(ModuleDefinition *this);
 // ===============================================================
 
 // Creates a byte source pulling from a provided file.
-ByteSource *file_bytesource_create(const char *filename, SepError *out_err);
+ByteSource *file_bytesource_create(const char *filename, SepV *error);
 
 // ===============================================================
 //  Loading
 // ===============================================================
 
 // Module finder function to be provided by the interpreter.
-typedef ModuleDefinition *(*ModuleFinderFunc)(SepString *name, SepError *out_err);
+typedef ModuleDefinition *(*ModuleFinderFunc)(SepString *name, SepV *error);
 
 // Must be executed by the interpreter to let the loader library know how to find
 // modules.

@@ -17,7 +17,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "../common/errors.h"
+
 #include "../common/garray.h"
 
 // ===============================================================

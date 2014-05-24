@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../common/errors.h"
+
 #include "mem.h"
 #include "types.h"
 #include "objects.h"

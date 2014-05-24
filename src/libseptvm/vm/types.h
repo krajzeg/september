@@ -13,6 +13,8 @@
 
 struct PropertyEntry;
 struct SepString;
+struct SepObj;
+struct SepFunc;
 struct Slot;
 
 // ===============================================================
@@ -161,14 +163,6 @@ SepItem item_artificial_lvalue(struct Slot *slot, SepV value);
 #define SEPV_NO_VALUE (SEPV_TYPE_SPECIAL | 0x07)
 
 // ===============================================================
-//  Working with SepV types
-// ===============================================================
-
-#define sepv_type(value) ((value) & SEPV_TYPE_MASK)
-#define sepv_is_pointer(value) ((sepv_type(value) >= SEPV_TYPE_STRING && sepv_type(value) <= SEPV_TYPE_SLOT) || sepv_type(value) == SEPV_TYPE_EXCEPTION)
-#define sepv_to_pointer(value) ((void*)(intptr_t)(value << 3))
-
-// ===============================================================
 //  Booleans and special values
 // ===============================================================
 
@@ -182,11 +176,57 @@ SepItem si_bool(bool truth);
 
 typedef int64_t SepInt;
 
-#define sepv_is_int(v) (((v) & SEPV_TYPE_MASK) == SEPV_TYPE_INT)
+
+SepItem si_int(SepInt integer);
+
+// ===============================================================
+//  Type conversions and type tests
+// ===============================================================
+
+// General
+#define sepv_type(value) ((value) & SEPV_TYPE_MASK)
+
+// Pointer and non-pointer types
+#define sepv_is_pointer(value) ((sepv_type(value) >= SEPV_TYPE_STRING && sepv_type(value) <= SEPV_TYPE_SLOT) || sepv_type(value) == SEPV_TYPE_EXCEPTION)
+#define sepv_to_pointer(value) ((void*)(intptr_t)(value << 3))
+
+// Generic macros for any type
+#define sepv_to_typed_pointer(value, type) ((type*)(intptr_t)(value << 3))
+#define pointer_to_sepv(ptr, sepv_type) ((ptr) ? ((SepV)(((intptr_t)(ptr) >> 3) | sepv_type)) : SEPV_NOTHING)
+#define sepv_is(value, sepv_type) (((value) & SEPV_TYPE_MASK) == sepv_type)
+
+// Integers
+#define sepv_is_int(v) sepv_is(v, SEPV_TYPE_INT)
 #define sepv_to_int(v) ((((int64_t)v) << 3) >> 3)
 #define int_to_sepv(v) ((SepV)((SepInt)v) & (~SEPV_TYPE_MASK))
 
-SepItem si_int(SepInt integer);
+// Strings
+#define sepv_is_str(v)  sepv_is(v, SEPV_TYPE_STRING)
+#define sepv_to_str(v)  sepv_to_typed_pointer(v,struct SepString)
+#define str_to_sepv(str) pointer_to_sepv(str, SEPV_TYPE_STRING)
+
+// Functions
+#define sepv_is_func(v) sepv_is(v, SEPV_TYPE_FUNC)
+#define sepv_to_func(v) sepv_to_typed_pointer(v,struct SepFunc)
+#define func_to_sepv(func) pointer_to_sepv(func, SEPV_TYPE_FUNC)
+
+// Objects
+#define sepv_is_obj(v) sepv_is(v, SEPV_TYPE_OBJECT)
+#define sepv_to_obj(v) sepv_to_typed_pointer(v,struct SepObj)
+#define obj_to_sepv(obj) pointer_to_sepv(obj, SEPV_TYPE_OBJECT)
+
+// Slots
+#define sepv_is_slot(v) sepv_is(v, SEPV_TYPE_SLOT)
+#define sepv_to_slot(v) sepv_to_typed_pointer(v,struct Slot)
+#define slot_to_sepv(slot) pointer_to_sepv(slot, SEPV_TYPE_SLOT)
+
+// Exceptions
+#define sepv_is_exception(v) sepv_is(v, SEPV_TYPE_EXCEPTION)
+
+#define exception_to_obj_sepv(val) (((val) & (~SEPV_TYPE_MASK)) | SEPV_TYPE_OBJECT)
+#define obj_sepv_to_exception(obj) (((val) & (~SEPV_TYPE_MASK)) | SEPV_TYPE_EXCEPTION)
+#define obj_to_exception(obj) (SEPV_TYPE_EXCEPTION | (((intptr_t)obj) >> 3))
+#define exception_to_obj(val) ((SepObj*)(((intptr_t)val) << 3))
 
 /*******************************************************************/
 

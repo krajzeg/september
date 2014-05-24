@@ -15,7 +15,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
-#include "../common/errors.h"
+
 #include "../vm/exceptions.h"
 #include "../vm/types.h"
 #include "../vm/functions.h"
@@ -27,48 +27,56 @@
 //  Safe parameter access
 // ===============================================================
 
-SepString *cast_as_str(SepV value, SepError *out_err) {
-	return cast_as_named_str("Value", value, out_err);
+SepString *cast_as_str(SepV value, SepV *error) {
+	return cast_as_named_str("Value", value, error);
 }
 
-SepObj *cast_as_obj(SepV value, SepError *out_err) {
-	return cast_as_named_obj("Value", value, out_err);
+SepObj *cast_as_obj(SepV value, SepV *error) {
+	return cast_as_named_obj("Value", value, error);
 }
 
-SepFunc *cast_as_func(SepV value, SepError *out_err) {
-	return cast_as_named_func("Value", value, out_err);
+SepFunc *cast_as_func(SepV value, SepV *error) {
+	return cast_as_named_func("Value", value, error);
 }
 
-SepInt cast_as_int(SepV value, SepError *out_err) {
-	return cast_as_named_int("Value", value, out_err);
+SepInt cast_as_int(SepV value, SepV *error) {
+	return cast_as_named_int("Value", value, error);
 }
 
-SepString *cast_as_named_str(char *name, SepV value, SepError *out_err) {
+SepString *cast_as_named_str(char *name, SepV value, SepV *error) {
+	if (sepv_is_exception(value))
+		fail(NULL, value);
 	if (!sepv_is_str(value))
-		fail(NULL, e_type_mismatch(name, "a string"));
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a string."));
 	else
 		return sepv_to_str(value);
 }
 
-SepObj *cast_as_named_obj(char *name, SepV value, SepError *out_err) {
+SepObj *cast_as_named_obj(char *name, SepV value, SepV *error) {
+	if (sepv_is_exception(value))
+		fail(NULL, value);
 	if (!sepv_is_obj(value))
-			fail(NULL, e_type_mismatch(name, "an object"));
-		else
-			return sepv_to_obj(value);
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be an object."));
+	else
+		return sepv_to_obj(value);
 }
 
-SepFunc *cast_as_named_func(char *name, SepV value, SepError *out_err) {
+SepFunc *cast_as_named_func(char *name, SepV value, SepV *error) {
+	if (sepv_is_exception(value))
+		fail(NULL, value);
 	if (!sepv_is_func(value))
-			fail(NULL, e_type_mismatch(name, "a function"));
-		else
-			return sepv_to_func(value);
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a function."));
+	else
+		return sepv_to_func(value);
 }
 
-SepInt cast_as_named_int(char *name, SepV value, SepError *out_err) {
+SepInt cast_as_named_int(char *name, SepV value, SepV *error) {
+	if (sepv_is_exception(value))
+		fail(0, value);
 	if (!sepv_is_int(value))
-			fail(0, e_type_mismatch(name, "an integer"));
-		else
-			return sepv_to_int(value);
+		fail(0, exception(exc.EWrongType, "%s is supposed to be an integer."));
+	else
+		return sepv_to_int(value);
 }
 
 // ===============================================================
@@ -158,7 +166,7 @@ bool property_exists(SepV host, char *name) {
 // reported as an exception. Arguments have to be passed in as SepVs.
 SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 	SepV method_v = property(host, name);
-		or_propagate_sepv(method_v);
+		or_raise_sepv(method_v);
 
 	va_list args;
 	va_start(args, argument_count);

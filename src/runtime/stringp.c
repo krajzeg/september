@@ -20,8 +20,8 @@
 // ===============================================================
 
 SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
+	SepV err = SEPV_NOTHING;
+	SepString *this = target_as_str(scope, &err); or_raise(err);
 
 	SepString *upper_str = sepstr_new(this->cstr);
 	char *src = this->cstr;
@@ -37,8 +37,8 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
-	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
+	SepV err = SEPV_NOTHING;
+	SepString *this = target_as_str(scope, &err); or_raise(err);
 	return si_int(this->length);
 }
 
@@ -47,11 +47,11 @@ SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepItem string_plus(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 	SepString *other = param_as_str(scope, "other", &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	SepString *concatenated = sepstr_sprintf("%s%s", this->cstr, other->cstr);
 	return item_rvalue(str_to_sepv(concatenated));

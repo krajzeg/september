@@ -44,6 +44,9 @@ SepObj *create_builtin_exceptions() {
 	obj_add_exception(exceptions, "ENoMoreElements", Exception);
 	obj_add_exception(exceptions, "EBreak", Exception);
 	obj_add_exception(exceptions, "EContinue", Exception);
+	obj_add_exception(exceptions, "EMissingModule", Exception);
+	obj_add_exception(exceptions, "EMalformedModule", Exception);
+	obj_add_exception(exceptions, "EFile", Exception);
 
 	// return the prototype
 	return exceptions;

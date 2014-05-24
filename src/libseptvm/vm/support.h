@@ -18,20 +18,29 @@
 
 #include "../vm/types.h"
 #include "../vm/exceptions.h"
+#include "../vm/runtime.h"
 #include "../vm/vm.h"
 
 // ===============================================================
-//  Error handling primitives
+//  Error handling macros
 // ===============================================================
 
+// Macros for use in functions returning exceptions directly through a SepItem or SepV
+#define or_raise(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
+#define or_raise_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
 #define raise(exc_type, ...) return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
+#define raise_sepv(exc_type, ...) return sepv_exception(exc_type, sepstr_sprintf(__VA_ARGS__));
 
-#define or_raise(exc_type) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_new(err.message)); }
-#define or_raise_sepv(exc_type) if (err.type && (!err.handled)) { return sepv_exception(exc_type, sepstr_new(err.message)); }
-#define or_raise_with_msg(exc_type, ...) if (err.type && (!err.handled)) { return si_exception(exc_type, sepstr_sprintf(__VA_ARGS__)); }
+// Macros for use in functions that return exception through a SepV *error output parameter
+#define or_fail() ; if (sepv_is_exception(err)) { *error = err; return; };
+#define or_fail_with(rv) ; if (sepv_is_exception(err)) { *error = err; return rv; };
+#define or_go(label) ; if (sepv_is_exception(err)) { *error = err; goto label; };
+#define or_handle() ; if(sepv_is_exception(err))
 
-#define or_propagate(subcall_result) if (sepv_is_exception(subcall_result)) { return item_rvalue(subcall_result); }
-#define or_propagate_sepv(subcall_result) if (sepv_is_exception(subcall_result)) { return subcall_result; }
+#define _fail1(e) do { *error = e; return; } while(0)
+#define _fail2(rv,e) do { *error = e; return rv; } while(0)
+#define _fail_macro_name(_2, _1, name, ...) name
+#define fail(...) _fail_macro_name(__VA_ARGS__, _fail2, _fail1)(__VA_ARGS__)
 
 // ===============================================================
 //  Accessing this and parameters
@@ -56,15 +65,15 @@
 //  Casting
 // ===============================================================
 
-SepString *cast_as_str(SepV value, SepError *out_err);
-SepObj *cast_as_obj(SepV value, SepError *out_err);
-SepFunc *cast_as_func(SepV value, SepError *out_err);
-SepInt cast_as_int(SepV value, SepError *out_err);
+SepString *cast_as_str(SepV value, SepV *error);
+SepObj *cast_as_obj(SepV value, SepV *error);
+SepFunc *cast_as_func(SepV value, SepV *error);
+SepInt cast_as_int(SepV value, SepV *error);
 
-SepString *cast_as_named_str(char *name, SepV value, SepError *out_err);
-SepObj *cast_as_named_obj(char *name, SepV value, SepError *out_err);
-SepFunc *cast_as_named_func(char *name, SepV value, SepError *out_err);
-SepInt cast_as_named_int(char *name, SepV value, SepError *out_err);
+SepString *cast_as_named_str(char *name, SepV value, SepV *error);
+SepObj *cast_as_named_obj(char *name, SepV value, SepV *error);
+SepFunc *cast_as_named_func(char *name, SepV value, SepV *error);
+SepInt cast_as_named_int(char *name, SepV value, SepV *error);
 
 // ===============================================================
 //  Classes
@@ -121,6 +130,12 @@ void obj_add_prototype(SepObj *obj, SepV prototype);
 void obj_add_escape(SepObj *obj, char *name, ExecutionFrame *return_to_frame, SepV return_value);
 
 // ===============================================================
+//  Exceptions
+// ===============================================================
+
+#define exception(type, ...) sepv_exception(type, sepstr_sprintf(__VA_ARGS__))
+
+// ===============================================================
 //  Escape functions
 // ===============================================================
 
@@ -136,7 +151,7 @@ BuiltInFunc *make_return_func(ExecutionFrame *frame);
 //  Common operations
 // ===============================================================
 
-SepString *sepv_debug_string(SepV sepv, SepError *out_err);
+SepString *sepv_debug_string(SepV sepv, SepV *error);
 
 /*****************************************************************/
 
