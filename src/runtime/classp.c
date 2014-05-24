@@ -20,7 +20,7 @@
 // ===============================================================
 
 SepItem class_new(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepString *class_name = param_as_str(scope, "name", &err);
 		or_raise(exc.EWrongType);
 

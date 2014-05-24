@@ -51,7 +51,7 @@ SepObj *create_builtin_exceptions();
 #endif
 
 SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepArray *things = sepv_to_array(param(scope, "what"));
 
 	SepArrayIterator it = array_iterate_over(things);
@@ -137,7 +137,7 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	SepV ifs = target(scope);
 	SepArray *branches = (SepArray*) prop_as_obj(ifs, "branches", &err);
@@ -292,7 +292,7 @@ SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
 
 // The "in" part of the for..in statement.
 SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepObj *for_s = target_as_obj(scope, &err);
 	or_raise(exc.EWrongType);
 
@@ -304,7 +304,7 @@ SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
 
 // The actual implementation of the for..in loop.
 SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// get everything out of the statement
 	SepV for_s = target(scope);
@@ -500,7 +500,7 @@ SepObj *create_try_statement_prototype() {
 // ===============================================================
 
 SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// find the caller scope
 	ExecutionFrame *export_caller = frame->prev_frame;
@@ -599,7 +599,7 @@ SepObj *create_globals() {
 //  Module interface
 // ===============================================================
 
-void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err) {
+void MODULE_EXPORT module_initialize_early(SepModule *module, SepV *error) {
 	// create the runtime
 	SepObj *globals = create_globals();
 	// initialize our local copy of libseptvm with the right globals
@@ -615,6 +615,6 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 }
 
 void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals,
-		SepError *out_err) {
+		SepV *error) {
 	libseptvm_initialize_slave(globals);
 }

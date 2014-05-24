@@ -39,7 +39,7 @@ void initialize_module_loader(ModuleFinderFunc find_module_func) {
 
 // Loads the module from a given definition and returns its root object.
 SepV load_module(ModuleDefinition *definition) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// start a GC context to make sure objects newly allocated by our module
 	// don't disappear from under it
@@ -124,7 +124,7 @@ SepV load_module_by_name(SepString *module_name) {
 	// start a context for the module to ensure we have some control over GC even without a VM
 	gc_start_context();
 
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepV result = SEPV_NOTHING;
 
 	// find the module
@@ -177,11 +177,11 @@ typedef struct FileSource {
 } FileSource;
 
 // Gets the next byte from the file connected with the file source.
-uint8_t filesource_get_byte(ByteSource *_this, SepError *out_err) {
+uint8_t filesource_get_byte(ByteSource *_this, SepV *error) {
 	FileSource *this = (FileSource*)_this;
 	int byte = fgetc(this->file);
 	if (byte == EOF)
-		fail(0, e_unexpected_eof());
+		fail(0, exception(exc.EInternal, "Unexpected end of file."));
 	return byte;
 }
 
@@ -201,11 +201,11 @@ ByteSourceVT filesource_vt = {
 };
 
 // Creates a new file source pulling from a given file.
-ByteSource *file_bytesource_create(const char *filename, SepError *out_err) {
+ByteSource *file_bytesource_create(const char *filename, SepV *error) {
 	// try opening the file
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL)
-		fail(NULL, e_file_not_found(filename));
+		fail(NULL, exception(exc.EInternal, "File not found."));
 
 	// allocate and set up the data structure
 	FileSource *source = mem_unmanaged_allocate(sizeof(FileSource));

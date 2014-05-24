@@ -24,7 +24,7 @@ BuiltinExceptions exc = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, N
 
 #define store(into, property_name) into.property_name = prop_as_obj(globals_v, #property_name, &err);
 void initialize_runtime_references(SepV globals_v) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// - store references to various often-used objects to allow for easy access
 

@@ -39,7 +39,7 @@ SepItem array_iterator(SepObj *scope, ExecutionFrame *frame) {
 
 // Actual iteration over the array
 SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// extract the iterator from the object
 	SepObj *target = target_as_obj(scope, &err);

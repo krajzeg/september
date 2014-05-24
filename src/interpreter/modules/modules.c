@@ -63,8 +63,8 @@ ModuleNativeCode *load_native_code(SharedObject *object) {
 // Takes a fully qualified module name, finds all the files that
 // could make up part of it (.sept, .09, .so, .dll) and makes a
 // module definition ready to be loaded based on those files.
-ModuleDefinition *find_module_files(SepString *module_name, SepError *out_err) {
-	SepError err = NO_ERROR;
+ModuleDefinition *find_module_files(SepString *module_name, SepV *error) {
+	SepV err = SEPV_NOTHING;
 	SepArray *search_paths = module_search_paths();
 
 	// any shared objects?
@@ -90,7 +90,7 @@ ModuleDefinition *find_module_files(SepString *module_name, SepError *out_err) {
 
 	// create module definition
 	if (!native_code && !bytecode_source) {
-		fail(NULL, e_module_not_found(module_name->cstr));
+		fail(NULL, exception(exc.EInternal, "Module not found: %s.", module_name->cstr));
 	}
 
 	return moduledef_create(bytecode_source, native_code);

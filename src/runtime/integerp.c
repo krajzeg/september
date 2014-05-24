@@ -25,8 +25,8 @@
 //  Helpers
 // ===============================================================
 
-SepError get_params(SepObj *scope, SepInt *i1, SepInt *i2) {
-	SepError err = NO_ERROR;
+SepV get_params(SepObj *scope, SepInt *i1, SepInt *i2) {
+	SepV err = SEPV_NOTHING;
 	*i1 = target_as_int(scope, &err);
 	*i2 = param_as_int(scope, "other", &err);
 	return err;
@@ -52,7 +52,7 @@ overflow:
 
 SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(scope, &a, &b);
+	SepV err = get_params(scope, &a, &b);
 		or_raise(exc.EWrongType);
 
 	return overflow_safe_add(a, b);
@@ -60,7 +60,7 @@ SepItem integer_op_add(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(scope, &a, &b);
+	SepV err = get_params(scope, &a, &b);
 		or_raise(exc.EWrongType);
 
 	return overflow_safe_add(a, -b);
@@ -68,7 +68,7 @@ SepItem integer_op_sub(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(scope, &a, &b);
+	SepV err = get_params(scope, &a, &b);
 		or_raise(exc.EWrongType);
 
 	// TODO: check for overflow
@@ -77,7 +77,7 @@ SepItem integer_op_mul(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(scope, &a, &b);
+	SepV err = get_params(scope, &a, &b);
 		or_raise(exc.EWrongType);
 
 	return si_int(a/b);
@@ -85,14 +85,14 @@ SepItem integer_op_div(SepObj *scope, ExecutionFrame *frame) {
 
 SepItem integer_op_mod(SepObj *scope, ExecutionFrame *frame) {
 	SepInt a, b;
-	SepError err = get_params(scope, &a, &b);
+	SepV err = get_params(scope, &a, &b);
 		or_raise(exc.EWrongType);
 
 	return si_int(a%b);
 }
 
 SepItem integer_op_negate(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepInt integer = target_as_int(scope, &err);
 		or_raise(exc.EWrongType);
 
@@ -104,44 +104,44 @@ SepItem integer_op_negate(SepObj *scope, ExecutionFrame *frame) {
 //  Relations
 // ===============================================================
 
-int compare_params(SepObj *scope, SepError *out_err) {
+int compare_params(SepObj *scope, SepV *error) {
 	SepInt a, b;
-	*out_err = get_params(scope, &a, &b);
+	*error = get_params(scope, &a, &b);
 	return (a < b) ? -1 : ((a == b) ? 0 : 1);
 }
 
 SepItem integer_op_eq(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison == 0);
 }
 
 SepItem integer_op_neq(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison != 0);
 }
 
 SepItem integer_op_lt(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison < 0);
 }
 
 SepItem integer_op_gt(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison > 0);
 }
 
 SepItem integer_op_leq(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison <= 0);
 }
 
 SepItem integer_op_geq(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	int comparison = compare_params(scope, &err); or_raise(exc.EWrongType);
 	return si_bool(comparison >= 0);
 }
@@ -151,7 +151,7 @@ SepItem integer_op_geq(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepItem integer_to_string(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepInt integer = target_as_int(scope, &err);
 		or_raise(exc.EWrongType);
 

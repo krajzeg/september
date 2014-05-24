@@ -17,9 +17,10 @@
 #include <stdint.h>
 
 #include "../common/debugging.h"
-#include "../common/errors.h"
+
 #include "../vm/opcodes.h"
 #include "../vm/functions.h"
+#include "../vm/support.h"
 #include "loader.h"
 #include "decoder.h"
 
@@ -56,12 +57,12 @@ enum ConstantType {
 //  Decoding
 // ===============================================================
 
-uint8_t decoder_read_byte(BytecodeDecoder *this, SepError *out_err) {
-	return this->source->vt->get_next_byte(this->source, out_err);
+uint8_t decoder_read_byte(BytecodeDecoder *this, SepV *error) {
+	return this->source->vt->get_next_byte(this->source, error);
 }
 
-int32_t decoder_read_int(BytecodeDecoder *this, SepError *out_err) {
-	SepError err = NO_ERROR;
+int32_t decoder_read_int(BytecodeDecoder *this, SepV *error) {
+	SepV err = SEPV_NOTHING;
 
 	uint8_t first_byte = decoder_read_byte(this, &err) or_quit_with(0);
 	bool negative = (first_byte & 0x80);
@@ -88,12 +89,12 @@ int32_t decoder_read_int(BytecodeDecoder *this, SepError *out_err) {
 	return negative ? -magnitude : magnitude;
 }
 
-char *decoder_read_string(BytecodeDecoder *this, SepError *out_err) {
-	SepError err = NO_ERROR;
+char *decoder_read_string(BytecodeDecoder *this, SepV *error) {
+	SepV err = SEPV_NOTHING;
 	int32_t length = decoder_read_int(this, &err)
 		or_quit_with(NULL);
 	if (length < 0)
-		fail(NULL, e_malformed_module_file("Negative string length."));
+		fail(NULL, exception(exc.EInternal, "Negative string length."));
 
 	char *string = mem_unmanaged_allocate(length + 1);
 	string[length] = '\0';
@@ -116,10 +117,10 @@ BytecodeDecoder *decoder_create(ByteSource *source) {
 	return decoder;
 }
 
-void decoder_verify_header(BytecodeDecoder *this, SepError *out_err) {
+void decoder_verify_header(BytecodeDecoder *this, SepV *error) {
 	static char EXPECTED_HEADER[] = "SEPT";
 
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// read enough bytes to verify the header and compare
 	// with expected - any mismatch ends up with
@@ -129,14 +130,14 @@ void decoder_verify_header(BytecodeDecoder *this, SepError *out_err) {
 		uint8_t byte = decoder_read_byte(this, &err);
 			or_quit();
 		if (byte != *c)
-			fail(e_not_september_file());
+			fail(exception(exc.EInternal, "The file does not seem to be a September module file."));
 
 		c++;
 	}
 }
 
-ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepError *out_err) {
-	SepError err = NO_ERROR;
+ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepV *error) {
+	SepV err = SEPV_NOTHING;
 
 	// read the number of constants and create a pool
 	int32_t num_constants = decoder_read_int(this, &err);
@@ -168,7 +169,7 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepError *out_err) {
 			}
 
 			default:
-				fail(pool, e_malformed_module_file("Unrecognized constant type tag"));
+				fail(pool, exception(exc.EInternal, "Unrecognized constant type tag: %d.", constant_type));
 		}
 	}
 
@@ -176,8 +177,8 @@ ConstantPool *decoder_read_cpool(BytecodeDecoder *this, SepError *out_err) {
 	return pool;
 }
 
-void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param_count, SepError *out_err) {
-	SepError err = NO_ERROR;
+void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param_count, SepV *error) {
+	SepV err = SEPV_NOTHING;
 	// initialize the block with the right amount of space
 	CodeBlock *block = bpool_start_block(pool, param_count);
 
@@ -217,8 +218,8 @@ void decoder_read_block_params(BytecodeDecoder *this, BlockPool *pool, int param
 	}
 }
 
-void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepError *out_err) {
-	SepError err = NO_ERROR;
+void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepV *error) {
+	SepV err = SEPV_NOTHING;
 	
 	uint8_t opcode = decoder_read_byte(this, &err);
 		or_quit();
@@ -283,8 +284,8 @@ void decoder_read_block_code(BytecodeDecoder *this, BlockPool *pool, SepError *o
 	bpool_end_block(pool);
 }
 
-BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepError *out_err) {
-	SepError err = NO_ERROR;
+BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepV *error) {
+	SepV err = SEPV_NOTHING;
 	
 	BlockPool *blocks = bpool_create(module, 2048);
 	
@@ -314,8 +315,8 @@ BlockPool *decoder_read_bpool(BytecodeDecoder *this, SepModule *module, SepError
 	return blocks;
 }
 
-void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepError *out_err) {
-	SepError err = NO_ERROR;
+void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepV *error) {
+	SepV err = SEPV_NOTHING;
 
 	decoder_verify_header(this, &err);
 		or_quit();

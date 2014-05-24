@@ -37,13 +37,6 @@ typedef struct SepString {
 	char cstr[0];
 } SepString;
 
-// Extracts a string stored in a SepV.
-SepString *sepv_to_str(SepV value);
-// Checks whether a SepV stores a string.
-bool sepv_is_str(SepV value);
-// Stores a string in a SepV.
-SepV str_to_sepv(SepString *string);
-
 // Returns a SepString based on a C string. This will be a new or cached instance.
 SepString *sepstr_for(const char *c_string);
 // Returns a new SepString based on a C string. This will always be a new instance,

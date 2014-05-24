@@ -20,7 +20,7 @@
 // ===============================================================
 
 SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
 
 	SepString *upper_str = sepstr_new(this->cstr);
@@ -37,7 +37,7 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err); or_raise(exc.EWrongType);
 	return si_int(this->length);
 }
@@ -47,7 +47,7 @@ SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 SepItem string_plus(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err);
 		or_raise(exc.EWrongType);
 	SepString *other = param_as_str(scope, "other", &err);

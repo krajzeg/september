@@ -16,7 +16,7 @@
 //  Includes
 // ===============================================================
 
-#include "../common/errors.h"
+
 #include "../vm/module.h"
 
 // ===============================================================
@@ -32,7 +32,7 @@ typedef struct BytecodeDecoder {
 // Creates a new decoder pulling bytecode from a provided source.
 BytecodeDecoder *decoder_create(struct ByteSource *source);
 // Reads the constant pool and codeblock pool from the bytecode.
-void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepError *out_err);
+void decoder_read_pools(BytecodeDecoder *this, SepModule *module, SepV *error);
 // Destroys the decoder instance.
 void decoder_free(BytecodeDecoder *this);
 

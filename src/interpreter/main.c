@@ -74,12 +74,12 @@ SepV load_runtime() {
 // ===============================================================
 
 int run_program(const char *filename) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// create the file source
 	ByteSource *bytecode = file_bytesource_create(filename, &err);
 	or_handle() {
-		error_report(err);
+		report_exception(err);
 		return EXIT_NO_EXECUTION;
 	};
 	ModuleDefinition *definition = moduledef_create(bytecode, NULL);

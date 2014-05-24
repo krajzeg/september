@@ -159,19 +159,3 @@ int sepstr_cmp(SepString *this, SepString *other) {
 	else
 		return strcmp(this->cstr, other->cstr);
 }
-
-// ===============================================================
-//  SepV conversions and queries
-// ===============================================================
-
-SepString *sepv_to_str(SepV value) {
-	return (SepString *)(intptr_t)(value << 3);
-}
-
-bool sepv_is_str(SepV value) {
-	return (value & SEPV_TYPE_MASK) == SEPV_TYPE_STRING;
-}
-
-SepV str_to_sepv(SepString *string) {
-	return SEPV_TYPE_STRING | ((intptr_t)(string) >> 3);
-}
