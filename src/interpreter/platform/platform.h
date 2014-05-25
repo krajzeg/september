@@ -49,7 +49,7 @@ typedef struct SharedObject {
 SepString *shared_filename(SepString *module_name);
 
 // Opens a new shared object store under the path provided.
-SharedObject *shared_open(const char *path, SepError *out_err);
+SharedObject *shared_open(const char *path, SepV *error);
 // Retrieves a function from an open shared object.
 void *shared_get_function(SharedObject *object, const char *name);
 // Closes a previously opened shared object.

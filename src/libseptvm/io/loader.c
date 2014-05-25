@@ -39,7 +39,7 @@ void initialize_module_loader(ModuleFinderFunc find_module_func) {
 
 // Loads the module from a given definition and returns its root object.
 SepV load_module(ModuleDefinition *definition) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// start a GC context to make sure objects newly allocated by our module
 	// don't disappear from under it
@@ -55,21 +55,21 @@ SepV load_module(ModuleDefinition *definition) {
 	if (bytecode) {
 		BytecodeDecoder *decoder = decoder_create(bytecode);
 		decoder_read_pools(decoder, module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// execute early initialization, if any
 	if (native) {
 		if (!native->initialize_slave_vm)
-			return sepv_exception(exc.EInternal, sepstr_for("Invalid September shared object: no initialize_slave_vm function."));
+			return sepv_exception(exc.EMalformedModule, sepstr_for("Invalid native module: no initialize_slave_vm function."));
 		native->initialize_slave_vm(&lsvm_globals, &err)
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	if (native && native->early_initializer) {
 		ModuleInitFunc early_initialization = native->early_initializer;
 		early_initialization(module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// execute bytecode, if any
@@ -99,7 +99,7 @@ SepV load_module(ModuleDefinition *definition) {
 	if (native && native->late_initializer) {
 		ModuleInitFunc late_initialization = native->late_initializer;
 		late_initialization(module, &err);
-			or_handle(EAny) { goto error_handler; }
+			or_handle() { goto error_handler; }
 	}
 
 	// add the module to the module cache
@@ -114,9 +114,8 @@ SepV load_module(ModuleDefinition *definition) {
 
 error_handler:
 	if (module) module_free(module);
-	SepV exception = sepv_exception(exc.EInternal, sepstr_sprintf("Error reading module: %s", err.message));
 	gc_end_context();
-	return exception;
+	return err;
 }
 
 // Loads a module by its string name. Uses functionality delivered by the interpreter
@@ -125,15 +124,14 @@ SepV load_module_by_name(SepString *module_name) {
 	// start a context for the module to ensure we have some control over GC even without a VM
 	gc_start_context();
 
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepV result = SEPV_NOTHING;
 
 	// find the module
 	ModuleDefinition *definition = NULL;
 	definition = _find_module(module_name, &err);
-		or_handle(EAny) {
-			result = sepv_exception(exc.EInternal,
-				sepstr_sprintf("Unable to load module '%s': %s", module_name->cstr, err.message));
+		or_handle() {
+			result = err;
 			goto cleanup;
 		}
 
@@ -179,11 +177,11 @@ typedef struct FileSource {
 } FileSource;
 
 // Gets the next byte from the file connected with the file source.
-uint8_t filesource_get_byte(ByteSource *_this, SepError *out_err) {
+uint8_t filesource_get_byte(ByteSource *_this, SepV *error) {
 	FileSource *this = (FileSource*)_this;
 	int byte = fgetc(this->file);
 	if (byte == EOF)
-		fail(0, e_unexpected_eof());
+		fail(0, exception(exc.EFile, "Unexpected end of file."));
 	return byte;
 }
 
@@ -203,11 +201,11 @@ ByteSourceVT filesource_vt = {
 };
 
 // Creates a new file source pulling from a given file.
-ByteSource *file_bytesource_create(const char *filename, SepError *out_err) {
+ByteSource *file_bytesource_create(const char *filename, SepV *error) {
 	// try opening the file
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL)
-		fail(NULL, e_file_not_found(filename));
+		fail(NULL, exception(exc.EFile, "File not found."));
 
 	// allocate and set up the data structure
 	FileSource *source = mem_unmanaged_allocate(sizeof(FileSource));

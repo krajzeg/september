@@ -17,7 +17,6 @@
 // ===============================================================
 
 #include "common/debugging.h"
-#include "common/errors.h"
 #include "common/garray.h"
 #include "io/loader.h"
 #include "vm/runtime.h"
@@ -30,6 +29,7 @@
 #include "vm/module.h"
 #include "vm/objects.h"
 #include "vm/types.h"
+
 #include "vm/vm.h"
 
 // ===============================================================

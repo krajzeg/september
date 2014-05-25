@@ -16,13 +16,13 @@
 // ===============================================================
 #include <stdio.h>
 #include <stdlib.h>
-#include <septvm.h>
+#include "common.h"
 
 // ===============================================================
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-bailiwick"
+#define SEPTEMBER_VERSION "0.2-betwixt"
 
 // ===============================================================
 //  Prototype creation methods
@@ -51,7 +51,7 @@ SepObj *create_builtin_exceptions();
 #endif
 
 SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepArray *things = sepv_to_array(param(scope, "what"));
 
 	SepArrayIterator it = array_iterate_over(things);
@@ -63,11 +63,11 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
 			SepV to_string = property(thing, "toString");
-				or_propagate(to_string);
+				or_raise(to_string);
 			SepItem string_i = vm_invoke(frame->vm, to_string, 0);
-				or_propagate(string_i.value);
+				or_raise(string_i.value);
 			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-				or_raise(exc.EWrongType);
+				or_raise(err);
 		} else {
 			string = sepv_to_str(thing);
 		}
@@ -137,11 +137,11 @@ SepItem statement_if(SepObj *scope, ExecutionFrame *frame) {
 }
 
 SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	SepV ifs = target(scope);
 	SepArray *branches = (SepArray*) prop_as_obj(ifs, "branches", &err);
-	or_raise(exc.EInternal);
+	or_raise(err);
 
 	// execution scope for all the functions
 	SepV parent_scope = frame->prev_frame->locals;
@@ -154,9 +154,9 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// evaluate condition
 		SepV condition_l = property(branch, "condition");
-			or_propagate(condition_l);
+			or_raise(condition_l);
 		SepV fulfilled = vm_resolve(frame->vm, condition_l);
-			or_propagate(fulfilled);
+			or_raise(fulfilled);
 
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
@@ -229,7 +229,7 @@ SepObj *create_loop_body_mixin() {
 SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 	SepV condition_l = param(scope, "condition");
 	SepV condition = vm_resolve(frame->vm, condition_l);
-	or_propagate(condition);
+	or_raise(condition);
 
 	// not looping even once?
 	if (condition != SEPV_TRUE)
@@ -266,7 +266,7 @@ SepItem func_while(SepObj *scope, ExecutionFrame *frame) {
 		gc_release(result);
 		// recalculate condition
 		condition = vm_resolve(frame->vm, condition_l);
-		or_propagate(condition);
+		or_raise(condition);
 	}
 
 	// while() has no return value on normal exit
@@ -292,9 +292,9 @@ SepItem statement_for(SepObj *scope, ExecutionFrame *frame) {
 
 // The "in" part of the for..in statement.
 SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 	SepObj *for_s = target_as_obj(scope, &err);
-	or_raise(exc.EWrongType);
+	or_raise(err);
 
 	obj_add_field(for_s, "collection", param(scope, "collection"));
 	obj_add_field(for_s, "body", param(scope, "body"));
@@ -304,17 +304,17 @@ SepItem substatement_in(SepObj *scope, ExecutionFrame *frame) {
 
 // The actual implementation of the for..in loop.
 SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// get everything out of the statement
 	SepV for_s = target(scope);
 	SepString *variable_name = prop_as_str(for_s, "variable_name", &err);
-	or_raise(exc.EWrongType);
+	or_raise(err);
 	SepV collection = property(for_s, "collection");
 	SepV iterator = call_method(frame->vm, collection, "iterator", 0);
-	or_propagate(iterator);
+	or_raise(iterator);
 	SepV iterator_next = property(iterator, "next");
-	or_propagate(iterator_next);
+	or_raise(iterator_next);
 	SepV body_l = property(for_s, "body");
 
 	// prepare the scope
@@ -336,7 +336,7 @@ SepItem statement_for_impl(SepObj *scope, ExecutionFrame *frame) {
 			SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
 			SepV is_no_more_elements_v = call_method(frame->vm, element, "is",
 					1, enomoreelements_v);
-			or_propagate(is_no_more_elements_v);
+			or_raise(is_no_more_elements_v);
 			if (is_no_more_elements_v == SEPV_TRUE) {
 				break;
 			}
@@ -460,7 +460,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 			// the type matches, run the catcher body
 			SepV catcher_body = property(catcher_obj, "body");
 			SepV catch_result = vm_invoke(frame->vm, catcher_body, 0).value;
-			or_propagate(catch_result);
+			or_raise(catch_result);
 
 			// phew, exception handled!
 			try_result = SEPV_NOTHING;
@@ -475,7 +475,7 @@ SepItem statement_try_impl(SepObj *scope, ExecutionFrame *frame) {
 	while (!arrayit_end(&it)) {
 		SepV finalizer_v = arrayit_next(&it);
 		SepV finalizer_result = vm_invoke(frame->vm, finalizer_v, 0).value;
-		or_propagate(finalizer_result);
+		or_raise(finalizer_result);
 	}
 
 	// return the final result (Nothing if there was an exception)
@@ -500,7 +500,7 @@ SepObj *create_try_statement_prototype() {
 // ===============================================================
 
 SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
-	SepError err = NO_ERROR;
+	SepV err = SEPV_NOTHING;
 
 	// find the caller scope
 	ExecutionFrame *export_caller = frame->prev_frame;
@@ -510,7 +510,7 @@ SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
 	}
 	SepV target_scope_v = export_callers_caller->locals;
 	SepObj *target_scope = cast_as_named_obj("Target for export", target_scope_v, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	// retrieve the object to export and its name
 	SepV object = vm_resolve(frame->vm, param(scope, "object"));
@@ -520,7 +520,7 @@ SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
 		name_v = vm_resolve_as_literal(frame->vm, param(scope, "object"));
 	}
 	SepString *name = cast_as_named_str("Export name", name_v, &err);
-		or_raise(exc.EWrongType);
+		or_raise(err);
 
 	// export!
 	props_add_prop(target_scope, name, &st_field, object);
@@ -599,11 +599,13 @@ SepObj *create_globals() {
 //  Module interface
 // ===============================================================
 
-void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err) {
+void MODULE_EXPORT module_initialize_early(SepModule *module, SepV *error) {
 	// create the runtime
 	SepObj *globals = create_globals();
 	// initialize our local copy of libseptvm with the right globals
-	initialize_runtime_references(obj_to_sepv(globals));
+	SepV err = initialize_runtime_references(obj_to_sepv(globals));
+		or_fail();
+
 	// the globals are our root object
 	module->root = globals;
 
@@ -615,6 +617,6 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepError *out_err)
 }
 
 void MODULE_EXPORT module_initialize_slave_vm(struct LibSeptVMGlobals *globals,
-		SepError *out_err) {
+		SepV *error) {
 	libseptvm_initialize_slave(globals);
 }

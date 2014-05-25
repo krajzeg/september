@@ -20,7 +20,7 @@
 #include "../libmain.h"
 #include "../common/debugging.h"
 #include "../common/garray.h"
-#include "../common/errors.h"
+
 #include "mem.h"
 #include "gc.h"
 #include "types.h"

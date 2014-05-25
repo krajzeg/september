@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 #include "../common/debugging.h"
-#include "../common/errors.h"
+
 #include "../vm/runtime.h"
 #include "../vm/support.h"
 #include "mem.h"

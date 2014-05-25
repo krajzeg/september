@@ -1,42 +1,36 @@
-# September 0.1
+# September 0.2
 
-September is, or rather will be a dynamic, curly-brace programming language focused on minimalism. The idea is to strive for the extensibility of Lisp with the straightforwardness of Python. 
+September is a dynamic, curly-brace programming language focused on minimalism. The idea is to strive for the extensibility of Lisp with the straightforwardness of Python. 
 
 ## The general idea
 
-The September way is to make everything a method call, even things like `if`, `while` or `try..catch`. The function call syntax of the  language is adaptable to the point that a `try..catch..finally` invocation can look exactly the same as it would if it was all built-in keywords. The overarching idea behind that is that by implementing core features that way, we can achieve the best extensibility, ensuring that users of the language will be able to add new constructs that feel as natural as if they were part of the core syntax.
+The September way is to make everything a function call, including things like `if`, `return` or `try..catch`. The function call syntax of the language is designed for it, so a `try..catch..finally` invocation can look exactly the same as it would if it was all built-in keywords. The overarching idea behind that is that by implementing core languages features in this way, we can ensure that users of the language will be able to add new constructs that feel natural.
 
 ## Current status
 
-This is a **very early version** of the language. From the work done so far, it seems that the no-keyword experiment was successful and the resulting language looks promising. 
+This is a **very early version** of the language. The experiment seems to be successful so far, and most of the features of the virtual machine and interpreter are complete as of version 0.2.
 
-The majority of the effort right now goes to making the virtual machine fully featured, leaving the standard library for later. This is the roadmap to version 0.2:
+The road to version 0.3 is all about getting September from "experimental language based on sound principles" to "useful language". Here is a high-level roadmap for doing just that:
 
-* ☑ implement a simple mark-and-sweep garbage collector 
-* ☑ implement all basic features related to functions and function calls
-	* ☑ "sink" arguments (`|...things|`)
-	* ☑ optional arguments (`|reverse = False|`)
-	* ☑ named arguments in calls (`people.sort(reverse: True)`) 
-* ☑ array/object "literals" (`[1, 2, 3]`, `[[x:1, y:2]]`)
-* ☑ indexing operator (`a[2]`)
-* ☑ normalize syntax so statements like `return a+b;`, `return;`, `break;` and `continue;` all work as expected
-* ☐ allow for writing and importing modules
-* ☐ get the basic class system with constructors, fields and methods working
-
-Once those things are done, the next step will be making the language capable of implementing its own parser/compiler by writing the most basic parts of the standard library.
+* ☐ use [**C3 linearization**](http://en.wikipedia.org/wiki/C3_linearization) for property resolution
+* ☐ equip each of the **built-in types** (Integer, String, etc.) with the expected methods and operators, including array slicing
+* ☐ implement **a compiler for September in September itself**, allowing us to ditch the Python part of the codebase, and making September a bootstrapped language
+* ☐ create a workable **module/import system** based on that compiler
+* ☐ create a **September [REPL](http://en.wikipedia.org/wiki/REPL)**
+* ☐ finalize the **class system** by adding the following features: instance/static fields/methods**, **constructors**, **inheritance and mixins
+* ☐ create a **minimal standard I/O library** allowing September to interact with the outside world through **standard in/out**, **files** and **sockets**
 
 ## Want to try it?
 
-In this early version there is not much in terms of documentation - but you can still try it out!
-Just build the interpreter, pick one of the examples in the "tests" directory, and run it.
+In this early version there is not much in terms of documentation, but you can still try it out by:
 
-    make
-    ./run tests/<oneoftheexamples>.sep   # or just 'run' on Windows
-
-If you're building under Linux/Unix, you need to have **Python 3.x** installed, and it has to be available under the name `python3` on your path.
-
-If you want to build under Windows, you will need both **Python 3.x** (as the default `python` executable) and **MinGW** to compile the interpreter.
+1. Make sure you have **a GCC-compatible C compiler** (MinGW on Windows, or any gcc-like on Linux or Mac) and **Python 3.x** installed. Python 3.x has to be the
+   default Python, otherwise the build won't work.
+2. Clone the repository: `hg clone https://krajzega@bitbucket.org/krajzega/september`
+3. Switch to the stable branch to avoid any brokenness happenning on the default branch: `hg up stable`
+4. Build September: `make`
+5. Run any September code you want using the `run` scripts: `./run tests/<anyofthetests>.09`.
 
 ## Read more
 
-More information about the language can be found on my [blog](http://wasyl.eu/tags/september/), where I intend to post rationales, updates and generally interesting stuff on the language.
+More information about the language can be found on my [blog](http://wasyl.eu/tags/september/).
