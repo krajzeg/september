@@ -22,7 +22,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.1-bailiwick"
+#define SEPTEMBER_VERSION "0.2-betwixt"
 
 // ===============================================================
 //  Prototype creation methods
