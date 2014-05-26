@@ -540,16 +540,17 @@ SepObj *create_globals() {
 	rt.Cls->prototypes = obj_to_sepv(rt.Object);
 
 	// create the superglobals and establish their relationship
-	SepObj *obj_Globals = obj_create();
+	SepObj *obj_Globals = obj_create_with_proto(SEPV_NOTHING);
 	SepObj *obj_Syntax = obj_create();
 	obj_add_field(obj_Globals, "globals", obj_to_sepv(obj_Globals));
 	obj_add_field(obj_Globals, "syntax", obj_to_sepv(obj_Syntax));
 
 	// initialize built-in exception classes
 	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
-
 	// ensure that syntax is part of the module
 	obj_add_prototype(obj_Globals, obj_to_sepv(obj_Syntax));
+	// add object prototype to globals
+	obj_add_prototype(obj_Globals, obj_to_sepv(rt.Object));
 
 	// initialize primitive classes
 	obj_add_field(obj_Globals, "Object", obj_to_sepv(rt.Object));

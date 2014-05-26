@@ -52,6 +52,17 @@ void array_grow(SepArray *this, uint32_t cells);
 SepV array_set(SepArray *this, uint32_t index, SepV value);
 // Gets the length of this array.
 uint32_t array_length(SepArray *this);
+// Finds an object in the array (object identity used for equality) and returns its index, or -1 if the object is not found.
+int32_t array_index_of(SepArray *this, SepV value);
+// Removes the first occurence of an object from the array (memcmp is used for comparisons) if it is present.
+// Returns true if the object was present, false otherwise.
+bool array_remove(SepArray *this, SepV value);
+// Removes a single element from the given index.
+void array_remove_at(SepArray *this, uint32_t index);
+// Creates a shallow copy of the array.
+SepArray *array_copy(SepArray *this);
+// Pushes all values from another array at the end of this array.
+void array_push_all(SepArray *this, SepArray *other);
 
 // ===============================================================
 //  Iteration

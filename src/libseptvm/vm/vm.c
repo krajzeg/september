@@ -228,9 +228,9 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 }
 
 // Initializes a scope object for execution of a given function. This sets up
-// the prototype chain for the scope to include the 'syntax' object, the 'this'
-// pointer, and the declaration scope of the function. It also sets up the
-// 'locals' and 'this' properties.
+// the prototype chain for the scope to include the 'this' pointer, and the
+// declaration scope of the function. It also sets up the 'locals' and 'this'
+// properties.
 void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, ExecutionFrame *exec_frame) {
 	SepV exec_scope_v = obj_to_sepv(exec_scope);
 
@@ -238,12 +238,10 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, Executi
 	SepV this_ptr_v = func->vt->get_this_pointer(func);
 	SepV decl_scope_v = func->vt->get_declaration_scope(func);
 	SepArray *prototypes = array_create(4);
-	array_push(prototypes, obj_to_sepv(this->syntax));
 	if ((this_ptr_v != SEPV_NOTHING) && (this_ptr_v != exec_scope_v))
 		array_push(prototypes, this_ptr_v);
 	if ((decl_scope_v != SEPV_NOTHING) && (decl_scope_v != exec_scope_v))
 		array_push(prototypes, decl_scope_v);
-	array_push(prototypes, obj_to_sepv(rt.Object));
 
 	// set the prototypes property on the local scope
 	exec_scope->prototypes = obj_to_sepv(prototypes);

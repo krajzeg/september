@@ -271,7 +271,7 @@ SepV sepv_prototypes(SepV sepv);
 // If 'owner_ptr' is non-NULL, we will also write the actual
 // 'owner' of the slot (i.e. the prototype in which the property
 // was finally found) through this pointer.
-Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr);
+Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr, SepV *error);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure, and returning a stack item (slot + its value).
 SepItem sepv_get_item(SepV object, SepString *property);

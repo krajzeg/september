@@ -157,7 +157,11 @@ SepV property(SepV host, char *name) {
 
 // Checks whether a named property exists on a host object (including prototype lookup).
 bool property_exists(SepV host, char *name) {
-	Slot *slot = sepv_lookup(host, sepstr_for(name), NULL);
+	SepV err = SEPV_NO_VALUE;
+	Slot *slot = sepv_lookup(host, sepstr_for(name), NULL, &err);
+		or_handle() {
+			return false;
+		}
 	return (slot != NULL);
 }
 

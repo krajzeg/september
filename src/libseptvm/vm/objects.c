@@ -401,6 +401,114 @@ SepItem si_obj(void *object) {
 }
 
 // ===============================================================
+//  C3 property resolution
+// ===============================================================
+
+void dbg_object(SepObj *obj) {
+	PropertyIterator it = props_iterate_over(obj);
+	while (!propit_end(&it)) {
+		printf(propit_name(&it)->cstr);
+		printf(",");
+		propit_next(&it);
+	}
+}
+
+SepArray *c3_merge(SepArray *orders, SepV *error) {
+	SepArray *merged = array_create(1);
+	int i = 0, j, count = array_length(orders);
+	for (; i < count; i++) {
+		SepArray *seq = sepv_to_array(array_get(orders, i));
+		if (array_length(seq) == 0)
+			continue;
+		SepV head = array_get(seq, 0);
+
+		// is this a good head to remove?
+		bool good_head = true;
+		for (j = 0; j < count; j++) {
+			if (i != j) {
+				SepArray *other_seq = sepv_to_array(array_get(orders, j));
+				int32_t index = array_index_of(other_seq, head);
+				if (index >= 1) {
+					// nope
+					good_head = false;
+					break;
+				}
+			}
+		}
+
+		if (good_head) {
+			// yes, add it to the merged order
+			array_push(merged, head);
+			// remove it from all arrays
+			for (j = 0; j < count; j++) {
+				SepArray *remove_seq = sepv_to_array(array_get(orders, j));
+				array_remove(remove_seq, head);
+			}
+			// ...and start over looking for the next head
+			i = -1;
+		}
+	}
+
+	// done - all lists should be empty now
+	for (i = 0; i < count; i++) {
+		SepArray *seq = sepv_to_array(array_get(orders, i));
+		if (array_length(seq) > 0) {
+			for (j = 0; j < count; j++) {
+				SepArray *pseq = sepv_to_array(array_get(orders, j));
+				SepArrayIterator pit = array_iterate_over(pseq);
+				while (!arrayit_end(&pit)) {
+					dbg_object(sepv_to_obj(arrayit_next(&pit)));
+					printf("|");
+				}
+				printf("\n\n");
+			}
+			fail(NULL, exception(exc.EInternal, "Ambiguous inheritance hierarchy."));
+		}
+	}
+
+	// they are - OK!
+	return merged;
+}
+
+SepArray *c3_order(SepV object, SepV *error) {
+	SepV err = SEPV_NO_VALUE;
+
+	// always start with yourself
+	SepArray *order = array_create(1);
+	array_push(order, object);
+
+	// any prototypes?
+	SepV prototype_v = sepv_prototypes(object);
+	if (prototype_v == SEPV_NOTHING) {
+		// nope, just me
+		return order;
+	} else if (!sepv_is_array(prototype_v)) {
+		// single prototype, just append its C3
+		array_push_all(order, c3_order(prototype_v, &err));
+			or_fail_with(NULL);
+		// and return
+		return order;
+	} else {
+		// multiple prototypes
+		SepArray *prototypes = sepv_to_array(prototype_v);
+		SepArray *orders_to_merge = array_create(array_length(prototypes) + 1);
+		array_push(orders_to_merge, obj_to_sepv(array_copy(prototypes)));
+		SepArrayIterator it = array_iterate_over(prototypes);
+		while (!arrayit_end(&it)) {
+			SepV prototype = arrayit_next(&it);
+			array_push(orders_to_merge, obj_to_sepv(c3_order(prototype, &err)));
+				or_fail_with(NULL);
+		}
+
+		// merge using C3 algorithm
+		SepArray *merged = c3_merge(orders_to_merge, &err);
+			or_fail_with(NULL);
+		array_push_all(order, merged);
+		return order;
+	}
+}
+
+// ===============================================================
 //  Object-like behavior for all types
 // ===============================================================
 
@@ -442,12 +550,7 @@ SepV sepv_prototypes(SepV sepv) {
 	}
 }
 
-// Finds a property starting from a given object, taking prototypes
-// into consideration. Returns NULL if nothing found.
-// If the 'owner_ptr' is non-NULL, it will also write the actual
-// 'owner' of the slot (i.e. the prototype in which the property
-// was finally found) into the memory being pointed to.
-Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
+Slot *sepv_local_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
 	// handle the Literals in a special way
 	if (sepv == SEPV_LITERALS) {
 		// return the property name itself, wrapped in a fake slot
@@ -467,54 +570,43 @@ Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
 		}
 	}
 
-	// OK, nothing local - look into prototypes
-	SepV proto = sepv_prototypes(sepv);
+	// nothing locally
+	return NULL;
+}
 
-	// no prototypes at all?
-	if (proto == SEPV_NOTHING)
-		return NULL;
+// Finds a property starting from a given object, taking prototypes
+// into consideration. Returns NULL if nothing found.
+// If the 'owner_ptr' is non-NULL, it will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) into the memory being pointed to.
+Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr, SepV *error) {
+	SepV err = SEPV_NO_VALUE;
 
-	if (sepv_is_obj(proto)) {
-		if (sepv_is_array(proto)) {
-			// an array of prototypes - extract it
-			SepArray *prototypes = (SepArray*) sepv_to_obj(proto);
+	// find the C3 lookup order
+	SepArray *lookup_order = c3_order(sepv, &err);
+		or_fail_with(NULL);
 
-			// look through the prototypes, depth-first, in order
-			uint32_t length = array_length(prototypes);
-			uint32_t index = 0;
-			for (; index < length; index++) {
-				// get the prototype at the given index
-				SepV prototype = array_get(prototypes, index);
-				// skip cyclical references
-				if (prototype == sepv)
-					continue;
-				// look inside (pass the owner ptr so the owner gets written by the recursive call)
-				Slot *proto_slot = sepv_lookup(prototype, property, owner_ptr);
-				if (proto_slot)
-					return proto_slot;
-			}
-			// none of the prototype objects contained the slot
-			return NULL;
-		} else {
-			// a single prototype, recurse into it (if its not a cycle)
-			// the 'owner_ptr' is passed to make sure the owner is stored
-			// by the recursive call
-			if (proto != sepv)
-				return sepv_lookup(proto, property, owner_ptr);
-			else
-				return NULL;
-		}
-	} else {
-		// single non-object prototype, strange but legal
-		return sepv_lookup(proto, property, owner_ptr);
+	// look into the objects in turn
+	SepArrayIterator it = array_iterate_over(lookup_order);
+	while (!arrayit_end(&it)) {
+		SepV obj = arrayit_next(&it);
+		Slot *slot = sepv_local_lookup(obj, property, owner_ptr);
+		if (slot)
+			return slot;
 	}
+
+	// nothing found
+	return NULL;
 }
 
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure.
 SepItem sepv_get_item(SepV sepv, SepString *property) {
+	SepV err = SEPV_NO_VALUE;
 	SepV owner;
-	Slot *slot = sepv_lookup(sepv, property, &owner);
+	Slot *slot = sepv_lookup(sepv, property, &owner, &err);
+		or_raise(err);
+
 	if (slot) {
 		OriginInfo origin = {sepv, owner, property};
 		SepV value = slot_retrieve(slot, &origin);
@@ -539,8 +631,10 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 // be returned as a marker. If you prefer an exception, use
 // sepv_get().
 SepV sepv_lenient_get(SepV sepv, SepString *property) {
+	SepV err = SEPV_NO_VALUE;
 	SepV owner;
-	Slot *slot = sepv_lookup(sepv, property, &owner);
+	Slot *slot = sepv_lookup(sepv, property, &owner, &err);
+		or_raise_sepv(err);
 	if (slot) {
 		OriginInfo origin = {sepv, owner, property};
 		return slot_retrieve(slot, &origin);

@@ -65,6 +65,19 @@ void array_push(SepArray *this, SepV value) {
 	ga_push(&this->array, &value);
 }
 
+// Pushes all values from another array at the end of this array.
+void array_push_all(SepArray *this, SepArray *other) {
+	uint32_t initial_length = array_length(this), i;
+	uint32_t other_length = array_length(other);
+	array_grow(this, other_length);
+
+	SepArrayIterator iterator = array_iterate_over(other);
+	for (i = initial_length; i < initial_length + other_length; i++) {
+		SepV value = arrayit_next(&iterator);
+		array_set(this, i, value);
+	}
+}
+
 // Pops a value from the end of this array.
 SepV array_pop(SepArray *this) {
 	// pop
@@ -110,6 +123,29 @@ SepV array_set(SepArray *this, uint32_t index, SepV value) {
 void array_grow(SepArray *this, uint32_t cells) {
 	// delegate
 	ga_grow(&this->array, cells);
+}
+
+// Finds an object in the array (object identity used for equality) and returns its index, or -1 if the object is not found.
+int32_t array_index_of(SepArray *this, SepV value) {
+	return ga_index_of(&this->array, &value);
+}
+
+// Removes the first occurence of an object from the array (memcmp is used for comparisons) if it is present.
+// Returns true if the object was present, false otherwise.
+bool array_remove(SepArray *this, SepV value) {
+	return ga_remove(&this->array, &value);
+}
+
+// Removes a single element from the given index.
+void array_remove_at(SepArray *this, uint32_t index) {
+	ga_remove_at(&this->array, index);
+}
+
+// Creates a shallow copy of the array.
+SepArray *array_copy(SepArray *this) {
+	SepArray *copy = array_create(array_length(this));
+	array_push_all(copy, this);
+	return copy;
 }
 
 // Gets the length of this array.
