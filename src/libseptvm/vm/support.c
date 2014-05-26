@@ -47,7 +47,7 @@ SepString *cast_as_named_str(char *name, SepV value, SepV *error) {
 	if (sepv_is_exception(value))
 		fail(NULL, value);
 	if (!sepv_is_str(value))
-		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a string."));
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a string.", name));
 	else
 		return sepv_to_str(value);
 }
@@ -56,7 +56,7 @@ SepObj *cast_as_named_obj(char *name, SepV value, SepV *error) {
 	if (sepv_is_exception(value))
 		fail(NULL, value);
 	if (!sepv_is_obj(value))
-		fail(NULL, exception(exc.EWrongType, "%s is supposed to be an object."));
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be an object.", name));
 	else
 		return sepv_to_obj(value);
 }
@@ -65,7 +65,7 @@ SepFunc *cast_as_named_func(char *name, SepV value, SepV *error) {
 	if (sepv_is_exception(value))
 		fail(NULL, value);
 	if (!sepv_is_func(value))
-		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a function."));
+		fail(NULL, exception(exc.EWrongType, "%s is supposed to be a function.", name));
 	else
 		return sepv_to_func(value);
 }
@@ -74,7 +74,7 @@ SepInt cast_as_named_int(char *name, SepV value, SepV *error) {
 	if (sepv_is_exception(value))
 		fail(0, value);
 	if (!sepv_is_int(value))
-		fail(0, exception(exc.EWrongType, "%s is supposed to be an integer."));
+		fail(0, exception(exc.EWrongType, "%s is supposed to be an integer.", name));
 	else
 		return sepv_to_int(value);
 }
