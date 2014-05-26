@@ -79,8 +79,7 @@ SepV load_module(ModuleDefinition *definition) {
 		SepV result;
 		if (!vm) {
 			// no current VM, create a new one just for the module
-			vm = vm_create(module, rt.syntax);
-			vm_initialize_root_frame(vm, module);
+			vm = vm_create(module);
 			result = vm_run(vm);
 			vm_free(vm);
 		} else {

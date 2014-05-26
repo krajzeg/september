@@ -547,8 +547,6 @@ SepObj *create_globals() {
 
 	// initialize built-in exception classes
 	obj_add_prototype(obj_Globals, obj_to_sepv(create_builtin_exceptions()));
-	// ensure that syntax is part of the module
-	obj_add_prototype(obj_Globals, obj_to_sepv(obj_Syntax));
 	// add object prototype to globals
 	obj_add_prototype(obj_Globals, obj_to_sepv(rt.Object));
 

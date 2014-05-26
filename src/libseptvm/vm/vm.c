@@ -72,7 +72,7 @@ void frame_release(ExecutionFrame *frame, SepV value) {
 //  The virtual machine
 // ===============================================================
 
-SepVM *vm_create(SepModule *module, SepObj *syntax) {
+SepVM *vm_create(SepModule *module) {
 	SepVM *vm = mem_unmanaged_allocate(sizeof(SepVM));
 
 	// initialize all execution frames for safe usage later
@@ -84,7 +84,6 @@ SepVM *vm_create(SepModule *module, SepObj *syntax) {
 
 	// create the data stack
 	vm->data = stack_create();
-	vm->syntax = syntax;
 
 	// start a frame for the root function and set it to be current
 	vm_initialize_root_frame(vm, module);
@@ -208,7 +207,7 @@ void vm_initialize_root_frame(SepVM *this, SepModule *module) {
 	frame->prev_frame = NULL;
 	frame->next_frame = &this->frames[1];
 
-	// set it as the execution scope for the root function
+	// set the execution scope for the root function
 	frame->locals = obj_to_sepv(module->root);
 
 	// give it the proper properties
@@ -237,6 +236,7 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, Executi
 	// take prototypes based on the function
 	SepV this_ptr_v = func->vt->get_this_pointer(func);
 	SepV decl_scope_v = func->vt->get_declaration_scope(func);
+
 	SepArray *prototypes = array_create(4);
 	if ((this_ptr_v != SEPV_NOTHING) && (this_ptr_v != exec_scope_v))
 		array_push(prototypes, this_ptr_v);

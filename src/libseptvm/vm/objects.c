@@ -551,19 +551,12 @@ SepV sepv_prototypes(SepV sepv) {
 }
 
 Slot *sepv_local_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
-	// handle the Literals in a special way
-	if (sepv == SEPV_LITERALS) {
-		// return the property name itself, wrapped in a fake slot
-		*owner_ptr = SEPV_NO_VALUE;
-		return slot_create(&st_field, str_to_sepv(property));
-	}
-
-	// if we are an object, we might have this property ourselves
+	// if we are an object, we might have this property
 	if (sepv_is_obj(sepv)) {
 		SepObj *obj = sepv_to_obj(sepv);
 		Slot *local_slot = props_find_prop(obj, property);
 		if (local_slot) {
-			// found it - local values always take priority
+			// found it!
 			if (owner_ptr)
 				*owner_ptr = sepv;
 			return local_slot;
@@ -582,12 +575,33 @@ Slot *sepv_local_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
 Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr, SepV *error) {
 	SepV err = SEPV_NO_VALUE;
 
+	// handle the LiteralScope in a special way
+	if (sepv == SEPV_LITERALS) {
+		// return the property name itself, wrapped in a fake slot
+		*owner_ptr = SEPV_NO_VALUE;
+		return slot_create(&st_field, str_to_sepv(property));
+	}
+
+	// check locally first
+	Slot *local_slot = sepv_local_lookup(sepv, property, owner_ptr);
+	if (local_slot)
+		return local_slot;
+
+	// check 'syntax' object next if we are an execution scope
+	ExecutionFrame *current_frame = vm_current_frame();
+	if (rt.syntax && current_frame && (current_frame->locals == sepv)) {
+		Slot *syntax_slot = sepv_local_lookup(obj_to_sepv(rt.syntax), property, owner_ptr);
+		if (syntax_slot)
+			return syntax_slot;
+	}
+
 	// find the C3 lookup order
 	SepArray *lookup_order = c3_order(sepv, &err);
 		or_fail_with(NULL);
 
-	// look into the objects in turn
+	// look into the objects in turn (skipping the first entry, which is just us again)
 	SepArrayIterator it = array_iterate_over(lookup_order);
+	arrayit_next(&it);
 	while (!arrayit_end(&it)) {
 		SepV obj = arrayit_next(&it);
 		Slot *slot = sepv_local_lookup(obj, property, owner_ptr);
