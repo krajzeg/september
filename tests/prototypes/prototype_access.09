@@ -2,10 +2,19 @@ print("Any string should have the String prototype, so this is true:", "String".
 
 person := [[]]
 firstName := [[ firstName: "John" ]]
+alternativeName := [[ firstName: "Jane" ]]
 lastName := [[ lastName: "Kowalski" ]]
 fullName := [[]]
 fullName:::assembleName = { this.firstName + " " + this.lastName }
 
 person.prototypes = [firstName, lastName, fullName]
-
 print("If prototype changing works, this will be John Kowalski:", person.assembleName())
+
+person.prototypes[0] = alternativeName
+print("Prototype lists are impossible to update live, so this is still John:", person.firstName)
+
+newPrototypes := person.prototypes
+newPrototypes[0] = alternativeName
+person.prototypes = newPrototypes
+print("Now it should say Jane Kowalski as we reassigned the property:", person.assembleName())
+

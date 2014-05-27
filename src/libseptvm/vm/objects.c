@@ -113,7 +113,14 @@ SlotType st_magic_word = {SF_MAGIC_WORD, &field_retrieve, &field_store, NULL };
 // ===============================================================
 
 SepV prototypes_retrieve(Slot *slot, OriginInfo *origin) {
-	return sepv_prototypes(origin->source);
+	SepV protos = sepv_prototypes(origin->source);
+	if (sepv_is_array(protos)) {
+		// return a safe to modify copy
+		return obj_to_sepv(array_copy(sepv_to_array(protos)));
+	} else {
+		// single value, safe to return
+		return protos;
+	}
 }
 
 SepV prototypes_store(Slot *slot, OriginInfo *origin, SepV value) {
