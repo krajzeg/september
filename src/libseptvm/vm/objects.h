@@ -105,10 +105,14 @@ SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 extern SlotType st_field;
 // Method slot - binds the function with its "this" pointer on retrieval.
 extern SlotType st_method;
+
 // Special slot for pseudo-keywords like "return" or "break". The function
 // inside the slot is called whenever it appears as the only value in an
 // expression.
 extern SlotType st_magic_word;
+
+// Special slot granting access to the prototype list for an object
+extern SlotType st_prototype_list;
 
 // ===============================================================
 //  Property maps

@@ -1,0 +1,11 @@
+print("Any string should have the String prototype, so this is true:", "String".prototypes == String);
+
+person := [[]]
+firstName := [[ firstName: "John" ]]
+lastName := [[ lastName: "Kowalski" ]]
+fullName := [[]]
+fullName:::assembleName = { this.firstName + " " + this.lastName }
+
+person.prototypes = [firstName, lastName, fullName]
+
+print("If prototype changing works, this will be John Kowalski:", person.assembleName())

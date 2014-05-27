@@ -67,6 +67,13 @@ SepItem object_op_triple_colon(SepObj *scope, ExecutionFrame *frame) {
 	return insert_slot_impl(scope, frame, &st_method, SEPV_NOTHING);
 }
 
+// Simple identity equality common to all objects.
+SepItem object_op_equals(SepObj *scope, ExecutionFrame *frame) {
+	SepV target = target(scope);
+	SepV other = param(scope, "other");
+	return si_bool(target == other);
+}
+
 // ===============================================================
 //  Common operations
 // ===============================================================
@@ -158,12 +165,16 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, ":::", object_op_triple_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
+	obj_add_builtin_method(Object, "==", object_op_equals, 1, "other");
 
 	// add common methods
 	obj_add_builtin_method(Object, "resolve", object_resolve, 1, "=scope");
 	obj_add_builtin_method(Object, "accept", object_accept, 2, "property_name", "slot");
 	obj_add_builtin_method(Object, "spawn", object_spawn, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
+
+	// add special properties
+	obj_add_slot(Object, "prototypes", &st_prototype_list, SEPV_NO_VALUE);
 
 	return Object;
 }

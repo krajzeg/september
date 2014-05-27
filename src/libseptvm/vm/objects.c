@@ -109,6 +109,26 @@ SlotType st_method = {SF_NOTHING_SPECIAL, &method_retrieve, &method_store, NULL 
 SlotType st_magic_word = {SF_MAGIC_WORD, &field_retrieve, &field_store, NULL };
 
 // ===============================================================
+//  Slots for special properties
+// ===============================================================
+
+SepV prototypes_retrieve(Slot *slot, OriginInfo *origin) {
+	return sepv_prototypes(origin->source);
+}
+
+SepV prototypes_store(Slot *slot, OriginInfo *origin, SepV value) {
+	SepV target = origin->source;
+	if (!sepv_is_obj(target)) {
+		raise_sepv(exc.EInternal, "Changing the prototypes of this object is impossible.");
+	}
+	SepObj *obj = sepv_to_obj(target);
+	obj->prototypes = value;
+	return value;
+}
+
+SlotType st_prototype_list = {SF_NOTHING_SPECIAL, &prototypes_retrieve, &prototypes_store, NULL };
+
+// ===============================================================
 //  Property maps - private implementation
 // ===============================================================
 

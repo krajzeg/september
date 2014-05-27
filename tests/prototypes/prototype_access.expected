@@ -1,0 +1,2 @@
+Any string should have the String prototype, so this is true: <True>
+If prototype changing works, this will be John Kowalski: John Kowalski

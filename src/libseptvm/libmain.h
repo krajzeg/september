@@ -16,6 +16,8 @@
 //  Includes and pre-declarations
 // ===============================================================
 
+#include <stdint.h>
+
 struct ManagedMemory;
 struct SepObj;
 struct SepVM;
@@ -37,6 +39,9 @@ typedef struct LibSeptVMGlobals {
 	// accessing the VM thread-local
 	struct SepVM *(*get_vm_for_current_thread)();
 	struct SepVM *(*set_vm_for_current_thread)(struct SepVM *);
+
+	// global used for property resolution cache invalidation
+	uint64_t property_cache_version;
 
 	// names of the library modules for which debug logging is turned on
 	char *debugged_module_names;
