@@ -263,6 +263,9 @@ void gc_mark_one_object(GarbageCollection *this, SepV object) {
 		case SEPV_TYPE_FUNC:
 			gc_mark_and_queue_func(this, (SepFunc*)ptr);
 			break;
+		case SEPV_TYPE_SLOT:
+			gc_mark_and_queue_slot(this, (Slot*)ptr);
+			break;
 	}
 }
 
