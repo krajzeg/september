@@ -169,7 +169,7 @@ void store_impl(ExecutionFrame *frame) {
 	}
 
 	// store the value in the slot specified
-	SepV result = slot_store(item.slot, &item.origin, value);
+	SepV result = slot_store(item_slot(&item), &item.origin, value);
 
 	// return the value to the stack (as an rvalue)
 	stack_push_rvalue(frame->data, result);
@@ -210,7 +210,8 @@ void pop_impl(ExecutionFrame *frame) {
 	frame->return_value = popped;
 
 	// check for magic words
-	if (popped.slot && (popped.slot->vt->flags & SF_MAGIC_WORD)) {
+	Slot *popped_slot = item_slot(&popped);
+	if (popped_slot && (popped_slot->vt->flags & SF_MAGIC_WORD)) {
 		// call the function inside the slot and replace the return value
 		SepItem result = vm_invoke(frame->vm, popped.value, 0);
 		frame->return_value = result;
