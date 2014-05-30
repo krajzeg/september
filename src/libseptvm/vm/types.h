@@ -90,6 +90,10 @@ SepItem item_property_lvalue(SepV slot_owner, SepV accessed_through, struct SepS
 // Creates a new artificial l-value stack item - the slot has to be a standalone managed object.
 SepItem item_artificial_lvalue(struct Slot *slot, SepV value);
 
+// Retrieves the slot reference stored within the item. This is the only safe way to access it, as sometimes
+// the pointer inside the struct itself might be stale and need a fix-up operation.
+struct Slot* item_slot(SepItem *item);
+
 // Checks if an item is an l-value and can be assigned to.
 #define item_is_lvalue(item) (item.type != SIT_RVALUE)
 

@@ -17,6 +17,7 @@ The road to version 0.3 is all about getting September from "experimental langua
 * ☐ implement **a compiler for September in September itself**, allowing us to ditch the Python part of the codebase, and making September a bootstrapped language
 * ☐ create a workable **module/import system** based on that compiler
 * ☐ create a **September [REPL](http://en.wikipedia.org/wiki/REPL)**
+* ☐ provide usable exception backtraces
 * ☐ finalize the **class system** by adding the following features: instance/static fields/methods**, **constructors**, **inheritance and mixins
 * ☐ create a **minimal standard I/O library** allowing September to interact with the outside world through **standard in/out**, **files** and **sockets**
 
