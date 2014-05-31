@@ -431,13 +431,14 @@ SepItem si_obj(void *object) {
 //  C3 property resolution
 // ===============================================================
 
-void dbg_object(SepObj *obj) {
-	PropertyIterator it = props_iterate_over(obj);
-	while (!propit_end(&it)) {
-		printf(propit_name(&it)->cstr);
-		printf(",");
-		propit_next(&it);
-	}
+SepArray *c3_order(SepV object_v, SepV *error);
+
+void c3_cache_order(SepV object_v, SepArray *order) {
+	if (!sepv_is_obj(object_v))
+		return;
+
+	SepObj *object = sepv_to_obj(object_v);
+	obj_add_field(object, "<c3>", obj_to_sepv(order));
 }
 
 SepArray *c3_merge(SepArray *orders, SepV *error) {
@@ -480,15 +481,7 @@ SepArray *c3_merge(SepArray *orders, SepV *error) {
 	for (i = 0; i < count; i++) {
 		SepArray *seq = sepv_to_array(array_get(orders, i));
 		if (array_length(seq) > 0) {
-			for (j = 0; j < count; j++) {
-				SepArray *pseq = sepv_to_array(array_get(orders, j));
-				SepArrayIterator pit = array_iterate_over(pseq);
-				while (!arrayit_end(&pit)) {
-					dbg_object(sepv_to_obj(arrayit_next(&pit)));
-					printf("|");
-				}
-				printf("\n\n");
-			}
+
 			fail(NULL, exception(exc.EInternal, "Ambiguous inheritance hierarchy."));
 		}
 	}
@@ -497,15 +490,17 @@ SepArray *c3_merge(SepArray *orders, SepV *error) {
 	return merged;
 }
 
-SepArray *c3_order(SepV object, SepV *error) {
+// Calculates the C3 property resolution order for an object based
+// on its current state and prototypes.
+SepArray *c3_determine_order(SepV object_v, SepV *error) {
 	SepV err = SEPV_NO_VALUE;
 
 	// always start with yourself
 	SepArray *order = array_create(1);
-	array_push(order, object);
+	array_push(order, object_v);
 
 	// any prototypes?
-	SepV prototype_v = sepv_prototypes(object);
+	SepV prototype_v = sepv_prototypes(object_v);
 	if (prototype_v == SEPV_NOTHING) {
 		// nope, just me
 		return order;
@@ -523,7 +518,9 @@ SepArray *c3_order(SepV object, SepV *error) {
 		SepArrayIterator it = array_iterate_over(prototypes);
 		while (!arrayit_end(&it)) {
 			SepV prototype = arrayit_next(&it);
-			array_push(orders_to_merge, obj_to_sepv(c3_order(prototype, &err)));
+			SepArray *prototype_c3 = c3_order(prototype, &err);
+				or_fail_with(NULL);
+			array_push(orders_to_merge, obj_to_sepv(array_copy(prototype_c3)));
 				or_fail_with(NULL);
 		}
 
@@ -533,6 +530,28 @@ SepArray *c3_order(SepV object, SepV *error) {
 		array_push_all(order, merged);
 		return order;
 	}
+}
+
+SepArray *c3_order(SepV object_v, SepV *error) {
+	SepV err = SEPV_NO_VALUE;
+
+	// do we have a resolution order cached?
+	if (sepv_is_obj(object_v)) {
+		SepObj *object = sepv_to_obj(object_v);
+		Slot *cache_slot = props_find_prop(object, sepstr_for("<c3>"));
+		if (cache_slot) {
+			// yes, there is a cached order - return it
+			return sepv_to_array(cache_slot->value);
+		}
+	}
+
+	// no - calculate it
+	SepArray *order = c3_determine_order(object_v, &err);
+		or_fail_with(NULL);
+
+	// cache for future reference and return
+	c3_cache_order(object_v, order);
+	return order;
 }
 
 // ===============================================================

@@ -130,7 +130,7 @@ void obj_add_prototype(SepObj *obj, SepV prototype) {
 		array_push(array, prototype);
 	} else {
 		// object had one prototype - we have to create a new array with 2 elements
-		// to accomodate the new prototype
+		// to accommodate the new prototype
 		SepArray *array = array_create(2);
 		array_push(array, current);
 		array_push(array, prototype);
