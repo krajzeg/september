@@ -244,7 +244,7 @@ void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj* exec_scope, Executi
 		array_push(prototypes, decl_scope_v);
 
 	// set the prototypes property on the local scope
-	exec_scope->prototypes = obj_to_sepv(prototypes);
+	obj_set_prototypes(exec_scope, obj_to_sepv(prototypes));
 
 	// enrich the locals object with properties pointing to important objects
 	props_add_field(exec_scope, "locals", exec_scope_v);

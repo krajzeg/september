@@ -123,18 +123,19 @@ void obj_add_prototype(SepObj *obj, SepV prototype) {
 	SepV current = obj->prototypes;
 	if (current == SEPV_NOTHING) {
 		// this is the first prototype, just set it
-		obj->prototypes = prototype;
+		obj_set_prototypes(obj, prototype);
 	} else if (sepv_is_array(current)) {
 		// already an array of prototypes, just push the new one
 		SepArray *array = (SepArray*)sepv_to_obj(current);
 		array_push(array, prototype);
+		obj_set_prototypes(obj, obj_to_sepv(array)); // we still need to let everybody know we modified it
 	} else {
 		// object had one prototype - we have to create a new array with 2 elements
 		// to accommodate the new prototype
 		SepArray *array = array_create(2);
 		array_push(array, current);
 		array_push(array, prototype);
-		obj->prototypes = obj_to_sepv(array);
+		obj_set_prototypes(obj, obj_to_sepv(array));
 	}
 }
 

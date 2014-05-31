@@ -158,7 +158,7 @@ SepItem object_is(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_object_prototype() {
 	// create Object class
 	SepObj *Object = make_class("Object", NULL);
-	Object->prototypes = SEPV_NOTHING;
+	obj_set_prototypes(Object, SEPV_NOTHING);
 
 	// add operators common to all objects
 	obj_add_builtin_method(Object, ".", object_op_dot, 1, "?property_name");

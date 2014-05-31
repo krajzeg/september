@@ -537,7 +537,7 @@ SepObj *create_globals() {
 
 	// Object is a superclass for everything, so it gets created next
 	rt.Object = create_object_prototype();
-	rt.Cls->prototypes = obj_to_sepv(rt.Object);
+	obj_set_prototypes(rt.Cls, obj_to_sepv(rt.Object));
 
 	// create the superglobals and establish their relationship
 	SepObj *obj_Globals = obj_create_with_proto(SEPV_NOTHING);

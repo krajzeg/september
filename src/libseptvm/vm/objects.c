@@ -129,7 +129,7 @@ SepV prototypes_store(Slot *slot, OriginInfo *origin, SepV value) {
 		raise_sepv(exc.EInternal, "Changing the prototypes of this object is impossible.");
 	}
 	SepObj *obj = sepv_to_obj(target);
-	obj->prototypes = value;
+	obj_set_prototypes(obj, value);
 	return value;
 }
 
@@ -387,51 +387,16 @@ SepV propit_value(PropertyIterator *current) {
 }
 
 // ===============================================================
-//  Objects
-// ===============================================================
-
-// Creates a new, empty object.
-SepObj *obj_create() {
-	static ObjectTraits DEFAULT_TRAITS = { REPRESENTATION_SIMPLE };
-
-	SepObj *obj = mem_allocate(sizeof(SepObj));
-
-	// set up default values
-	obj->traits = DEFAULT_TRAITS;
-	obj->prototypes = obj_to_sepv(rt.Object);
-
-	// make sure all unallocated pointers are NULL to avoid GC
-	// tripping over uninitialized pointers and going berserk on
-	// random memory
-	obj->data = NULL;
-	obj->props.entries = NULL;
-
-	// register in as a GC root in the current frame to prevent accidental freeing
-	gc_register(obj_to_sepv(obj));
-
-	// initialize property map (possible allocation here, so perform as late as possible)
-	props_init((PropertyMap*) obj, 2);
-
-	return obj;
-}
-
-// Creates a new object with a chosen prototype(s).
-SepObj *obj_create_with_proto(SepV proto) {
-	SepObj *obj = obj_create();
-	obj->prototypes = proto;
-	return obj;
-}
-
-// Shortcut to quickly create a SepItem with a given object as r-value.
-SepItem si_obj(void *object) {
-	return item_rvalue(obj_to_sepv(object));
-}
-
-// ===============================================================
 //  C3 property resolution
 // ===============================================================
 
 SepArray *c3_order(SepV object_v, SepV *error);
+
+void c3_invalidate_cache(SepObj *object) {
+	Slot *cache_slot = props_find_prop(object, sepstr_for("<c3>"));
+	if (cache_slot)
+		cache_slot->value = SEPV_NO_VALUE;
+}
 
 void c3_cache_order(SepV object_v, SepArray *order) {
 	if (!sepv_is_obj(object_v))
@@ -539,7 +504,7 @@ SepArray *c3_order(SepV object_v, SepV *error) {
 	if (sepv_is_obj(object_v)) {
 		SepObj *object = sepv_to_obj(object_v);
 		Slot *cache_slot = props_find_prop(object, sepstr_for("<c3>"));
-		if (cache_slot) {
+		if (cache_slot && (cache_slot->value != SEPV_NO_VALUE)) {
 			// yes, there is a cached order - return it
 			return sepv_to_array(cache_slot->value);
 		}
@@ -553,6 +518,55 @@ SepArray *c3_order(SepV object_v, SepV *error) {
 	c3_cache_order(object_v, order);
 	return order;
 }
+
+// ===============================================================
+//  Objects
+// ===============================================================
+
+// Creates a new, empty object.
+SepObj *obj_create() {
+	static ObjectTraits DEFAULT_TRAITS = { REPRESENTATION_SIMPLE };
+
+	SepObj *obj = mem_allocate(sizeof(SepObj));
+
+	// set up default values
+	obj->traits = DEFAULT_TRAITS;
+	obj->prototypes = obj_to_sepv(rt.Object);
+
+	// make sure all unallocated pointers are NULL to avoid GC
+	// tripping over uninitialized pointers and going berserk on
+	// random memory
+	obj->data = NULL;
+	obj->props.entries = NULL;
+
+	// register in as a GC root in the current frame to prevent accidental freeing
+	gc_register(obj_to_sepv(obj));
+
+	// initialize property map (possible allocation here, so perform as late as possible)
+	props_init((PropertyMap*) obj, 2);
+
+	return obj;
+}
+
+// Creates a new object with a chosen prototype(s).
+SepObj *obj_create_with_proto(SepV proto) {
+	SepObj *obj = obj_create();
+	obj->prototypes = proto;
+	return obj;
+}
+
+// Resets an object's prototype list, throwing away any outstanding caches
+// resulting from the old one.
+void obj_set_prototypes(SepObj *this, SepV prototypes) {
+	this->prototypes = prototypes;
+	c3_invalidate_cache(this);
+}
+
+// Shortcut to quickly create a SepItem with a given object as r-value.
+SepItem si_obj(void *object) {
+	return item_rvalue(obj_to_sepv(object));
+}
+
 
 // ===============================================================
 //  Object-like behavior for all types
