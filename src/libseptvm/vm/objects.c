@@ -686,7 +686,14 @@ Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr, SepV *error) 
 		if (syntax_slot)
 			return syntax_slot;
 	}
-
+    
+    // do we have just a single prototype (allowing us to just recurse into it without C3?)
+    SepV prototype = sepv_prototypes(sepv);
+    if (prototype == SEPV_NOTHING)
+        return NULL;
+    if (!sepv_is_array(prototype))
+        return sepv_lookup(prototype, property, owner_ptr, error);
+    
 	// find the C3 lookup order
 	SepArray *lookup_order = c3_order(sepv, &err);
 		or_fail_with(NULL);
