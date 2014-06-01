@@ -27,6 +27,7 @@
 #include "gc.h"
 #include "../vm/runtime.h"
 #include "../vm/support.h"
+#include "../libmain.h"
 
 // ===============================================================
 //  Constants
@@ -392,18 +393,49 @@ SepV propit_value(PropertyIterator *current) {
 
 SepArray *c3_order(SepV object_v, SepV *error);
 
-void c3_invalidate_cache(SepObj *object) {
+
+SepArray *c3_cached_order(SepV object_v) {
+	if (!sepv_is_obj(object_v))
+		return NULL;
+	SepObj *object = sepv_to_obj(object_v);
 	Slot *cache_slot = props_find_prop(object, sepstr_for("<c3>"));
-	if (cache_slot)
-		cache_slot->value = SEPV_NO_VALUE;
+	if (cache_slot && cache_slot->value != SEPV_NO_VALUE) {
+		return sepv_to_array(cache_slot->value);
+	} else {
+		return NULL;
+	}
 }
 
-void c3_cache_order(SepV object_v, SepArray *order) {
+int64_t c3_cache_version(SepV object_v) {
+	if (!sepv_is_obj(object_v))
+		return 0;
+	SepObj *object = sepv_to_obj(object_v);
+	Slot *cache_v_slot = props_find_prop(object, sepstr_for("<c3version>"));
+	if (cache_v_slot) {
+		return sepv_to_int(cache_v_slot->value);
+	} else {
+		return 0;
+	}
+}
+
+void c3_store_cached_order(SepV object_v, SepArray *order) {
 	if (!sepv_is_obj(object_v))
 		return;
 
 	SepObj *object = sepv_to_obj(object_v);
 	obj_add_field(object, "<c3>", obj_to_sepv(order));
+	obj_add_field(object, "<c3version>", int_to_sepv(lsvm_globals.property_cache_version));
+}
+
+void c3_invalidate_cache(SepV object_v) {
+	if (!sepv_is_obj(object_v))
+		return;
+	SepObj *object = sepv_to_obj(object_v);
+	Slot *cache_slot = props_find_prop(object, sepstr_for("<c3>"));
+	if (cache_slot) {
+		cache_slot->value = SEPV_NO_VALUE;
+        props_set_prop(object, sepstr_for("<c3version>"), ++lsvm_globals.property_cache_version);
+	}
 }
 
 SepArray *c3_merge(SepArray *orders, SepV *error) {
@@ -515,7 +547,7 @@ SepArray *c3_order(SepV object_v, SepV *error) {
 		or_fail_with(NULL);
 
 	// cache for future reference and return
-	c3_cache_order(object_v, order);
+	c3_store_cached_order(object_v, order);
 	return order;
 }
 
@@ -559,7 +591,7 @@ SepObj *obj_create_with_proto(SepV proto) {
 // resulting from the old one.
 void obj_set_prototypes(SepObj *this, SepV prototypes) {
 	this->prototypes = prototypes;
-	c3_invalidate_cache(this);
+	c3_invalidate_cache(obj_to_sepv(this));
 }
 
 // Shortcut to quickly create a SepItem with a given object as r-value.
@@ -658,12 +690,24 @@ Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr, SepV *error) 
 	// find the C3 lookup order
 	SepArray *lookup_order = c3_order(sepv, &err);
 		or_fail_with(NULL);
+	int64_t c3_version = c3_cache_version(sepv);
 
 	// look into the objects in turn (skipping the first entry, which is just us again)
-	SepArrayIterator it = array_iterate_over(lookup_order);
-	arrayit_next(&it);
-	while (!arrayit_end(&it)) {
-		SepV obj = arrayit_next(&it);
+	int current_index = 1, order_count = array_length(lookup_order);
+	for (;current_index < order_count; current_index++) {
+		SepV obj = array_get(lookup_order, current_index);
+
+		// check if the C3 order we are using is still valid (no later changes in the
+		// prototype lists of the objects on the C3 list)
+		int64_t obj_c3_version = c3_cache_version(obj);
+		if (obj_c3_version > c3_version) {
+			// our cached C3 order is stale, we should get a new one
+			c3_invalidate_cache(sepv);
+			lookup_order = c3_order(sepv, &err);
+				or_fail_with(NULL);
+			c3_version = c3_cache_version(sepv);
+			order_count = array_length(lookup_order);
+		}
 		Slot *slot = sepv_local_lookup(obj, property, owner_ptr);
 		if (slot)
 			return slot;

@@ -1,0 +1,3 @@
+In the beginning, this should be 42: 42
+After switching prototypes, it should be 23: 23
+After switching them back, 42 again: 42

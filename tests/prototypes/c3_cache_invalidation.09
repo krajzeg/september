@@ -1,0 +1,21 @@
+# create a deeper inheritance structure
+
+A := Object()
+B := Object()
+C := Object()
+DP1 := [[ deepProperty: 42 ]]
+DP2 := [[ deepProperty: 23 ]]
+A.prototypes = [B, C]
+B.prototypes = DP1
+
+print("In the beginning, this should be 42:", A.deepProperty)
+
+# change prototypes somewhere deep in the inheritance graph
+B.prototypes = Object
+C.prototypes = [String, DP2]
+
+print("After switching prototypes, it should be 23:", A.deepProperty)
+
+# change prototypes back
+B.prototypes = DP1
+print("After switching them back, 42 again:", A.deepProperty)
