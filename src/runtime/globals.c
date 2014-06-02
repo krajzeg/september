@@ -22,7 +22,7 @@
 //  Version
 // ===============================================================
 
-#define SEPTEMBER_VERSION "0.2-betwixt"
+#define SEPTEMBER_VERSION "0.2-biffin"
 
 // ===============================================================
 //  Prototype creation methods

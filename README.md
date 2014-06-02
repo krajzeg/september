@@ -12,14 +12,14 @@ This is a **very early version** of the language. The experiment seems to be suc
 
 The road to version 0.3 is all about getting September from "experimental language based on sound principles" to "useful language". Here is a high-level roadmap for doing just that:
 
-* ☐ use [**C3 linearization**](http://en.wikipedia.org/wiki/C3_linearization) for property resolution
-* ☐ equip each of the **built-in types** (Integer, String, etc.) with the expected methods and operators, including array slicing
-* ☐ implement **a compiler for September in September itself**, allowing us to ditch the Python part of the codebase, and making September a bootstrapped language
-* ☐ create a workable **module/import system** based on that compiler
-* ☐ create a **September [REPL](http://en.wikipedia.org/wiki/REPL)**
-* ☐ provide usable exception backtraces
-* ☐ finalize the **class system** by adding the following features: instance/static fields/methods**, **constructors**, **inheritance and mixins
-* ☐ create a **minimal standard I/O library** allowing September to interact with the outside world through **standard in/out**, **files** and **sockets**
+* ✓ use [**C3 linearization**](http://en.wikipedia.org/wiki/C3_linearization) for property resolution
+* equip each of the **built-in types** (Integer, String, etc.) with the expected methods and operators, including array slicing
+* implement **a compiler for September in September itself**, allowing us to ditch the Python part of the codebase, and making September a bootstrapped language
+* create a workable **module/import system** based on that compiler
+* create a **September [REPL](http://en.wikipedia.org/wiki/REPL)**
+* provide usable **exception backtraces**
+* finalize the **class system** by adding the following features: **instance/static fields/methods**, **constructors**, **inheritance and mixins**
+* create a **minimal standard I/O library** allowing September to interact with the outside world through **standard in/out**, **files** and **sockets**
 
 ## Want to try it?
 
