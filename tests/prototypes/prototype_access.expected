@@ -1,0 +1,4 @@
+Any string should have the String prototype, so this is true: <True>
+If prototype changing works, this will be John Kowalski: John Kowalski
+Prototype lists are impossible to update live, so this is still John: John
+Now it should say Jane Kowalski as we reassigned the property: Jane Kowalski

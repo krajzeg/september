@@ -25,8 +25,10 @@
 #include "objects.h"
 #include "arrays.h"
 #include "gc.h"
-#include "../vm/runtime.h"
-#include "../vm/support.h"
+#include "c3.h"
+#include "runtime.h"
+#include "support.h"
+#include "../libmain.h"
 
 // ===============================================================
 //  Constants
@@ -107,6 +109,33 @@ SlotType st_method = {SF_NOTHING_SPECIAL, &method_retrieve, &method_store, NULL 
 // the SF_MAGIC_WORD flag turned on to make the VM handle them
 // in a special fashion
 SlotType st_magic_word = {SF_MAGIC_WORD, &field_retrieve, &field_store, NULL };
+
+// ===============================================================
+//  Slots for special properties
+// ===============================================================
+
+SepV prototypes_retrieve(Slot *slot, OriginInfo *origin) {
+	SepV protos = sepv_prototypes(origin->source);
+	if (sepv_is_array(protos)) {
+		// return a safe to modify copy
+		return obj_to_sepv(array_copy(sepv_to_array(protos)));
+	} else {
+		// single value, safe to return
+		return protos;
+	}
+}
+
+SepV prototypes_store(Slot *slot, OriginInfo *origin, SepV value) {
+	SepV target = origin->source;
+	if (!sepv_is_obj(target)) {
+		raise_sepv(exc.EInternal, "Changing the prototypes of this object is impossible.");
+	}
+	SepObj *obj = sepv_to_obj(target);
+	obj_set_prototypes(obj, value);
+	return value;
+}
+
+SlotType st_prototype_list = {SF_NOTHING_SPECIAL, &prototypes_retrieve, &prototypes_store, NULL };
 
 // ===============================================================
 //  Property maps - private implementation
@@ -360,6 +389,12 @@ SepV propit_value(PropertyIterator *current) {
 }
 
 // ===============================================================
+//  C3 property resolution
+// ===============================================================
+
+
+
+// ===============================================================
 //  Objects
 // ===============================================================
 
@@ -395,10 +430,18 @@ SepObj *obj_create_with_proto(SepV proto) {
 	return obj;
 }
 
+// Resets an object's prototype list, throwing away any outstanding caches
+// resulting from the old one.
+void obj_set_prototypes(SepObj *this, SepV prototypes) {
+	this->prototypes = prototypes;
+	c3_invalidate_cache(obj_to_sepv(this));
+}
+
 // Shortcut to quickly create a SepItem with a given object as r-value.
 SepItem si_obj(void *object) {
 	return item_rvalue(obj_to_sepv(object));
 }
+
 
 // ===============================================================
 //  Object-like behavior for all types
@@ -442,79 +485,96 @@ SepV sepv_prototypes(SepV sepv) {
 	}
 }
 
-// Finds a property starting from a given object, taking prototypes
-// into consideration. Returns NULL if nothing found.
-// If the 'owner_ptr' is non-NULL, it will also write the actual
-// 'owner' of the slot (i.e. the prototype in which the property
-// was finally found) into the memory being pointed to.
-Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
-	// handle the Literals in a special way
-	if (sepv == SEPV_LITERALS) {
-		// return the property name itself, wrapped in a fake slot
-		*owner_ptr = SEPV_NO_VALUE;
-		return slot_create(&st_field, str_to_sepv(property));
-	}
-
-	// if we are an object, we might have this property ourselves
+Slot *sepv_local_lookup(SepV sepv, SepString *property, SepV *owner_ptr) {
+	// if we are an object, we might have this property
 	if (sepv_is_obj(sepv)) {
 		SepObj *obj = sepv_to_obj(sepv);
 		Slot *local_slot = props_find_prop(obj, property);
 		if (local_slot) {
-			// found it - local values always take priority
+			// found it!
 			if (owner_ptr)
 				*owner_ptr = sepv;
 			return local_slot;
 		}
 	}
 
-	// OK, nothing local - look into prototypes
-	SepV proto = sepv_prototypes(sepv);
+	// nothing locally
+	return NULL;
+}
 
-	// no prototypes at all?
-	if (proto == SEPV_NOTHING)
-		return NULL;
+// Finds a property starting from a given object, taking prototypes
+// into consideration. Returns NULL if nothing found.
+// If the 'owner_ptr' is non-NULL, it will also write the actual
+// 'owner' of the slot (i.e. the prototype in which the property
+// was finally found) into the memory being pointed to.
+Slot *sepv_lookup(SepV sepv, SepString *property, SepV *owner_ptr, SepV *error) {
+	SepV err = SEPV_NO_VALUE;
 
-	if (sepv_is_obj(proto)) {
-		if (sepv_is_array(proto)) {
-			// an array of prototypes - extract it
-			SepArray *prototypes = (SepArray*) sepv_to_obj(proto);
-
-			// look through the prototypes, depth-first, in order
-			uint32_t length = array_length(prototypes);
-			uint32_t index = 0;
-			for (; index < length; index++) {
-				// get the prototype at the given index
-				SepV prototype = array_get(prototypes, index);
-				// skip cyclical references
-				if (prototype == sepv)
-					continue;
-				// look inside (pass the owner ptr so the owner gets written by the recursive call)
-				Slot *proto_slot = sepv_lookup(prototype, property, owner_ptr);
-				if (proto_slot)
-					return proto_slot;
-			}
-			// none of the prototype objects contained the slot
-			return NULL;
-		} else {
-			// a single prototype, recurse into it (if its not a cycle)
-			// the 'owner_ptr' is passed to make sure the owner is stored
-			// by the recursive call
-			if (proto != sepv)
-				return sepv_lookup(proto, property, owner_ptr);
-			else
-				return NULL;
-		}
-	} else {
-		// single non-object prototype, strange but legal
-		return sepv_lookup(proto, property, owner_ptr);
+	// handle the LiteralScope in a special way
+	if (sepv == SEPV_LITERALS) {
+		// return the property name itself, wrapped in a fake slot
+		*owner_ptr = SEPV_NO_VALUE;
+		return slot_create(&st_field, str_to_sepv(property));
 	}
+
+	// check locally first
+	Slot *local_slot = sepv_local_lookup(sepv, property, owner_ptr);
+	if (local_slot)
+		return local_slot;
+
+	// check 'syntax' object next if we are an execution scope
+	ExecutionFrame *current_frame = vm_current_frame();
+	if (rt.syntax && current_frame && (current_frame->locals == sepv)) {
+		Slot *syntax_slot = sepv_local_lookup(obj_to_sepv(rt.syntax), property, owner_ptr);
+		if (syntax_slot)
+			return syntax_slot;
+	}
+    
+    // do we have just a single prototype (allowing us to just recurse into it without C3?)
+    SepV prototype = sepv_prototypes(sepv);
+    if (prototype == SEPV_NOTHING)
+        return NULL;
+    if (!sepv_is_array(prototype))
+        return sepv_lookup(prototype, property, owner_ptr, error);
+    
+	// multiple prototypes, use the C3 lookup order
+	SepArray *lookup_order = c3_order(sepv, &err);
+		or_fail_with(NULL);
+	int64_t c3_version = c3_cache_version(sepv);
+
+	// look into the objects in turn (skipping the first entry, which is just us again)
+	int current_index = 1, order_count = array_length(lookup_order);
+	for (;current_index < order_count; current_index++) {
+		SepV obj = array_get(lookup_order, current_index);
+
+		// check if the C3 order we are using is still valid (no later changes in the
+		// prototype lists of the objects on the C3 list)
+		int64_t obj_c3_version = c3_cache_version(obj);
+		if (obj_c3_version > c3_version) {
+			// our cached C3 order is stale, we should get a new one
+			c3_invalidate_cache(sepv);
+			lookup_order = c3_order(sepv, &err);
+				or_fail_with(NULL);
+			c3_version = c3_cache_version(sepv);
+			order_count = array_length(lookup_order);
+		}
+		Slot *slot = sepv_local_lookup(obj, property, owner_ptr);
+		if (slot)
+			return slot;
+	}
+
+	// nothing found
+	return NULL;
 }
 
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure.
 SepItem sepv_get_item(SepV sepv, SepString *property) {
+	SepV err = SEPV_NO_VALUE;
 	SepV owner;
-	Slot *slot = sepv_lookup(sepv, property, &owner);
+	Slot *slot = sepv_lookup(sepv, property, &owner, &err);
+		or_raise(err);
+
 	if (slot) {
 		OriginInfo origin = {sepv, owner, property};
 		SepV value = slot_retrieve(slot, &origin);
@@ -539,8 +599,10 @@ SepItem sepv_get_item(SepV sepv, SepString *property) {
 // be returned as a marker. If you prefer an exception, use
 // sepv_get().
 SepV sepv_lenient_get(SepV sepv, SepString *property) {
+	SepV err = SEPV_NO_VALUE;
 	SepV owner;
-	Slot *slot = sepv_lookup(sepv, property, &owner);
+	Slot *slot = sepv_lookup(sepv, property, &owner, &err);
+		or_raise_sepv(err);
 	if (slot) {
 		OriginInfo origin = {sepv, owner, property};
 		return slot_retrieve(slot, &origin);

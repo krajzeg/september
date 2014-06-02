@@ -1,0 +1,2 @@
+First test should create an array, so this should be true: <True>
+Second test should return the result of indexing, so this should be 42: 42

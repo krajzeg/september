@@ -1,0 +1,8 @@
+t := Object()
+t:::"[]" = |index| { 42 }
+t:::test1 = { [1] }
+t:::test2 = { this[1] }
+
+print("First test should create an array, so this should be true:", t.test1().is(Array))
+print("Second test should return the result of indexing, so this should be 42:", t.test2())
+

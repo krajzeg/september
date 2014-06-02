@@ -8,8 +8,10 @@ scribbles
 \.idea
 \.settings
 \.c?project
+.*\.xcodeproj
 .*\.iml
 ^bin
 ^lib
 .*\.kdev4
-
+.DS_Store
+Dummy

@@ -44,12 +44,7 @@ SepModule *module_create(char *name){
 
 	// set-up root object
 	SepObj *root_obj = obj_create();
-
-	SepArray *prototypes = array_create(2);
-	array_push(prototypes, obj_to_sepv(rt.syntax));
-	array_push(prototypes, obj_to_sepv(rt.globals));
-	root_obj->prototypes = obj_to_sepv(prototypes);
-
+	obj_set_prototypes(root_obj, obj_to_sepv(rt.globals));
 	obj_add_field(root_obj, "module", obj_to_sepv(root_obj));
 
 	module->root = root_obj;

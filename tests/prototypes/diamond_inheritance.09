@@ -1,0 +1,11 @@
+A := [[ a: "A" ]]
+B1 := [[ a: "B1", b1: "B1" ]]
+B2 := [[ a: "B2", b1: "B2", b2: "B2" ]]
+C := [[ a: "C", b1: "C", b2: "C", c: "C" ]]
+
+A.prototypes = [B1, B2]
+B1.prototypes = C
+B2.prototypes = C
+
+print("If the resolution order is correct, this should be A B1 B2 C:", A.a, A.b1, A.b2, A.c)
+

@@ -105,10 +105,14 @@ SepV slot_store(Slot *slot, OriginInfo *origin, SepV new_value);
 extern SlotType st_field;
 // Method slot - binds the function with its "this" pointer on retrieval.
 extern SlotType st_method;
+
 // Special slot for pseudo-keywords like "return" or "break". The function
 // inside the slot is called whenever it appears as the only value in an
 // expression.
 extern SlotType st_magic_word;
+
+// Special slot granting access to the prototype list for an object
+extern SlotType st_prototype_list;
 
 // ===============================================================
 //  Property maps
@@ -255,6 +259,10 @@ typedef struct SepObj {
 SepObj *obj_create();
 // Creates a new object with a chosen prototype(s).
 SepObj *obj_create_with_proto(SepV proto);
+// Resets an object's prototype list, throwing away any outstanding caches
+// resulting from the old one.
+void obj_set_prototypes(SepObj *this, SepV prototypes);
+
 // Shortcut to quickly create a SepItem with a given object as r-value.
 SepItem si_obj(void *object);
 
@@ -271,7 +279,7 @@ SepV sepv_prototypes(SepV sepv);
 // If 'owner_ptr' is non-NULL, we will also write the actual
 // 'owner' of the slot (i.e. the prototype in which the property
 // was finally found) through this pointer.
-Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr);
+Slot *sepv_lookup(SepV object, SepString *property, SepV *owner_ptr, SepV *error);
 // Gets the value of a property from an arbitrary SepV, using
 // proper lookup procedure, and returning a stack item (slot + its value).
 SepItem sepv_get_item(SepV object, SepString *property);

@@ -101,9 +101,6 @@ void frame_release(ExecutionFrame *frame, SepV value);
 // ===============================================================
 
 typedef struct SepVM {
-	// the "builtins" object which is available in all execution
-	// scopes
-	SepObj *syntax;
 	// the data stack shared by all execution frames
 	SepStack *data;
 	// the whole execution stack, with the main function of the main
@@ -113,8 +110,8 @@ typedef struct SepVM {
 	int frame_depth;
 } SepVM;
 
-// Creates a new VM, starting with a specified function.
-SepVM *vm_create(SepModule *module, SepObj *globals);
+// Creates a new VM for running a specified September module.
+SepVM *vm_create(SepModule *module);
 // Runs the VM until it halts, either by finishing execution normally
 // or terminating with an exception. Either way, whatever is the final
 // result is returned.
@@ -123,7 +120,7 @@ SepV vm_run(SepVM *this);
 void vm_initialize_root_frame(SepVM *this, SepModule *module);
 
 // Initializes a scope object for execution of a given function. This sets up
-// the prototype chain for the scope to include the 'syntax' object, the 'this'
+// the prototype chain for the scope to include the 'this'
 // pointer, and the declaration scope of the function. It also sets up the
 // 'locals' and 'this' properties.
 void vm_initialize_scope(SepVM *this, SepFunc *func, SepObj *exec_scope, ExecutionFrame *exec_frame);
