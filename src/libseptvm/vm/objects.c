@@ -195,6 +195,13 @@ Slot *_props_accept_prop_internal(void *map, SepString *name, Slot *slot, bool a
 		if (index == this->overflow) {
 			this->overflow++;
 
+			// is property map resize stress testing turned on?
+			#ifdef SEP_PROPMAP_STRESS_TEST
+				// simulate resize by resizing to the same size
+				if (allow_resizing)
+					_props_resize(this, this->capacity);
+			#endif
+
 			// did we run out of overflow space?
 			if (this->overflow == this->capacity * 2) {
 				// yes- we'd like to resize

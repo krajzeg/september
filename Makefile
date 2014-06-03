@@ -21,6 +21,9 @@ include config.mk
 ifeq ($(GC_STRESS_TEST),1)
 	CFLAGS += -DSEP_GC_STRESS_TEST
 endif
+ifeq ($(PROPMAP_STRESS_TEST),1)
+	CFLAGS += -DSEP_PROPMAP_STRESS_TEST
+endif
 
 ifeq ($(BUILD_TYPE),debug)
 	CFLAGS += -g -Wall -Wfatal-errors -Werror -DSEP_DEBUG

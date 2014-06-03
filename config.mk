@@ -3,5 +3,6 @@
 
 # Set this to 'debug' or 'release' as needed.
 BUILD_TYPE := debug
-# Set this to 1 to enable garbage collector stress testing.
+# Set these to 1 to enable their corresponding stress tests.
 GC_STRESS_TEST := 0
+PROPMAP_STRESS_TEST := 0
