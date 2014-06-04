@@ -1,0 +1,3 @@
+2==2, 2!=2, 2<=2, 2>=2, 2<2, 2>2 <True> <False> <True> <True> <False> <False>
+2==3, 2!=3, 2<=3, 2>=3, 2<3, 2>3 <False> <True> <True> <False> <True> <False>
+3==2, 3!=2, 3<=2, 3>=2, 3<2, 3>2 <False> <True> <False> <True> <False> <True>

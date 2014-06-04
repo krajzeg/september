@@ -105,21 +105,30 @@ SepItem integer_op_negate(SepObj *scope, ExecutionFrame *frame) {
 // ===============================================================
 
 int compare_params(SepObj *scope, SepV *error) {
-	SepInt a, b;
-	*error = get_params(scope, &a, &b);
-	return (a < b) ? -1 : ((a == b) ? 0 : 1);
+	SepV err = SEPV_NOTHING;
+	SepInt this = target_as_int(scope, &err);
+		or_fail_with(0);
+	SepInt other = param_as_int(scope, "other", &err);
+		or_handle() { fail(0, exception(exc.EWrongType, "Integers can only be compared to other integers.")); };
+	return (this < other) ? -1 : ((this == other) ? 0 : 1);
 }
 
 SepItem integer_op_eq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(err);
-	return si_bool(comparison == 0);
+	SepInt this = target_as_int(scope, &err);
+		or_raise(err);
+	SepInt other = param_as_int(scope, "other", &err);
+		or_handle() { return si_bool(false); }
+	return si_bool(this == other);
 }
 
 SepItem integer_op_neq(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
-	int comparison = compare_params(scope, &err); or_raise(err);
-	return si_bool(comparison != 0);
+	SepInt this = target_as_int(scope, &err);
+		or_raise(err);
+	SepInt other = param_as_int(scope, "other", &err);
+		or_handle() { return si_bool(true); }
+	return si_bool(this != other);
 }
 
 SepItem integer_op_lt(SepObj *scope, ExecutionFrame *frame) {
