@@ -22,6 +22,8 @@ struct ManagedMemory;
 struct SepObj;
 struct SepVM;
 struct GenericArray;
+struct RuntimeObjects;
+struct BuiltinExceptions;
 
 // ===============================================================
 //  Globals used by LibSeptVM
@@ -36,6 +38,9 @@ typedef struct LibSeptVMGlobals {
 	struct SepObj *string_cache;
 	// garbage collection contexts
 	struct GenericArray *gc_contexts;
+	// quick object reference caches
+	struct RuntimeObjects *runtime_objects;
+	struct BuiltinExceptions *builtin_exceptions;
 	// accessing the VM thread-local
 	struct SepVM *(*get_vm_for_current_thread)();
 	struct SepVM *(*set_vm_for_current_thread)(struct SepVM *);

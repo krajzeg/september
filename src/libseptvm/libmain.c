@@ -15,6 +15,7 @@
 
 #include "vm/vm.h"
 #include "vm/gc.h"
+#include "vm/runtime.h"
 #include "libmain.h"
 
 // ===============================================================
@@ -64,6 +65,8 @@ void libseptvm_initialize() {
 	lsvm_globals.debugged_module_names = mem_unmanaged_allocate(4096);
 	lsvm_globals.debugged_module_names[0] = '\0';
 	lsvm_globals.property_cache_version = 0;
+	lsvm_globals.runtime_objects = &rt;
+	lsvm_globals.builtin_exceptions = &exc;
 
 	gc_start_context();
 	lsvm_globals.module_cache = obj_create_with_proto(SEPV_NOTHING);

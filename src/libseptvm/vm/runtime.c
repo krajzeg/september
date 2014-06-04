@@ -22,8 +22,8 @@
 RuntimeObjects rt = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 BuiltinExceptions exc = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
-#define store(into, property_name) do { into.property_name = prop_as_obj(globals_v, #property_name, &err); or_raise_sepv(err) } while(0)
-SepV initialize_runtime_references(SepV globals_v) {
+#define store(into, property_name) do { into->property_name = prop_as_obj(globals_v, #property_name, &err); or_raise_sepv(err) } while(0)
+SepV initialize_runtime_references(RuntimeObjects *rt, BuiltinExceptions *exc, SepV globals_v) {
 	SepV err = SEPV_NOTHING;
 
 	// - store references to various often-used objects to allow for easy access
@@ -64,7 +64,7 @@ SepV initialize_runtime_references(SepV globals_v) {
 	store(rt, Function);
 	store(rt, Slot);
 
-	rt.Cls = prop_as_obj(globals_v, "Class", &err);
+	rt->Cls = prop_as_obj(globals_v, "Class", &err);
 		or_raise_sepv(err);
 
 	return SEPV_NOTHING;

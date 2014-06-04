@@ -601,8 +601,12 @@ SepObj *create_globals() {
 void MODULE_EXPORT module_initialize_early(SepModule *module, SepV *error) {
 	// create the runtime
 	SepObj *globals = create_globals();
-	// initialize our local copy of libseptvm with the right globals
-	SepV err = initialize_runtime_references(obj_to_sepv(globals));
+	// initialize both the local copy of libseptvm and the global one with the
+	// newly created objects
+	SepV err = SEPV_NO_VALUE;
+	err = initialize_runtime_references(&rt, &exc, obj_to_sepv(globals));
+		or_fail();
+	err = initialize_runtime_references(lsvm_globals.runtime_objects, lsvm_globals.builtin_exceptions, obj_to_sepv(globals));
 		or_fail();
 
 	// the globals are our root object

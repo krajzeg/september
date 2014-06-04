@@ -120,11 +120,6 @@ int main(int argc, char **argv) {
 		report_exception(globals_v);
 		return EXIT_NO_EXECUTION;
 	}
-	SepV err = initialize_runtime_references(globals_v);
-	if (sepv_is_exception(err)) {
-		report_exception(err);
-		return EXIT_NO_EXECUTION;
-	}
 
 	gc_end_context();
 
