@@ -1,0 +1,6 @@
+== on equal things: <True> <True>
+!= on equal things: <False> <False>
+== on different things: <False>
+!= on different things: <True>
+=== on equal objects: <True> <True>
+!== on different objects: <True>

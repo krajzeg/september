@@ -1,0 +1,12 @@
+# on pure objects
+
+a := Object()
+b := Object()
+c := a
+
+print("== on equal things:", a == a, a == c)
+print("!= on equal things:", a != a, a != c)
+print("== on different things:", a == b)
+print("!= on different things:", a != b)
+print("=== on equal objects:", a === a, a === c)
+print("!== on different objects:", a !== b)

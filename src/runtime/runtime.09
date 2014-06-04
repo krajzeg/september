@@ -10,6 +10,10 @@
 #
 ################################################################
 
+### Additional object operators (defined based on the native ones)
+
+Object:::"!=" = |other| { !(this == other) }
+
 ### Object methods
 
 Object:::resolveAsLiteral = {

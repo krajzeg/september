@@ -68,10 +68,17 @@ SepItem object_op_triple_colon(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // Simple identity equality common to all objects.
-SepItem object_op_equals(SepObj *scope, ExecutionFrame *frame) {
+SepItem object_op_same(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
 	SepV other = param(scope, "other");
 	return si_bool(target == other);
+}
+
+// Simple identity equality common to all objects.
+SepItem object_op_not_same(SepObj *scope, ExecutionFrame *frame) {
+	SepV target = target(scope);
+	SepV other = param(scope, "other");
+	return si_bool(target != other);
 }
 
 // ===============================================================
@@ -165,7 +172,9 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, "::", object_op_double_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, ":::", object_op_triple_colon, 1, "?property_name");
 	obj_add_builtin_method(Object, "[]", object_op_index, 1, "property_name");
-	obj_add_builtin_method(Object, "==", object_op_equals, 1, "other");
+	obj_add_builtin_method(Object, "==", object_op_same, 1, "other");
+	obj_add_builtin_method(Object, "===", object_op_same, 1, "other");
+	obj_add_builtin_method(Object, "!==", object_op_not_same, 1, "other");
 
 	// add common methods
 	obj_add_builtin_method(Object, "resolve", object_resolve, 1, "=scope");
