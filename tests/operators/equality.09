@@ -10,3 +10,13 @@ print("== on different things:", a == b)
 print("!= on different things:", a != b)
 print("=== on equal objects:", a === a, a === c)
 print("!== on different objects:", a !== b)
+
+# on strings
+
+a := "hello".upperCase()
+b := "hello".upperCase()
+c := "goodbye"
+
+print("== and != on unequal strings:", a == c, a != c)
+print("== and != on two instances of the same string:", a == b, a != b)
+print("=== and !== on two instances of the same string:", a === b, a !== b)

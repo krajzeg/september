@@ -6,5 +6,5 @@ if (3 < 4) {
 
 print("Now, let's try an operator on the next line.")
 upper_version := "This should be uppercase."
-    .upper()
+    .upperCase()
 print(upper_version)

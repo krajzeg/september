@@ -4,3 +4,6 @@
 != on different things: <True>
 === on equal objects: <True> <True>
 !== on different objects: <True>
+== and != on unequal strings: <False> <True>
+== and != on two instances of the same string: <True> <False>
+=== and !== on two instances of the same string: <False> <True>

@@ -1,4 +1,4 @@
-print("Any string should have the String prototype, so this is true:", "String".prototypes == String);
+print("Any string should have the String prototype, so this is true:", "String".prototypes === String);
 
 person := [[]]
 firstName := [[ firstName: "John" ]]
