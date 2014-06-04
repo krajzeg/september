@@ -4,6 +4,19 @@ a := 2
 b := 2
 c := 3
 
+print("Integers:")
 print("2==2, 2!=2, 2<=2, 2>=2, 2<2, 2>2", a==b, a!=b, a<=b, a>=b, a<b, a>b)
 print("2==3, 2!=3, 2<=3, 2>=3, 2<3, 2>3", a==c, a!=c, a<=c, a>=c, a<c, a>c)
 print("3==2, 3!=2, 3<=2, 3>=2, 3<2, 3>2", c==b, c!=b, c<=b, c>=b, c<b, c>b)
+
+# Strings
+
+a := "a"
+b := "b"
+aa := "aa"
+
+print("Strings:")
+print("a < a, a > a, a <= a, a >= a", a<a, a>a, a<=a, a>=a)
+print("a < b, a > b, a <= b, a >= b", a<b, a>b, a<=b, a>=b)
+print("a < aa, a > aa, a <= aa, a >= aa", a<aa, a>aa, a<=aa, a>=aa)
+

@@ -58,3 +58,17 @@ class := |?name, definition| {
 	return cls
 }
 
+#########################################################
+# Comparable mixin
+#########################################################
+
+class Comparable {
+ 	method "==" |other| { this."<compareTo>"(other) == 0 }
+ 	method "!=" |other| { this."<compareTo>"(other) != 0 }
+ 	method "<"  |other| { this."<compareTo>"(other) < 0 }
+ 	method ">"  |other| { this."<compareTo>"(other) > 0 }
+ 	method "<=" |other| { this."<compareTo>"(other) <= 0 }
+ 	method ">=" |other| { this."<compareTo>"(other) >= 0 }
+}
+
+String.prototypes = Comparable

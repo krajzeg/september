@@ -66,6 +66,15 @@ SepItem string_equals(SepObj *scope, ExecutionFrame *frame) {
 	return si_bool(sepstr_cmp(this, other) == 0);
 }
 
+SepItem string_compare(SepObj *scope, ExecutionFrame *frame) {
+	SepV err = SEPV_NOTHING;
+	SepString *this = target_as_str(scope, &err);
+		or_raise(err);
+	SepString *other = param_as_str(scope, "other", &err);
+		or_raise(err);
+	return si_int(sepstr_cmp(this, other));
+}
+
 // ===============================================================
 //  Creation of prototype
 // ===============================================================
@@ -80,6 +89,7 @@ SepObj *create_string_prototype() {
 	// === operators
 	obj_add_builtin_method(String, "+", &string_plus, 1, "other");
 	obj_add_builtin_method(String, "==", &string_equals, 1, "other");
+	obj_add_builtin_method(String, "<compareTo>", &string_compare, 1, "other");
 
 	return String;
 }
