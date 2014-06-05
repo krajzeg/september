@@ -44,11 +44,15 @@ ClassDefinition:::constructor = |function| {
 }
 
 class := |?name, definition| {
-	# create the class
+	callingScope := Scopes.caller()
 	name = name.resolveAsLiteral()
-	cls := Class.new(name)	
+	
+	# create the class
+	cls := Class.new(name)
+	
+	# execute the definition block in the right environment	
 	definitionScope := Object()
-	definitionScope.prototypes = [ClassDefinition]
+	definitionScope.prototypes = [ClassDefinition, callingScope]
 	definitionScope::cls = cls
 	definition.invoke(scope: definitionScope)
 	
@@ -66,23 +70,23 @@ class := |?name, definition| {
 ## Exception thrown when uncomparable objects are compared with <, >, <= or >=.
 class EUncomparable {
 	constructor {
-		this.message = "These values are not comparable."
+		this::message = "These values are not comparable."
 	}
 }
 EUncomparable.prototypes = Exception
 
+comparisonLogic := |relation| {
+	return: |other| {
+		comparison := this."<compareTo>"(other)
+		if (comparison === UncomparableValues) { 
+			throw: EUncomparable() 
+		}
+		return: relation(comparison)
+	}
+}
+
 ## The mixin itself.
 class Comparable {
-	comparisonLogic := |relation| {
-		return: |other| {
-			comparison := this."<compareTo>"(other)
-			if (comparison === UncomparableValues) { 
-				throw: Exception() 
-			}
-			return: relation(comparison)
-		}
-	}
-
 	field UncomparableValues = Nothing
 	
  	method "==" |other| { this."<compareTo>"(other) == 0 }

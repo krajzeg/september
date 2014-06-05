@@ -41,6 +41,8 @@ SepObj *create_function_prototype();
 
 SepObj *create_builtin_exceptions();
 
+SepObj *create_scopes_object();
+
 // ===============================================================
 //  Built-in functions
 // ===============================================================
@@ -63,11 +65,12 @@ SepItem func_print(SepObj *scope, ExecutionFrame *frame) {
 		if (!sepv_is_str(thing)) {
 			// maybe we have a toString() method?
 			SepV to_string = property(thing, "toString");
-				or_raise(to_string);
+			or_raise(to_string);
 			SepItem string_i = vm_invoke(frame->vm, to_string, 0);
-				or_raise(string_i.value);
-			string = cast_as_named_str("Return value of toString()", string_i.value, &err);
-				or_raise(err);
+			or_raise(string_i.value);
+			string = cast_as_named_str("Return value of toString()",
+					string_i.value, &err);
+			or_raise(err);
 		} else {
 			string = sepv_to_str(thing);
 		}
@@ -154,14 +157,15 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 
 		// evaluate condition
 		SepV condition_l = property(branch, "condition");
-			or_raise(condition_l);
+		or_raise(condition_l);
 		SepV fulfilled = vm_resolve(frame->vm, condition_l);
-			or_raise(fulfilled);
+		or_raise(fulfilled);
 
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
 			SepV body_v = property(branch, "body");
-			SepV result = vm_invoke_in_scope(frame->vm, body_v, parent_scope, 0).value;
+			SepV result =
+					vm_invoke_in_scope(frame->vm, body_v, parent_scope, 0).value;
 			return item_rvalue(result);
 		}
 	}
@@ -170,7 +174,8 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV else_v = property(ifs, "else_branch");
 	if (else_v != SEPV_NOTHING) {
 		// there was an 'else', so execute that
-		SepV result = vm_invoke_in_scope(frame->vm, else_v, parent_scope, 0).value;
+		SepV result =
+				vm_invoke_in_scope(frame->vm, else_v, parent_scope, 0).value;
 		return item_rvalue(result);
 	} else {
 		// no branch matched, did nothing, return nothing
@@ -504,7 +509,6 @@ SepObj *create_try_statement_prototype() {
 	return TryStatement;
 }
 
-
 // ===============================================================
 //  Helpers for declarations
 // ===============================================================
@@ -516,11 +520,13 @@ SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
 	ExecutionFrame *export_caller = frame->prev_frame;
 	ExecutionFrame *export_callers_caller = export_caller->prev_frame;
 	if (!export_callers_caller) {
-		raise(exc.EInternal, "export() was called from the top-most stack frame (main module's top level) - no place to export to.");
+		raise(exc.EInternal,
+				"export() was called from the top-most stack frame (main module's top level) - no place to export to.");
 	}
 	SepV target_scope_v = export_callers_caller->locals;
-	SepObj *target_scope = cast_as_named_obj("Target for export", target_scope_v, &err);
-		or_raise(err);
+	SepObj *target_scope = cast_as_named_obj("Target for export",
+			target_scope_v, &err);
+	or_raise(err);
 
 	// retrieve the object to export and its name
 	SepV object = vm_resolve(frame->vm, param(scope, "object"));
@@ -530,7 +536,7 @@ SepItem func_export(SepObj *scope, ExecutionFrame *frame) {
 		name_v = vm_resolve_as_literal(frame->vm, param(scope, "object"));
 	}
 	SepString *name = cast_as_named_str("Export name", name_v, &err);
-		or_raise(err);
+	or_raise(err);
 
 	// export!
 	props_add_prop(target_scope, name, &st_field, object);
@@ -566,10 +572,14 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "Array", obj_to_sepv(create_array_prototype()));
 	obj_add_field(obj_Globals, "Bool", obj_to_sepv(create_bool_prototype()));
 	obj_add_field(obj_Globals, "Slot", obj_to_sepv(create_slot_prototype()));
-	obj_add_field(obj_Globals, "Integer", obj_to_sepv(create_integer_prototype()));
-	obj_add_field(obj_Globals, "String", obj_to_sepv(create_string_prototype()));
-	obj_add_field(obj_Globals, "Function", obj_to_sepv(create_function_prototype()));
-	obj_add_field(obj_Globals, "NothingType", obj_to_sepv(create_nothing_prototype()));
+	obj_add_field(obj_Globals, "Integer",
+			obj_to_sepv(create_integer_prototype()));
+	obj_add_field(obj_Globals, "String",
+			obj_to_sepv(create_string_prototype()));
+	obj_add_field(obj_Globals, "Function",
+			obj_to_sepv(create_function_prototype()));
+	obj_add_field(obj_Globals, "NothingType",
+			obj_to_sepv(create_nothing_prototype()));
 
 	// built-in variables are initialized
 	obj_add_field(obj_Globals, "version", sepv_string(SEPTEMBER_VERSION));
@@ -579,7 +589,7 @@ SepObj *create_globals() {
 	obj_add_field(obj_Globals, "LiteralScope", SEPV_LITERALS);
 
 	// some built-in objects
-	obj_add_builtin_func(obj_Globals, "export", &func_export, 2, "?object", "=as");
+	obj_add_field(obj_Globals, "Scopes", obj_to_sepv(create_scopes_object()));
 
 	// flow control
 	proto_IfStatement = create_if_statement_prototype();
@@ -604,6 +614,7 @@ SepObj *create_globals() {
 
 	// built-in functions
 	obj_add_builtin_func(obj_Globals, "print", &func_print, 1, "...what");
+	obj_add_builtin_func(obj_Globals, "export", &func_export, 2, "?object", "=as");
 
 	return obj_Globals;
 }
@@ -619,9 +630,10 @@ void MODULE_EXPORT module_initialize_early(SepModule *module, SepV *error) {
 	// newly created objects
 	SepV err = SEPV_NO_VALUE;
 	err = initialize_runtime_references(&rt, &exc, obj_to_sepv(globals));
-		or_fail();
-	err = initialize_runtime_references(lsvm_globals.runtime_objects, lsvm_globals.builtin_exceptions, obj_to_sepv(globals));
-		or_fail();
+	or_fail();
+	err = initialize_runtime_references(lsvm_globals.runtime_objects,
+			lsvm_globals.builtin_exceptions, obj_to_sepv(globals));
+	or_fail();
 
 	// the globals are our root object
 	module->root = globals;

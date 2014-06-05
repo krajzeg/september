@@ -10,6 +10,6 @@ print("'Hello!' < Nothing should throw exception.")
 try {
 	str < Nothing
 	print("But it doesn't.")  
-} catch (Exception) {
+} catch (EUncomparable) {
 	print("And it does.")
 }
