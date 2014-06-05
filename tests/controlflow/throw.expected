@@ -1,0 +1,2 @@
+The function should throw an ENoMoreElements exception.
+And it did.

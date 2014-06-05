@@ -1,0 +1,11 @@
+nastyFunction := {
+	throw: ENoMoreElements()
+}
+
+print("The function should throw an ENoMoreElements exception.")
+try {
+	nastyFunction()
+	print("But it doesn't.")
+} catch (ENoMoreElements) {
+	print("And it did.")
+}

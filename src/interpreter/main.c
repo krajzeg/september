@@ -50,11 +50,12 @@ void report_exception(SepV exception_v) {
 	else
 		class_name = "<unknown type>";
 
-	SepV message_sepv = property(exception_v, "message");
-	if (sepv_is_str(message_sepv))
-		message = sepv_to_str(message_sepv)->cstr;
-	else
-		message = "<message missing>";
+	message = "<message missing>";
+	if (property_exists(exception_v, "message")) {
+		SepV message_sepv = property(exception_v, "message");
+		if (sepv_is_str(message_sepv))
+			message = sepv_to_str(message_sepv)->cstr;
+	}
 
 	// report it
 	fprintf(stderr, "Exception encountered during execution:\n");

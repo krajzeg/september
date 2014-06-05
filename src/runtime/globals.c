@@ -383,6 +383,16 @@ SepObj *create_for_statement_prototype() {
 }
 
 // ===============================================================
+//  Throw
+// ===============================================================
+
+SepItem func_throw(SepObj *scope, ExecutionFrame *frame) {
+	SepV err = SEPV_NO_VALUE;
+	SepObj *exception_to_be = param_as_obj(scope, "exception", &err);
+	return item_rvalue(obj_to_exception(exception_to_be));
+}
+
+// ===============================================================
 //  Try..catch..finally
 // ===============================================================
 
@@ -576,6 +586,10 @@ SepObj *create_globals() {
 	obj_add_builtin_func(obj_Syntax, "if", &func_if, 2, "?condition", "body");
 	obj_add_builtin_func(obj_Syntax, "if..", &statement_if, 2, "?condition",
 			"body");
+
+	// exceptions
+	obj_add_builtin_func(obj_Syntax, "throw", &func_throw, 1, "exception");
+
 	proto_TryStatement = create_try_statement_prototype();
 	obj_add_builtin_func(obj_Syntax, "try..", &statement_try, 1, "body");
 
