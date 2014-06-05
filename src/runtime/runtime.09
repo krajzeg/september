@@ -34,7 +34,7 @@ ClassDefinition:::field = |?name| {
 	cls.accept(name, Slot.field())
 }
 
-ClassDefinition:::method = |?name, function| {
+ClassDefinition:::method = |?name, function = Nothing| {
 	name = name.resolveAsLiteral()
 	cls.accept(name, Slot.method(function))
 }
@@ -47,7 +47,8 @@ class := |?name, definition| {
 	# create the class
 	name = name.resolveAsLiteral()
 	cls := Class.new(name)	
-	definitionScope := ClassDefinition.spawn()
+	definitionScope := Object()
+	definitionScope.prototypes = [ClassDefinition]
 	definitionScope::cls = cls
 	definition.invoke(scope: definitionScope)
 	
@@ -62,13 +63,35 @@ class := |?name, definition| {
 # Comparable mixin
 #########################################################
 
+## Exception thrown when uncomparable objects are compared with <, >, <= or >=.
+class EUncomparable {
+	constructor {
+		this.message = "These values are not comparable."
+	}
+}
+EUncomparable.prototypes = Exception
+
+## The mixin itself.
 class Comparable {
+	comparisonLogic := |relation| {
+		return: |other| {
+			comparison := this."<compareTo>"(other)
+			if (comparison === UncomparableValues) { 
+				throw: Exception() 
+			}
+			return: relation(comparison)
+		}
+	}
+
+	field UncomparableValues = Nothing
+	
  	method "==" |other| { this."<compareTo>"(other) == 0 }
  	method "!=" |other| { this."<compareTo>"(other) != 0 }
- 	method "<"  |other| { this."<compareTo>"(other) < 0 }
- 	method ">"  |other| { this."<compareTo>"(other) > 0 }
- 	method "<=" |other| { this."<compareTo>"(other) <= 0 }
- 	method ">=" |other| { this."<compareTo>"(other) >= 0 }
+ 	
+ 	method "<"  = comparisonLogic |c|{ c < 0 } 
+ 	method ">"  = comparisonLogic |c|{ c > 0 }
+ 	method "<=" = comparisonLogic |c|{ c <= 0 }
+ 	method ">=" = comparisonLogic |c|{ c >= 0 }
 }
 
 String.prototypes = Comparable

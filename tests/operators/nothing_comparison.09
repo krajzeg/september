@@ -1,0 +1,15 @@
+a := Object()
+
+print("object === Nothing, object !== Nothing:", a === Nothing, a !== Nothing)
+print("object == Nothing, object != Nothing:", a == Nothing, a != Nothing)
+
+str := "Hello!"
+
+print("'Hello!' == Nothing, 'Hello!' != Nothing:", str == Nothing, str != Nothing)
+print("'Hello!' < Nothing should throw exception.")
+try {
+	str < Nothing
+	print("But it doesn't.")  
+} catch (Exception) {
+	print("And it does.")
+}

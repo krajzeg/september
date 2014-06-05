@@ -1,0 +1,5 @@
+object === Nothing, object !== Nothing: <False> <True>
+object == Nothing, object != Nothing: <False> <True>
+'Hello!' == Nothing, 'Hello!' != Nothing: <False> <True>
+'Hello!' < Nothing should throw exception.
+And it does.

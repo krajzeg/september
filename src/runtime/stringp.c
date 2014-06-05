@@ -71,7 +71,10 @@ SepItem string_compare(SepObj *scope, ExecutionFrame *frame) {
 	SepString *this = target_as_str(scope, &err);
 		or_raise(err);
 	SepString *other = param_as_str(scope, "other", &err);
-		or_raise(err);
+		or_handle() {
+			// signal uncomparable values
+			return si_nothing();
+		};
 	return si_int(sepstr_cmp(this, other));
 }
 
