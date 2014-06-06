@@ -109,7 +109,12 @@ int compare_params(SepObj *scope, SepV *error) {
 	SepInt this = target_as_int(scope, &err);
 		or_fail_with(0);
 	SepInt other = param_as_int(scope, "other", &err);
-		or_handle() { fail(0, exception(exc.EWrongType, "Integers can only be compared to other integers.")); };
+		or_handle() {
+			err = SEPV_NOTHING;
+			SepObj *EUncomparable = prop_as_obj(obj_to_sepv(rt.globals), "EUncomparable", &err);
+				or_fail_with(0);
+			fail(0, exception(EUncomparable, "Integer compared to a non-numeric value."));
+		}
 	return (this < other) ? -1 : ((this == other) ? 0 : 1);
 }
 

@@ -3,3 +3,6 @@ object == Nothing, object != Nothing: <False> <True>
 'Hello!' == Nothing, 'Hello!' != Nothing: <False> <True>
 'Hello!' < Nothing should throw exception.
 And it does.
+2 == Nothing, 2 != Nothing <False> <True>
+2 < Nothing should throw an exception.
+And it does.

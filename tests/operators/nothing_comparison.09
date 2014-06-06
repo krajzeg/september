@@ -1,7 +1,12 @@
+## Objects
+
 a := Object()
 
 print("object === Nothing, object !== Nothing:", a === Nothing, a !== Nothing)
 print("object == Nothing, object != Nothing:", a == Nothing, a != Nothing)
+
+
+## Strings
 
 str := "Hello!"
 
@@ -9,6 +14,18 @@ print("'Hello!' == Nothing, 'Hello!' != Nothing:", str == Nothing, str != Nothin
 print("'Hello!' < Nothing should throw exception.")
 try {
 	str < Nothing
+	print("But it doesn't.")  
+} catch (EUncomparable) {
+	print("And it does.")
+}
+
+
+## Integers
+
+print("2 == Nothing, 2 != Nothing", 2 == Nothing, 2 != Nothing)
+print("2 < Nothing should throw an exception.")
+try {
+	2 < Nothing
 	print("But it doesn't.")  
 } catch (EUncomparable) {
 	print("And it does.")
