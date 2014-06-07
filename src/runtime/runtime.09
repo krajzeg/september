@@ -131,3 +131,9 @@ class RangeIterator {
 		}			
 	}
 }
+
+Integer:::".."  = |end| { Range(this, end) }
+Integer:::"..." = |end| { Range(this, end, True) }
+
+
+

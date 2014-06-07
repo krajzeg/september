@@ -1,11 +1,10 @@
 print("This should print numbers from 1 to 5:")
-for (i) in (Range(1,5)) {
+for (i) in (1..5) {
 	print(i)
 }
 
 print("This should print numbers from 1 to 4:")
-openRange := Range(1,5,True)
-for (i) in (openRange) {
+for (i) in (1...5) {
 	print(i)
 }
 
