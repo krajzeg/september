@@ -1,0 +1,19 @@
+array := [0,1,2,3,4,5]
+
+print("This simple slice should print '1 2':")
+for (i) in (array.slice(1,3)) {
+	print(i)
+}
+print("And the length should be 2:", array.slice(1,3).length())
+
+print("Out of bounds indices should be OK, so this should be '4 5':")
+for (i) in (array.slice(4,10)) {
+	print(i)
+}
+print("And the length should be truncated to 2:", array.slice(4,10).length())
+
+print("If both indices are out of bounds, the result should be empty:")
+for (i) in (array.slice(8,23)) {
+	print("But it isn't:", i)
+}
+print("And the length should be 0:", array.slice(8,23).length())

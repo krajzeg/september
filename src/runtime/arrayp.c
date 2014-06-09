@@ -136,6 +136,15 @@ SepItem array_index(SepObj *scope, ExecutionFrame *frame) {
 }
 
 // ===============================================================
+//  Sequence interface
+// ===============================================================
+
+SepItem array_len(SepObj *scope, ExecutionFrame *frame) {
+	SepArray *this = sepv_to_array(target(scope));
+	return si_int(array_length(this));
+}
+
+// ===============================================================
 //  Putting the prototype together
 // ===============================================================
 
@@ -148,6 +157,7 @@ SepObj *create_array_prototype() {
 	SepObj *Array = make_class("Array", NULL);
 	obj_add_field(Array, "<ArrayIterator>", obj_to_sepv(ArrayIterator));
 	obj_add_builtin_method(Array, "iterator", array_iterator, 0);
+	obj_add_builtin_method(Array, "length", array_len, 0);
 	obj_add_builtin_method(Array, "[]", array_index, 1, "index");
 
 	return Array;

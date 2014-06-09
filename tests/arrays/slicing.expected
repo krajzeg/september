@@ -1,0 +1,10 @@
+This simple slice should print '1 2':
+1
+2
+And the length should be 2: 2
+Out of bounds indices should be OK, so this should be '4 5':
+4
+5
+And the length should be truncated to 2: 2
+If both indices are out of bounds, the result should be empty:
+And the length should be 0: 0

@@ -135,5 +135,63 @@ class RangeIterator {
 Integer:::".."  = |end| { Range(this, end) }
 Integer:::"..." = |end| { Range(this, end, True) }
 
+#########################################################
+# Sequences
+#########################################################
 
+class EOutOfBounds {
+	constructor |index| {
+		this::message = "Index '" + index.toString() + "' is out of bounds."
+	}
+}
+EOutOfBounds.prototypes = Exception
 
+#########################################################
+# Slices
+#########################################################
+
+class Slice {
+	constructor |sequence, start, end| {
+		this::sequence = sequence
+		sequenceLen := sequence.length()
+		
+		this::start = resolveIndex(start, 0, sequenceLen)
+		this::end = resolveIndex(end, 0, sequenceLen)			
+		if (start < 0) { start = 0 }
+		if (end > sequenceLen) { end = sequenceLen }
+		
+		this::len = (end - start)			
+		if (len < 0) { len = 0 }  
+	}
+	
+	method resolveIndex |index, start, end| {
+		if (index >= 0) { start + index } else { end - index }
+	}
+	
+	method "[]" |index| {
+		index = resolveIndex(index, start, end)
+		if ((index < start) || (index >= end)) { throw: EOutOfBounds(index) }
+		
+		sequence[index]
+	}
+	
+	method length { len }	
+	method iterator { SliceIterator(this) }
+}
+
+class SliceIterator {
+	constructor |slice| {
+		this::slice = slice
+		this::current = 0
+		this::length = slice.length()
+	}
+	
+	method next {
+		if (current >= length) { throw: ENoMoreElements() }
+		old_index := current
+		current = current + 1
+		return: slice[old_index]
+	}
+}
+
+Array:::slice = |start, end| { Slice(this, start, end) }
