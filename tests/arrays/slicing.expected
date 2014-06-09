@@ -2,6 +2,10 @@ This simple slice should print '1 2':
 1
 2
 And the length should be 2: 2
+Open-ended slice should be the same:
+1
+2
+And the length should still be 2: 2
 Out of bounds indices should be OK, so this should be '4 5':
 4
 5

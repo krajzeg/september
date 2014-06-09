@@ -168,10 +168,13 @@ class Slice {
 		this::sequence = sequence
 		sequenceLen := sequence.length()
 		
-		this::start = resolveIndex(start, 0, sequenceLen)
-		this::end = resolveIndex(end, 0, sequenceLen)			
+		start = resolveIndex(start, 0, sequenceLen)
+		end = resolveIndex(end, 0, sequenceLen)			
 		if (start < 0) { start = 0 }
-		if (end > sequenceLen) { end = sequenceLen }
+		if (!openEnded) { end = end + 1 } 
+		if (end > sequenceLen) { end = sequenceLen }		
+		this::start = start
+		this::end = end
 		
 		this::len = (end - start)			
 		if (len < 0) { len = 0 }  
