@@ -80,7 +80,7 @@ SepV load_module(ModuleDefinition *definition) {
 		if (!vm) {
 			// no current VM, create a new one just for the module
 			vm = vm_create(module);
-			result = vm_run(vm);
+			result = vm_run(vm).value;
 			vm_free(vm);
 		} else {
 			// use current VM

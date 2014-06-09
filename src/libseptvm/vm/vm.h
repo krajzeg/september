@@ -114,8 +114,8 @@ typedef struct SepVM {
 SepVM *vm_create(SepModule *module);
 // Runs the VM until it halts, either by finishing execution normally
 // or terminating with an exception. Either way, whatever is the final
-// result is returned.
-SepV vm_run(SepVM *this);
+// result on the stack, is returned.
+SepItem vm_run(SepVM *this);
 // Initializes the root execution frame based on a module.
 void vm_initialize_root_frame(SepVM *this, SepModule *module);
 

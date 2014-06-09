@@ -146,12 +146,25 @@ class EOutOfBounds {
 }
 EOutOfBounds.prototypes = Exception
 
+
+class Sequence {
+	method "[]" |index| {
+		if (index.is(Range)) {
+			this.slice(index.start, index.end, index.openEnded)
+		} else {
+			this.at(index)
+		}
+	}
+}
+
+Array.prototypes = Sequence
+
 #########################################################
 # Slices
 #########################################################
 
 class Slice {
-	constructor |sequence, start, end| {
+	constructor |sequence, start, end, openEnded = True| {
 		this::sequence = sequence
 		sequenceLen := sequence.length()
 		
@@ -194,4 +207,4 @@ class SliceIterator {
 	}
 }
 
-Array:::slice = |start, end| { Slice(this, start, end) }
+Array:::slice = |start, end, openEnded = True| { Slice(this, start, end, openEnded) }

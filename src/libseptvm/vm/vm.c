@@ -93,12 +93,12 @@ SepVM *vm_create(SepModule *module) {
 	return vm;
 }
 
-SepV vm_run(SepVM *this) {
+SepItem vm_run(SepVM *this) {
 	// sanity check - one VM allowed per thread
 	SepVM *previously_running = lsvm_globals.set_vm_for_current_thread(this);
 	if (previously_running && previously_running != this) {
 		lsvm_globals.set_vm_for_current_thread(previously_running);
-		return sepv_exception(exc.EInternal, sepstr_for("An attempt was made to run a second VM in one thread."));
+		return si_exception(exc.EInternal, sepstr_new("An attempt was made to run a second VM in one thread."));
 	}
 
 	// store the starting depth for this run - once we leave this level,
@@ -147,10 +147,10 @@ SepV vm_run(SepVM *this) {
 
 				// clear data from the stack
 				while (frames_to_unwind > 0) {
-					SepV stack_value = stack_pop_value(this->data);
-					if (sepv_is_exception(stack_value))
-						return stack_value;
-					if (stack_value == SEPV_UNWIND_MARKER)
+					SepItem stack_item = stack_pop_item(this->data);
+					if (sepv_is_exception(stack_item.value))
+						return stack_item;
+					if (stack_item.value == SEPV_UNWIND_MARKER)
 						frames_to_unwind--;
 				}
 
@@ -165,13 +165,13 @@ SepV vm_run(SepVM *this) {
 			this->frame_depth--;
 			// unwind the stack (usually it will be just the unwind marker, but in
 			// case of a 'break' or 'return' it might be more items)
-			SepV stack_value = stack_pop_value(this->data);
-			while (stack_value != SEPV_UNWIND_MARKER) {
-				if (sepv_is_exception(stack_value)) {
+			SepItem stack_item = stack_pop_item(this->data);
+			while (stack_item.value != SEPV_UNWIND_MARKER) {
+				if (sepv_is_exception(stack_item.value)) {
 					// something went horribly wrong
-					return stack_value;
+					return stack_item;
 				}
-				stack_value = stack_pop_value(this->data);
+				stack_item = stack_pop_item(this->data);
 			}
 
 			// push the return value on the data stack for its parent
@@ -188,7 +188,7 @@ SepV vm_run(SepVM *this) {
 
 cleanup_and_return:
 	lsvm_globals.set_vm_for_current_thread(previously_running);
-	return current_frame->return_value.value;
+	return current_frame->return_value;
 }
 
 // Initializes the root execution frame based on a module.
@@ -436,12 +436,12 @@ SepItem vm_invoke_with_argsource(SepVM *this, SepV callable, SepV custom_scope, 
 		vm_initialize_scope(this, func, scope, callee_frame);
 
 	// run to get result
-	SepV return_value = vm_run(this);
+	SepItem return_item = vm_run(this);
 
 	// register the return value in the parent frame to prevent it from being GC'd
-	gc_register(return_value);
+	gc_register(return_item.value);
 
-	return item_rvalue(return_value);
+	return return_item;
 }
 
 // Uses the VM to resolve a lazy value.
@@ -476,7 +476,7 @@ SepV vm_resolve_in(SepVM *this, SepV lazy_value, SepV scope) {
 	this->frame_depth++;
 
 	// run from that point until 'func' returns
-	SepV return_value = vm_run(this);
+	SepV return_value = vm_run(this).value;
 
 	// register the return value in the parent frame to prevent it from being GC'd
 	gc_register(return_value);

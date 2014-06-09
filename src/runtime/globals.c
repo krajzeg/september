@@ -164,9 +164,8 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 		if (fulfilled == SEPV_TRUE) {
 			// condition true - execute this branch and return
 			SepV body_v = property(branch, "body");
-			SepV result =
-					vm_invoke_in_scope(frame->vm, body_v, parent_scope, 0).value;
-			return item_rvalue(result);
+			SepItem result = vm_invoke_in_scope(frame->vm, body_v, parent_scope, 0);
+			return result;
 		}
 	}
 
@@ -174,9 +173,8 @@ SepItem statement_if_impl(SepObj *scope, ExecutionFrame *frame) {
 	SepV else_v = property(ifs, "else_branch");
 	if (else_v != SEPV_NOTHING) {
 		// there was an 'else', so execute that
-		SepV result =
-				vm_invoke_in_scope(frame->vm, else_v, parent_scope, 0).value;
-		return item_rvalue(result);
+		SepItem result = vm_invoke_in_scope(frame->vm, else_v, parent_scope, 0);
+		return result;
 	} else {
 		// no branch matched, did nothing, return nothing
 		return si_nothing();

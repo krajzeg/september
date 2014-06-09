@@ -111,7 +111,7 @@ ArrayIndexSlot *array_index_slot_create(SepArray *array, uint32_t index) {
 //  Indexing/slicing
 // ===============================================================
 
-SepItem array_index(SepObj *scope, ExecutionFrame *frame) {
+SepItem array_at(SepObj *scope, ExecutionFrame *frame) {
 	SepArray *this = sepv_to_array(target(scope));
 	SepV index_v = param(scope, "index");
 	if (!sepv_is_int(index_v))
@@ -158,7 +158,7 @@ SepObj *create_array_prototype() {
 	obj_add_field(Array, "<ArrayIterator>", obj_to_sepv(ArrayIterator));
 	obj_add_builtin_method(Array, "iterator", array_iterator, 0);
 	obj_add_builtin_method(Array, "length", array_len, 0);
-	obj_add_builtin_method(Array, "[]", array_index, 1, "index");
+	obj_add_builtin_method(Array, "at", array_at, 1, "index");
 
 	return Array;
 }
