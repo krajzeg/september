@@ -1,3 +1,4 @@
 Let's print 1 2 3 from the array: 1 2 3
 Now, let's do it backwards: 3 2 1
 We've modified the array, so it should be 1 42 6 now: 1 42 6
+array[end] should also be valid syntax and give 6: 6

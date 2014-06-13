@@ -23,3 +23,8 @@ for (i) in (array[8..23]) {
 	print("But it isn't:", i)
 }
 print("And the length should be 0:", array[8..23].length())
+
+print("array[2..end] should print 2,3,4,5:")
+for (i) in (array[2..end]) {
+	print(i)
+}

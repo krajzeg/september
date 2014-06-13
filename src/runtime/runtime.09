@@ -148,7 +148,9 @@ EOutOfBounds.prototypes = Exception
 
 
 class Sequence {
-	method "[]" |index| {
+	method "[]" |?index| {	
+		index = index.resolve(extensions: [[end: -1]])
+		
 		if (index.is(Range)) {
 			this.slice(index.start, index.end, index.openEnded)
 		} else {

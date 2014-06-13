@@ -5,3 +5,5 @@ print("Now, let's do it backwards:", array[-1], array[-2], array[-3])
 array[1] = 42
 array[-1] = 6
 print("We've modified the array, so it should be 1 42 6 now:", array[0], array[1], array[2])
+
+print("array[end] should also be valid syntax and give 6:", array[end])

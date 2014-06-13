@@ -112,12 +112,30 @@ SepItem object_accept(SepObj *scope, ExecutionFrame *frame) {
 // such as resolving as literal identifier.
 SepItem object_resolve(SepObj *scope, ExecutionFrame *frame) {
 	SepV target = target(scope);
+
+	// short circuit constants
+	if (!sepv_is_lazy(target))
+		return item_rvalue(target);
+	SepFunc *target_f = sepv_to_func(target);
+
+	// determine the scope in which we will be resolving
 	SepV resolution_scope = param(scope, "scope");
-	if (resolution_scope != SEPV_NO_VALUE) {
-		return item_rvalue(vm_resolve_in(frame->vm, target, resolution_scope));
-	} else {
-		return item_rvalue(vm_resolve(frame->vm, target));
+	if (resolution_scope == SEPV_NO_VALUE) {
+		resolution_scope = target_f->vt->get_declaration_scope(target_f);
 	}
+
+	// extensions?
+	SepV extensions = param(scope, "extensions");
+	if (extensions != SEPV_NO_VALUE) {
+		extensions = vm_resolve(frame->vm, extensions);
+			or_raise(extensions);
+		SepObj *extended_scope = obj_create_with_proto(resolution_scope);
+		obj_add_prototype(extended_scope, extensions);
+		resolution_scope = obj_to_sepv(extended_scope);
+	}
+
+	// resolve!
+	return item_rvalue(vm_resolve_in(frame->vm, target, resolution_scope));
 }
 
 // Object.spawn()
@@ -177,7 +195,7 @@ SepObj *create_object_prototype() {
 	obj_add_builtin_method(Object, "!==", object_op_not_same, 1, "other");
 
 	// add common methods
-	obj_add_builtin_method(Object, "resolve", object_resolve, 1, "=scope");
+	obj_add_builtin_method(Object, "resolve", object_resolve, 2, "=scope", "?=extensions");
 	obj_add_builtin_method(Object, "accept", object_accept, 2, "property_name", "slot");
 	obj_add_builtin_method(Object, "spawn", object_spawn, 0);
 	obj_add_builtin_method(Object, "is", object_is, 1, "desired_class");
