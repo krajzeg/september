@@ -1,19 +1,13 @@
-This simple slice should print '1 2':
-1
-2
+This simple slice should print '1, 2': 1, 2
 And the length should be 2: 2
-Open-ended slice should be the same:
-1
-2
+Open-ended slice should be the same: 1, 2
 And the length should still be 2: 2
-Out of bounds indices should be OK, so this should be '4 5':
-4
-5
+Out of bounds indices should be OK, so this should be 4, 5: 4, 5
 And the length should be truncated to 2: 2
-If both indices are out of bounds, the result should be empty:
+If both indices are out of bounds, the result should be empty: 
 And the length should be 0: 0
-array[2..end] should print 2,3,4,5:
-2
-3
-4
-5
+If the 'to' index is less than 'from', the result is empty: 
+And the length should be 0: 0
+array[3..end] should be legal and print 3, 4, 5: 3, 4, 5
+Negative indices should work, so this should be 2, 3, 4: 2, 3, 4
+With a length of 3: 3

@@ -136,6 +136,20 @@ Integer:::".."  = |end| { Range(this, end) }
 Integer:::"..." = |end| { Range(this, end, True) }
 
 #########################################################
+# Strings
+#########################################################
+
+String:::join = |sequence| {
+	joined := ""
+	first := True
+	for (item) in (sequence) {
+		if (!first) { joined = joined + this } else { first = False }
+		joined = joined + item.toString()		
+	}
+	return: joined
+}
+
+#########################################################
 # Sequences
 #########################################################
 
@@ -157,7 +171,16 @@ class Sequence {
 			this.at(index)
 		}
 	}
+	
+	method toString {
+		return: ", ".join(this)
+	}
 }
+
+
+#########################################################
+# Arrays
+#########################################################
 
 Array.prototypes = Sequence
 
@@ -171,7 +194,7 @@ class Slice {
 		sequenceLen := sequence.length()
 		
 		start = resolveIndex(start, 0, sequenceLen)
-		end = resolveIndex(end, 0, sequenceLen)			
+		end = resolveIndex(end, 0, sequenceLen)	
 		if (start < 0) { start = 0 }
 		if (!openEnded) { end = end + 1 } 
 		if (end > sequenceLen) { end = sequenceLen }		
@@ -183,19 +206,19 @@ class Slice {
 	}
 	
 	method resolveIndex |index, start, end| {
-		if (index >= 0) { start + index } else { end - index }
+		if (index >= 0) { start + index } else { end + index }
 	}
 	
-	method "[]" |index| {
+	method at |index| {
 		index = resolveIndex(index, start, end)
 		if ((index < start) || (index >= end)) { throw: EOutOfBounds(index) }
 		
 		sequence[index]
-	}
-	
+	}	
 	method length { len }	
 	method iterator { SliceIterator(this) }
 }
+Slice.prototypes = Sequence
 
 class SliceIterator {
 	constructor |slice| {
