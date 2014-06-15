@@ -1,0 +1,5 @@
+print("This should print the letters of 'Hello':")
+for (letter) in ("Hello") {
+	print(letter)
+}
+

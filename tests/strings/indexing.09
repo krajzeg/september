@@ -1,0 +1,4 @@
+str := "Orange"
+
+print("This should say 'O e':", str[0], str[5])
+print("This should say 'g r':", str[-2], str[-5])

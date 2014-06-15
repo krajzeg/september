@@ -98,8 +98,6 @@ class Comparable {
  	method ">=" = comparisonLogic |c|{ c >= 0 }
 }
 
-String.prototypes = Comparable
-
 #########################################################
 # Ranges
 #########################################################
@@ -148,6 +146,7 @@ String:::join = |sequence| {
 	}
 	return: joined
 }
+String:::toString = { this }
 
 #########################################################
 # Sequences
@@ -164,75 +163,83 @@ EOutOfBounds.prototypes = Exception
 class Sequence {
 	method "[]" |?index| {	
 		index = index.resolve(extensions: [[end: -1]])
-		
 		if (index.is(Range)) {
-			this.slice(index.start, index.end, index.openEnded)
+			bounds := this.resolveRange(index)
+			this.slice(bounds.start, bounds.end)
 		} else {
+			index = this.resolveIndex(index)
 			this.at(index)
 		}
+	}
+	
+	method resolveIndex |index| {
+		if (index < 0) { this.length() + index } else { index }
+	}
+	
+	method resolveRange |range| {
+		start := this.resolveIndex(range.start)  # removing the 'this' here breaks horribly, investigate!
+		end := this.resolveIndex(range.end)
+		openEnded := range.openEnded	
+		
+		sequenceLength := this.length()
+		if (start < 0) { start = 0 }
+		if (!openEnded) { end = end + 1 } 
+		if (end > sequenceLength) { end = sequenceLength }	
+
+		return: [[ start: start, end: end ]]
 	}
 	
 	method toString {
 		return: ", ".join(this)
 	}
+	
+	method iterator {
+		return: SequenceIterator(this)
+	}
 }
 
-
-#########################################################
-# Arrays
-#########################################################
-
-Array.prototypes = Sequence
+class SequenceIterator {
+	constructor |sequence| {
+		this::sequence = sequence
+		this::current = 0
+		this::length = sequence.length()
+	}
+	
+	method next() {
+		if (current >= length) { throw: ENoMoreElements() }
+		value := sequence.at(current)
+		current = current + 1
+		return: value
+	}
+}
 
 #########################################################
 # Slices
 #########################################################
 
 class Slice {
-	constructor |sequence, start, end, openEnded = True| {
+	constructor |sequence, start, end| {
 		this::sequence = sequence
-		sequenceLen := sequence.length()
-		
-		start = resolveIndex(start, 0, sequenceLen)
-		end = resolveIndex(end, 0, sequenceLen)	
-		if (start < 0) { start = 0 }
-		if (!openEnded) { end = end + 1 } 
-		if (end > sequenceLen) { end = sequenceLen }		
 		this::start = start
-		this::end = end
-		
-		this::len = (end - start)			
-		if (len < 0) { len = 0 }  
-	}
-	
-	method resolveIndex |index, start, end| {
-		if (index >= 0) { start + index } else { end + index }
+		this::end = end		
+		this::len = if (end > start) { end-start } else { 0 }	
 	}
 	
 	method at |index| {
-		index = resolveIndex(index, start, end)
-		if ((index < start) || (index >= end)) { throw: EOutOfBounds(index) }
-		
-		sequence[index]
+		if ((index < 0) || (index >= len)) { throw: EOutOfBounds(index) }
+		sequence[index + start]
 	}	
-	method length { len }	
-	method iterator { SliceIterator(this) }
+	method length { len }
 }
 Slice.prototypes = Sequence
 
-class SliceIterator {
-	constructor |slice| {
-		this::slice = slice
-		this::current = 0
-		this::length = slice.length()
-	}
-	
-	method next {
-		if (current >= length) { throw: ENoMoreElements() }
-		old_index := current
-		current = current + 1
-		return: slice[old_index]
-	}
-}
 
-Array:::slice = |start, end, openEnded = True| { Slice(this, start, end, openEnded) }
+Array:::slice = |start, end| { Slice(this, start, end) }
+
+#########################################################
+# Updated prototypes for primitives
+#########################################################
+
+String.prototypes = [Comparable, Sequence]
+Array.prototypes = Sequence
+

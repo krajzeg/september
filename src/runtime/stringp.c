@@ -36,6 +36,21 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(str_to_sepv(upper_str));
 }
 
+// ===============================================================
+// Sequence interface
+// ===============================================================
+
+SepItem string_at(SepObj *scope, ExecutionFrame *frame) {
+	SepV err = SEPV_NOTHING;
+	SepString *this = target_as_str(scope, &err); or_raise(err);
+	SepInt index = param_as_int(scope, "index", &err); or_raise(err);
+	if ((index < 0) || (index >= this->length))
+		raise(exc.EWrongIndex, "Index '%d' is out of bounds.", index);
+
+	SepString *character = sepstr_sprintf("%c", this->cstr[index]);
+	return item_rvalue(str_to_sepv(character));
+}
+
 SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err); or_raise(err);
@@ -85,8 +100,11 @@ SepItem string_compare(SepObj *scope, ExecutionFrame *frame) {
 SepObj *create_string_prototype() {
 	SepObj *String = make_class("String", NULL);
 
-	// === methods
+	// === sequence methods
+	obj_add_builtin_method(String, "at", &string_at, 1, "index");
 	obj_add_builtin_method(String, "length", &string_length, 0);
+
+	// === string methods
 	obj_add_builtin_method(String, "upperCase", &string_upper, 0);
 
 	// === operators
