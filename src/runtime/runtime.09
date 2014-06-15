@@ -183,7 +183,9 @@ class Sequence {
 		
 		sequenceLength := this.length()
 		if (start < 0) { start = 0 }
+		if (end < 0) { end = 0 }
 		if (!openEnded) { end = end + 1 } 
+		if (start > sequenceLength) { start = sequenceLength }
 		if (end > sequenceLength) { end = sequenceLength }	
 
 		return: [[ start: start, end: end ]]

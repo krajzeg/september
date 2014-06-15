@@ -40,15 +40,42 @@ SepItem string_upper(SepObj *scope, ExecutionFrame *frame) {
 // Sequence interface
 // ===============================================================
 
+SepV verify_index(SepString *this, SepInt index, bool open) {
+	SepInt max = open ? (this->length + 1) : (this->length);
+	if ((index < 0) || (index >= max)) {
+		raise_sepv(exc.EWrongIndex, "Index '%d' is out of bounds.", index);
+	} else {
+		return SEPV_NOTHING;
+	}
+}
+
 SepItem string_at(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err); or_raise(err);
 	SepInt index = param_as_int(scope, "index", &err); or_raise(err);
-	if ((index < 0) || (index >= this->length))
-		raise(exc.EWrongIndex, "Index '%d' is out of bounds.", index);
+	or_raise(verify_index(this, index, false));
 
 	SepString *character = sepstr_sprintf("%c", this->cstr[index]);
 	return item_rvalue(str_to_sepv(character));
+}
+
+SepItem string_slice(SepObj *scope, ExecutionFrame *frame) {
+	SepV err = SEPV_NOTHING;
+	SepString *this = target_as_str(scope, &err); or_raise(err);
+	SepInt from = param_as_int(scope, "from", &err); or_raise(err);
+	SepInt to = param_as_int(scope, "to", &err); or_raise(err);
+	or_raise(verify_index(this, from, true)); or_raise(verify_index(this, to, true));
+
+	SepInt len = to - from;
+	if (len < 0) len = 0;
+
+	char *buffer = mem_unmanaged_allocate(to - from + 1);
+	strncpy(buffer, this->cstr + from, to-from);
+	buffer[len] = '\0';
+	SepString *sliced = sepstr_new(buffer);
+	mem_unmanaged_free(buffer);
+
+	return item_rvalue(str_to_sepv(sliced));
 }
 
 SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
@@ -102,6 +129,7 @@ SepObj *create_string_prototype() {
 
 	// === sequence methods
 	obj_add_builtin_method(String, "at", &string_at, 1, "index");
+	obj_add_builtin_method(String, "slice", &string_slice, 2, "from", "to");
 	obj_add_builtin_method(String, "length", &string_length, 0);
 
 	// === string methods

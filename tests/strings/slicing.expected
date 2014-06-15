@@ -1,0 +1,7 @@
+This slice should print '12': 12
+This should be the same: 12
+Out of bounds indices should be OK: 45
+If both indices are out of bounds, the result should be empty: 
+If from is greater than to, the slice should be empty: 
+The string[1..end] syntax should work, so this is 12345: 12345
+Negative indices within slices should work, so this is 234: 234

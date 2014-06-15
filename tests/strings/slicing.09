@@ -1,0 +1,10 @@
+string := "012345"
+
+print("This slice should print '12':", string[1..2])
+print("This should be the same:", string[1...3])
+print("Out of bounds indices should be OK:", string[4..10])
+print("If both indices are out of bounds, the result should be empty:", string[20..24])
+print("If from is greater than to, the slice should be empty:", string[7..5])
+print("The string[1..end] syntax should work, so this is 12345:", string[1..end])
+print("Negative indices within slices should work, so this is 234:", string[(-4)..(-2)])
+
