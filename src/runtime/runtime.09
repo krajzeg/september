@@ -182,9 +182,9 @@ class Sequence {
 		openEnded := range.openEnded	
 		
 		sequenceLength := this.length()
+		if (!openEnded) { end = end + 1 } 
 		if (start < 0) { start = 0 }
 		if (end < 0) { end = 0 }
-		if (!openEnded) { end = end + 1 } 
 		if (start > sequenceLength) { start = sequenceLength }
 		if (end > sequenceLength) { end = sequenceLength }	
 
@@ -230,7 +230,12 @@ class Slice {
 	method at |index| {
 		if ((index < 0) || (index >= len)) { throw: EOutOfBounds(index) }
 		sequence[index + start]
-	}	
+	}
+	
+	method slice |start, end| {
+		Slice(sequence, this.start + start, this.start + end)
+	}
+	
 	method length { len }
 }
 Slice.prototypes = Sequence
