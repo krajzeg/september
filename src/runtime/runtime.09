@@ -99,41 +99,6 @@ class Comparable {
 }
 
 #########################################################
-# Ranges
-#########################################################
-
-class Range {
-	constructor |start, end, openEnded = False| {
-		this::start = start
-		this::end = end
-		this::openEnded = openEnded
-	}
-	
-	method iterator { RangeIterator(this) }	
-}
-
-class RangeIterator {
-	constructor |range| {
-		this::range = range
-		this::current = range.start
-	}
-	
-	method next {
-		range_end := if (range.openEnded) { range.end - 1 } else { range.end }
-		if (current > range_end) {
-			throw: ENoMoreElements()
-		} else {
-			return_value := current
-			current = current + 1
-			return: return_value
-		}			
-	}
-}
-
-Integer:::".."  = |end| { Range(this, end) }
-Integer:::"..." = |end| { Range(this, end, True) }
-
-#########################################################
 # Strings
 #########################################################
 
@@ -214,6 +179,55 @@ class SequenceIterator {
 		return: value
 	}
 }
+
+#########################################################
+# Ranges
+#########################################################
+
+class Range {
+	constructor |start, end, openEnded = False| {
+		this::start = start
+		this::end = end
+		this::openEnded = openEnded
+		
+		this::_length = end - start + (if (openEnded) {0} else {1})
+	}
+	
+	method contains |value| {
+		max := if (openEnded) { end - 1 } else { end }
+		return: (index < start) || (index > max) 
+	}
+	
+	method at |index| {
+		if ((index < 0) || (index >= _length)) { throw: EOutOfBounds() } 		
+		return: start + index
+	}
+	method slice |from, to| { Range(start + from, start + to, True) }	
+	method iterator { RangeIterator(this) }
+	method length { _length }	
+}
+Range.prototypes = Sequence
+
+class RangeIterator {
+	constructor |range| {
+		this::range = range
+		this::current = range.start
+	}
+	
+	method next {
+		range_end := if (range.openEnded) { range.end - 1 } else { range.end }
+		if (current > range_end) {
+			throw: ENoMoreElements()
+		} else {
+			return_value := current
+			current = current + 1
+			return: return_value
+		}			
+	}
+}
+
+Integer:::".."  = |end| { Range(this, end) }
+Integer:::"..." = |end| { Range(this, end, True) }
 
 #########################################################
 # Slices

@@ -9,3 +9,5 @@ This should print numbers from 1 to 4:
 2
 3
 4
+Indexing should work, so this should print 1 4: 1 4
+Slicing should work, so this should print 2, 3, 4: 2, 3, 4
