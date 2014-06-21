@@ -78,6 +78,46 @@ SepItem string_slice(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(str_to_sepv(sliced));
 }
 
+SepItem string_view(SepObj *scope, ExecutionFrame *frame) {
+	SepV err = SEPV_NOTHING;
+
+	// extract arguments
+	SepString *this = target_as_str(scope, &err); or_raise(err);
+	SepV char_seq = param(scope, "indices");
+
+	// create a SepString of necessary length
+	SepV length_v = call_method(frame->vm, char_seq, "length", 0); or_raise(length_v);
+	SepInt length = cast_as_int(length_v, &err); or_raise(err);
+	SepString *result = sepstr_with_length(length);
+
+	// iterate over the index sequence
+	SepV iterator = call_method(frame->vm, char_seq, "iterator", 0); or_raise(iterator);
+	SepV iterator_next = property(iterator, "next"); or_raise(iterator_next);
+
+	int position = 0;
+	while (true) {
+		SepV element = vm_invoke(frame->vm, iterator_next, 0).value;
+
+		// break on ENoMoreElements
+		SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
+		SepV is_no_more_elements_v = call_method(frame->vm, element, "is",
+				1, enomoreelements_v);
+		or_raise(is_no_more_elements_v);
+		if (is_no_more_elements_v == SEPV_TRUE) {
+			break;
+		}
+
+		// any other exception is propagated
+		or_raise(element);
+
+		// append character
+		SepInt index = cast_as_int(element, &err); or_raise(err);
+		result->cstr[position++] = this->cstr[index];
+	}
+
+	return item_rvalue(str_to_sepv(result));
+}
+
 SepItem string_length(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 	SepString *this = target_as_str(scope, &err); or_raise(err);
@@ -129,7 +169,7 @@ SepObj *create_string_prototype() {
 
 	// === sequence methods
 	obj_add_builtin_method(String, "at", &string_at, 1, "index");
-	obj_add_builtin_method(String, "slice", &string_slice, 2, "from", "to");
+	obj_add_builtin_method(String, "view", &string_view, 1, "indices");
 	obj_add_builtin_method(String, "length", &string_length, 0);
 
 	// === string methods

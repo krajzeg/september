@@ -42,6 +42,10 @@ SepString *sepstr_for(const char *c_string);
 // Returns a new SepString based on a C string. This will always be a new instance,
 // and strings created this way never go into the interned strings cache.
 SepString *sepstr_new(const char *c_string);
+// Creates a new uninitialized string with the given length. This is useful
+// mostly for functions that want to initialize the string contents themselves
+// and then return it.
+SepString *sepstr_with_length(SepInt length);
 // Returns a new SepString obtained by running sprintf with the arguments provided.
 SepString *sepstr_sprintf(const char *format, ...);
 // Allocates a new SepString* with a given maximum length, but uninitialized contents.

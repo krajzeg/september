@@ -89,6 +89,21 @@ SepString *sepstr_new(const char *c_string) {
 	return string;
 }
 
+// Creates a new uninitialized string with the given length. This is useful
+// mostly for functions that want to initialize the string contents themselves
+// and then return it.
+SepString *sepstr_with_length(SepInt length) {
+	size_t size = length + 1;
+	char *buffer = mem_unmanaged_allocate(size);
+
+	memset(buffer, 32, size);
+	buffer[length] = '\0';
+	SepString *string = sepstr_new(buffer);
+
+	mem_unmanaged_free(buffer);
+	return string;
+}
+
 SepString *sepstr_sprintf(const char *format, ...) {
 	int buffer_size = 80;
 	char *buffer = mem_unmanaged_allocate(buffer_size);

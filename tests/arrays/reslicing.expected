@@ -1,3 +1,0 @@
-After slicing twice, the result should be 2,3: 2, 3
-If the double slice works correctly, this will be 3: 3
-Slice.at is called 1 times on each access (should be once).

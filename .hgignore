@@ -15,3 +15,4 @@ scribbles
 .*\.kdev4
 .DS_Store
 Dummy
+.*\.actual

@@ -126,43 +126,67 @@ EOutOfBounds.prototypes = Exception
 
 
 class Sequence {
-	method "[]" |?index| {	
-		index = index.resolve(extensions: [[end: -1]])
-		if (index.is(Range)) {
-			bounds := this.resolveRange(index)
-			this.slice(bounds.start, bounds.end)
-		} else {
-			index = this.resolveIndex(index)
+	method "[]" |?index| {
+		index = index.resolve(extensions: [[ end: -1 ]])
+		if (index.is(Integer)) {
+			index = this.normalizeIndex(index)
 			this.at(index)
+		} else {		
+			normalized := this.normalizeIndexSequence(index)
+			this.view(normalized)
+		}
+		
+#		if ((indices.length() == 1) && (indices[0].is(Integer))) {
+#			// simple indexing
+#			index := normalizeIndex(indices[0])
+#			this.at(index)
+#		} else {
+#			normalized := indices.map(this.normalizeIndexSequence)
+#			this.view(Sequence.concatenated(sequences: normalized))
+#		}
+	}
+	
+	method view |indexSequence| { SequenceView(this, indexSequence) }	
+	method normalizeIndexSequence |seq| {
+		# TODO: Once is() is improved, fix the first step to 'not a sequence'
+		if (seq.is(Integer)) {
+			[seq]
+		} elseif (seq.is(Range)) {
+			this.normalizeIndexRange(seq)
+		} else {
+			seq # later - filter()
 		}
 	}
 	
-	method resolveIndex |index| {
+	method normalizeIndexRange |range| {
+		len := this.length()
+		
+		start := this.normalizeIndex(range.start)
+		if (start < 0) { start = 0 }
+		if (start >= len) { start = len }
+		
+		end := this.normalizeIndex(range.end)
+		if (!range.openEnded) { end = end + 1 }
+		if (end < 0) { end = 0 }
+		if (end >= len) { end = len }
+		
+		Range(start, end, True)
+	}
+	
+	method normalizeIndex |index| {
 		if (index < 0) { this.length() + index } else { index }
 	}
 	
-	method resolveRange |range| {
-		start := this.resolveIndex(range.start)  # removing the 'this' here breaks horribly, investigate!
-		end := this.resolveIndex(range.end)
-		openEnded := range.openEnded	
-		
-		sequenceLength := this.length()
-		if (!openEnded) { end = end + 1 } 
-		if (start < 0) { start = 0 }
-		if (end < 0) { end = 0 }
-		if (start > sequenceLength) { start = sequenceLength }
-		if (end > sequenceLength) { end = sequenceLength }	
-
-		return: [[ start: start, end: end ]]
+	method sum {
+		total := 0
+		for (item) in (this) { total = total + item }
+		return: total
 	}
 	
-	method toString {
-		return: ", ".join(this)
-	}
-	
-	method iterator {
-		return: SequenceIterator(this)
-	}
+	method map |mapping| { MappedSequence(this, mapping) }		
+	method concatenated |...sequences| { Concatenation(sequences) }
+	method toString { ", ".join(this) }
+	method iterator { SequenceIterator(this) }
 }
 
 class SequenceIterator {
@@ -181,6 +205,48 @@ class SequenceIterator {
 }
 
 #########################################################
+# Sequence.concatenated
+#########################################################
+
+class Concatenation {
+	constructor |sequences| {
+		this::seqs = sequences
+		this::_length = sequences.map|x|{ x.length() }.sum()
+	}
+	
+	method at |index| {
+		if ((index < 0) || (index >= _length)) {
+			throw: EOutOfBounds()
+		}
+		for (seq) in (seqs) {
+			if (index < seq.length()) {
+				break
+			} else {
+				index = index - seq.length()
+			}
+		}
+		seq[index]
+	}
+	method length { _length }	
+}
+Concatenation.prototypes = Sequence
+
+#########################################################
+# Sequence.map
+#########################################################
+
+class MappedSequence {
+	constructor |base, mapping| {
+		this::base = base
+		this::mapping = mapping
+	}
+	
+	method at|index| { mapping(base[index]) }
+	method length { base.length() }
+}
+MappedSequence.prototypes = Sequence
+
+#########################################################
 # Ranges
 #########################################################
 
@@ -191,6 +257,7 @@ class Range {
 		this::openEnded = openEnded
 		
 		this::_length = end - start + (if (openEnded) {0} else {1})
+		if (_length < 0) { _length = 0 }
 	}
 	
 	method contains |value| {
@@ -201,8 +268,7 @@ class Range {
 	method at |index| {
 		if ((index < 0) || (index >= _length)) { throw: EOutOfBounds() } 		
 		return: start + index
-	}
-	method slice |from, to| { Range(start + from, start + to, True) }	
+	}		
 	method iterator { RangeIterator(this) }
 	method length { _length }	
 }
@@ -233,29 +299,21 @@ Integer:::"..." = |end| { Range(this, end, True) }
 # Slices
 #########################################################
 
-class Slice {
-	constructor |sequence, start, end| {
-		this::sequence = sequence
-		this::start = start
-		this::end = end		
-		this::len = if (end > start) { end-start } else { 0 }	
+class SequenceView {
+	constructor |base, indexSequence| {
+		this::base = base
+		this::indexSequence = indexSequence				
 	}
 	
 	method at |index| {
-		if ((index < 0) || (index >= len)) { throw: EOutOfBounds(index) }
-		sequence[index + start]
-	}
-	
-	method slice |start, end| {
-		Slice(sequence, this.start + start, this.start + end)
-	}
-	
-	method length { len }
+		if ((index < 0) || (index >= this.length())) {
+			throw: EOutOfBounds()
+		}
+		base[ indexSequence[index] ]		
+	}		
+	method length { indexSequence.length() }
 }
-Slice.prototypes = Sequence
-
-
-Array:::slice = |start, end| { Slice(this, start, end) }
+SequenceView.prototypes = Sequence
 
 #########################################################
 # Updated prototypes for primitives
@@ -263,4 +321,3 @@ Array:::slice = |start, end| { Slice(this, start, end) }
 
 String.prototypes = [Comparable, Sequence]
 Array.prototypes = Sequence
-
