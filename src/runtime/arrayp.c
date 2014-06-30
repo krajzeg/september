@@ -55,6 +55,18 @@ SepItem arrayiterator_next(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(element);
 }
 
+SepItem array_fromiterator(SepObj *scope, ExecutionFrame *frame) {
+	SepV iterator = param(scope, "iterator");
+	SepArray *array = array_create(1);
+	while (true) {
+		SepV element = call_method(frame->vm, iterator, "next", 0);
+		if (sepv_is_no_more_elements(frame->vm, element))
+			return si_obj(array);
+		or_raise(element);
+		array_push(array, element);
+	}
+}
+
 // ===============================================================
 //  Array index slots
 // ===============================================================
@@ -156,6 +168,7 @@ SepObj *create_array_prototype() {
 	// create Array prototype
 	SepObj *Array = make_class("Array", NULL);
 	obj_add_field(Array, "<ArrayIterator>", obj_to_sepv(ArrayIterator));
+	obj_add_builtin_method(Array, "fromIterator", array_fromiterator, 1, "iterator");
 	obj_add_builtin_method(Array, "iterator", array_iterator, 0);
 	obj_add_builtin_method(Array, "length", array_len, 0);
 	obj_add_builtin_method(Array, "at", array_at, 1, "index");

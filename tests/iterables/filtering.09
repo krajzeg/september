@@ -1,0 +1,7 @@
+original := [1, 7, 2, 6, 3, 5]
+print("If filtering works, this will be 1, 2, 3:", original.filter|x|{x < 5})
+print("Filters that match nothing should give empty output:", original.filter|x|{x < 0})
+
+neverCalled := |x|{ print("But it was called.") }
+print("The filter function should never be called with empty collections.")
+[].filter(neverCalled)

@@ -2,7 +2,6 @@ array := [1, 2, 3]
 doubled := array.map |x| { x * 2 }
 
 print("If [1,2,3].map() works, this should be 2, 4, 6:", doubled.toString())
-print("The length after mapping should still be 3:", doubled.length())
 
 neverCalled := |x| { print("But the mapping was called.") }
 print("An empty array mapped should still be empty, and the mapping should never be called:", [].map(neverCalled))

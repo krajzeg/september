@@ -111,6 +111,9 @@ bool has_prototype(SepV object, SepV prototype);
 // reported as an exception. Arguments have to be passed in as SepVs.
 SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...);
 
+// Checks whether the given value is an ENoMoreElements exception (useful in iteration).
+bool sepv_is_no_more_elements(SepVM *vm, SepV value);
+
 // ===============================================================
 //  Adding properties
 // ===============================================================

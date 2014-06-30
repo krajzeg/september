@@ -185,6 +185,16 @@ SepV call_method(SepVM *vm, SepV host, char *name, int argument_count, ...) {
 	return result;
 }
 
+// Checks whether the given value is an ENoMoreElements exception (useful in iteration).
+bool sepv_is_no_more_elements(SepVM *vm, SepV value) {
+	if (!sepv_is_exception(value)) return false;
+	SepV enomoreelements_v = obj_to_sepv(exc.ENoMoreElements);
+	SepV is_no_more_elements_v = call_method(vm, value, "is",
+			1, enomoreelements_v);
+	return is_no_more_elements_v == SEPV_TRUE;
+}
+
+
 // ===============================================================
 //  Classes and prototypes
 // ===============================================================

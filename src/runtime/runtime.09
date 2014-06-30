@@ -114,6 +114,52 @@ String:::join = |sequence| {
 String:::toString = { this }
 
 #########################################################
+# Iterables and iterable operations
+#########################################################
+
+class Iterable {
+	method map |mapping| { DerivedIterable(mappingIteration(mapping), this) }
+	method filter |filter| { DerivedIterable(filteringIteration(filter), this) }
+	method realize { this }
+	method toString { ", ".join(this) }
+}
+
+class DerivedIterable {
+	constructor |iterFunc, baseIterable| {
+		this::iterFunc = iterFunc
+		this::baseIterable = baseIterable
+	}
+	
+	method iterator { FuncIterator(iterFunc, baseIterable.iterator()) }
+	method realize { baseIterable.fromIterator(this.iterator()) }
+	method fromIterator |it| { baseIterable.fromIterator(it) }
+}
+DerivedIterable.prototypes = Iterable
+
+class FuncIterator {
+	constructor |func, iterator| {
+		this::iterFunc = func
+		this::baseNext = iterator.next
+	}
+	
+	method next { iterFunc(baseNext) }
+}
+
+mappingIteration := |mapping| {
+	return: |next| {
+		element := next()
+		mapping(element)
+	}
+}
+filteringIteration := |filter| {
+	return: |next| {
+		element := next()
+		while (!filter(element)) { element = next() }
+		element
+	}
+}
+
+#########################################################
 # Sequences
 #########################################################
 
@@ -183,11 +229,10 @@ class Sequence {
 		return: total
 	}
 	
-	method map |mapping| { MappedSequence(this, mapping) }		
 	method concatenated |...sequences| { Concatenation(sequences) }
-	method toString { ", ".join(this) }
 	method iterator { SequenceIterator(this) }
 }
+Sequence.prototypes = Iterable
 
 class SequenceIterator {
 	constructor |sequence| {
@@ -196,7 +241,7 @@ class SequenceIterator {
 		this::length = sequence.length()
 	}
 	
-	method next() {
+	method next {
 		if (current >= length) { throw: ENoMoreElements() }
 		value := sequence.at(current)
 		current = current + 1
@@ -230,21 +275,6 @@ class Concatenation {
 	method length { _length }	
 }
 Concatenation.prototypes = Sequence
-
-#########################################################
-# Sequence.map
-#########################################################
-
-class MappedSequence {
-	constructor |base, mapping| {
-		this::base = base
-		this::mapping = mapping
-	}
-	
-	method at|index| { mapping(base[index]) }
-	method length { base.length() }
-}
-MappedSequence.prototypes = Sequence
 
 #########################################################
 # Ranges

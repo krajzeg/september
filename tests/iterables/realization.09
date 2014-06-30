@@ -1,0 +1,11 @@
+original := [1, 2, 3, 4, 5, 6]
+
+double := |x|{x * 2}
+lessThan10 := |x|{x < 10}
+
+chained := original.map(double).filter(lessThan10)
+print("If chaining iterable operations works, this will be 2, 4, 6, 8:", chained)
+
+realized := chained.realize()
+print("If realization works, this will be 2, 4, 6, 8 too:", realized)
+print("And the realized value will be an array, so this is True:", realized.is(Array))

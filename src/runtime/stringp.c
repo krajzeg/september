@@ -59,25 +59,6 @@ SepItem string_at(SepObj *scope, ExecutionFrame *frame) {
 	return item_rvalue(str_to_sepv(character));
 }
 
-SepItem string_slice(SepObj *scope, ExecutionFrame *frame) {
-	SepV err = SEPV_NOTHING;
-	SepString *this = target_as_str(scope, &err); or_raise(err);
-	SepInt from = param_as_int(scope, "from", &err); or_raise(err);
-	SepInt to = param_as_int(scope, "to", &err); or_raise(err);
-	or_raise(verify_index(this, from, true)); or_raise(verify_index(this, to, true));
-
-	SepInt len = to - from;
-	if (len < 0) len = 0;
-
-	char *buffer = mem_unmanaged_allocate(to - from + 1);
-	strncpy(buffer, this->cstr + from, to-from);
-	buffer[len] = '\0';
-	SepString *sliced = sepstr_new(buffer);
-	mem_unmanaged_free(buffer);
-
-	return item_rvalue(str_to_sepv(sliced));
-}
-
 SepItem string_view(SepObj *scope, ExecutionFrame *frame) {
 	SepV err = SEPV_NOTHING;
 
